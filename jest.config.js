@@ -34,7 +34,7 @@ const customJestConfig = {
     '!src/**/types.{js,jsx,ts,tsx}',
     '!src/utils/modelLoader.ts',
     '!src/components/DraggableFurniture.tsx',
-    '!src/components/Real3DRoom.tsx',
+    'src/components/Real3DRoom.tsx',
     '!src/components/EditableFurniture.tsx',
     '!src/components/FurnitureModel.tsx',
     '!src/components/Room.tsx',
@@ -94,7 +94,7 @@ const customJestConfig = {
   testTimeout: 10000,
   verbose: true,
   transformIgnorePatterns: [
-    '/node_modules/(?!(three|@react-three|@babel|three-stdlib)/)'
+    '/node_modules/(?!(three|@react-three|three-stdlib)/)'
   ],
   setupFilesAfterEnv: [
     '<rootDir>/jest.setup.js'
@@ -103,9 +103,6 @@ const customJestConfig = {
     customExportConditions: ['node', 'node-addons'],
   },
   moduleDirectories: ['node_modules', '<rootDir>/src'],
-  transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
-  },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^three$': '<rootDir>/src/__mocks__/three.js',

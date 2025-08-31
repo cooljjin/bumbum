@@ -64,7 +64,7 @@ export function useUIManager(): UIManager {
   const toggleEditMode = () => setIsEditMode(!isEditMode);
   const toggleShowSettings = () => setShowSettings(!showSettings);
 
-  const setViewLocked = setIsViewLocked;
+
   const setEditMode = setIsEditMode;
 
   // Modal priority management - 한 번에 하나의 모달만 표시

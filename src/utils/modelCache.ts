@@ -30,6 +30,7 @@ class ModelCache {
   private cleanupTimer: NodeJS.Timeout | null = null;
 
   constructor(options: Partial<ModelCacheOptions> = {}) {
+    this.loader = new GLTFLoader();
     this.options = {
       maxMemory: 512, // 512MB
       maxModels: 100,
@@ -154,14 +155,14 @@ class ModelCache {
 
     // 지오메트리 크기 계산
     geometries.forEach(geometry => {
-      if (geometry.attributes.position) {
-        size += geometry.attributes.position.count * 3 * 4; // float32
+      if (geometry.attributes['position']) {
+        size += geometry.attributes['position'].count * 3 * 4; // float32
       }
-      if (geometry.attributes.normal) {
-        size += geometry.attributes.normal.count * 3 * 4;
+      if (geometry.attributes['normal']) {
+        size += geometry.attributes['normal'].count * 3 * 4;
       }
-      if (geometry.attributes.uv) {
-        size += geometry.attributes.uv.count * 2 * 4;
+      if (geometry.attributes['uv']) {
+        size += geometry.attributes['uv'].count * 2 * 4;
       }
     });
 
@@ -238,7 +239,7 @@ class ModelCache {
   /**
    * 캐시 정리
    */
-  private async cleanupCache(): Promise<void> {
+  public async cleanupCache(): Promise<void> {
     console.log('🧹 캐시 정리 시작...');
 
     const entries = Array.from(this.cache.entries());

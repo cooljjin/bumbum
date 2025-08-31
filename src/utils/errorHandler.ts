@@ -197,8 +197,8 @@ export class ErrorHandler {
       message: error.message,
               userMessage: this.getUserFriendlyMessage(type),
       timestamp: new Date(),
-      stack: error.stack,
-      context,
+      stack: error.stack || '',
+      context: context || {},
       recoverable: this.isRecoverable(type),
       autoRecoveryAttempted: false
     };

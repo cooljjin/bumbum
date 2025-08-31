@@ -1,6 +1,6 @@
 // Zustand 스토어 성능 최적화 유틸리티
 
-import { performanceMonitor, measurePerformance } from './performanceMonitor';
+import { performanceMonitor } from './performanceMonitor';
 
 // 스토어 성능 최적화를 위한 설정
 interface OptimizationConfig {

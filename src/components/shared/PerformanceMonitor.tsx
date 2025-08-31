@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -23,7 +23,7 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   position = [0, 0, 0],
   showDetails = false
 }) => {
-  const { gl, scene } = useThree();
+  const { gl } = useThree();
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     fps: 0,
     frameTime: 0,
@@ -97,25 +97,7 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
     }
   });
 
-  // 성능 최적화 권장사항
-  const getPerformanceRecommendations = (): string[] => {
-    const recommendations: string[] = [];
 
-    if (metrics.fps < 30) {
-      recommendations.push('FPS가 낮습니다. LOD 시스템을 활성화하거나 모델을 단순화하세요.');
-    }
-    if (metrics.memoryUsage > 100) {
-      recommendations.push('메모리 사용량이 높습니다. 사용하지 않는 모델을 제거하세요.');
-    }
-    if (metrics.renderCalls > 100) {
-      recommendations.push('렌더링 호출이 많습니다. 객체를 그룹화하거나 인스턴싱을 사용하세요.');
-    }
-    if (metrics.triangles > 100000) {
-      recommendations.push('삼각형 수가 많습니다. 모델을 단순화하거나 LOD를 사용하세요.');
-    }
-
-    return recommendations;
-  };
 
   if (!enabled) return null;
 

@@ -117,12 +117,93 @@ textarea {
 /* 모바일에서 더 큰 터치 타겟 */
 @media (max-width: 768px) {
   button,
-  [role="button"],
-  input,
-  select,
-  textarea {
+  [role="button"] {
     min-height: 48px;
     min-width: 48px;
+  }
+}
+
+/* ===== 가구 라이브러리 스크롤바 개선 ===== */
+
+/* Webkit 브라우저 (Chrome, Safari, Edge) 스크롤바 스타일 */
+.furniture-catalog-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.furniture-catalog-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.furniture-catalog-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  border: 1px solid #f1f5f9;
+}
+
+.furniture-catalog-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.furniture-catalog-scroll::-webkit-scrollbar-thumb:active {
+  background: #64748b;
+}
+
+/* Firefox 스크롤바 스타일 */
+.furniture-catalog-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* 스크롤바가 보이지 않을 때도 휠스크롤 작동 */
+.furniture-catalog-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* 휠스크롤 최적화 */
+.furniture-catalog-scroll {
+  overscroll-behavior: contain;
+  scroll-snap-type: y proximity;
+}
+
+/* 스크롤 스냅 포인트 */
+.furniture-catalog-scroll > * {
+  scroll-snap-align: start;
+}
+
+/* ===== 반응형 스크롤바 ===== */
+@media (max-width: 768px) {
+  .furniture-catalog-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .furniture-catalog-scroll::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+  }
+}
+
+/* ===== 다크 모드 스크롤바 ===== */
+@media (prefers-color-scheme: dark) {
+  .furniture-catalog-scroll::-webkit-scrollbar-track {
+    background: #1e293b;
+  }
+  
+  .furniture-catalog-scroll::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-color: #1e293b;
+  }
+  
+  .furniture-catalog-scroll::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+  }
+  
+  .furniture-catalog-scroll {
+    scrollbar-color: #475569 #1e293b;
   }
 }
 

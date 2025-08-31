@@ -42,7 +42,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = ({
   const raycaster = useRef<Raycaster>(new Raycaster());
   const dragPlane = useRef<Plane>(new Plane(new Vector3(0, 1, 0), 0));
 
-  const { grid } = useEditorStore();
+  const { grid, setDragging } = useEditorStore();
   const { camera } = useThree();
 
   // 3D 모델 메모리 정리 함수
@@ -105,8 +105,11 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = ({
     const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
     setDragStartMousePosition(new Vector2(mouseX, mouseY));
 
+    // 전역 드래그 상태 업데이트
+    setDragging(true);
+
     console.log('🖱️ 드래그 시작:', item.name);
-  }, [isEditMode, item.isLocked, item.id, item.position, item.name, onSelect]);
+  }, [isEditMode, item.isLocked, item.id, item.position, item.name, onSelect, setDragging]);
 
   // 🔄 드래그 중 핸들러
   const handleDrag = useCallback((event: any) => {
@@ -153,8 +156,11 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = ({
     setDragStartPosition(null);
     setDragStartMousePosition(null);
 
+    // 전역 드래그 상태 업데이트
+    setDragging(false);
+
     console.log('✅ 드래그 종료:', item.name);
-  }, [isDragging, item.name]);
+  }, [isDragging, item.name, setDragging]);
 
   // 🖱️ 마우스 이벤트 핸들러
   const handleMouseDown = useCallback((event: any) => {

@@ -12,7 +12,7 @@ export const UndoRedoHistory: React.FC<UndoRedoHistoryProps> = ({
   position = 'bottom-right'
 }) => {
   const { history, canUndo: canUndoFn, canRedo: canRedoFn } = useEditorStore();
-  const [isExpanded, setIsExpanded] = useState(false); // 기본적으로 축소 상태
+  const [isExpanded, setIsExpanded] = useState(false); // 기본적으로 접힌 상태
   const [lastAction, setLastAction] = useState<string>('');
 
   // 위치별 스타일 계산
@@ -25,7 +25,7 @@ export const UndoRedoHistory: React.FC<UndoRedoHistoryProps> = ({
       case 'bottom-right':
         return `${baseStyles} bottom-6 right-6`;
       case 'top-left':
-        return `${baseStyles} top-6 left-6`;
+        return `${baseStyles} top-20 left-6`;
       case 'bottom-left':
         return `${baseStyles} bottom-6 left-6`;
       default:
@@ -64,43 +64,7 @@ export const UndoRedoHistory: React.FC<UndoRedoHistoryProps> = ({
     );
   };
 
-  // 축약된 히스토리 표시
-  const renderCollapsedHistory = (): React.ReactElement => {
-    const pastCount = history.past.length;
-    const futureCount = history.future.length;
-    
-    if (pastCount === 0 && futureCount === 0) {
-      return (
-        <div className="text-center text-gray-500 text-xs py-4">
-          작업 히스토리가 없습니다
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-1">
-        {/* 과거 히스토리 (최근 3개) */}
-        {history.past.slice(-3).reverse().map((item, index) => 
-          renderHistoryItem(item, history.past.length - 3 + index, true)
-        )}
-        
-        {/* 현재 상태 표시 */}
-        {Array.isArray(history.present) && history.present.length > 0 && (
-          <div className="px-3 py-2 text-sm border-l-2 border-green-500 bg-green-50 text-green-700">
-            <div className="flex items-center gap-2">
-              <span className="text-xs">●</span>
-              <span className="truncate">현재 상태</span>
-            </div>
-          </div>
-        )}
-        
-        {/* 미래 히스토리 (최근 2개) */}
-        {history.future.slice(0, 2).map((item, index) => 
-          renderHistoryItem(item, index, false)
-        )}
-      </div>
-    );
-  };
+  
 
   // 확장된 히스토리 표시
   const renderExpandedHistory = (): React.ReactElement => {
@@ -173,7 +137,7 @@ export const UndoRedoHistory: React.FC<UndoRedoHistoryProps> = ({
   }, [history.past]);
 
   // 히스토리가 없으면 표시하지 않음 (Hook 호출 후로 이동)
-  const hasHistory = history.past.length > 0 || history.future.length > 0 || history.present.length > 0;
+  const hasHistory = history.past.length > 0 || history.future.length > 0 || (Array.isArray(history.present) && history.present.length > 0);
   if (!hasHistory) return null;
   return (
     <div className={getPositionStyles()}>
@@ -192,24 +156,28 @@ export const UndoRedoHistory: React.FC<UndoRedoHistoryProps> = ({
             <h3 className="text-sm font-medium text-gray-700">작업 히스토리</h3>
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded hover:bg-gray-200"
               title={isExpanded ? '축소' : '확장'}
             >
               {isExpanded ? '−' : '+'}
             </button>
           </div>
           
-          {/* 상태 표시 */}
-          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-            <span>실행 취소: {canUndoFn() ? '가능' : '불가능'}</span>
-            <span>다시 실행: {canRedoFn() ? '가능' : '불가능'}</span>
-          </div>
+          {/* 상태 표시 - 접었을 때는 간단하게 */}
+          {isExpanded && (
+            <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                          <span className="text-xs">실행취소: {canUndoFn() ? '가능' : '불가'}</span>
+            <span className="text-xs">다시실행: {canRedoFn() ? '가능' : '불가'}</span>
+            </div>
+          )}
         </div>
         
-        {/* 히스토리 내용 */}
-        <div className="p-2">
-          {isExpanded ? renderExpandedHistory() : renderCollapsedHistory()}
-        </div>
+        {/* 히스토리 내용 - 접었을 때는 내용 숨김 */}
+        {isExpanded && (
+          <div className="p-2">
+            {renderExpandedHistory()}
+          </div>
+        )}
       </div>
     </div>
   );

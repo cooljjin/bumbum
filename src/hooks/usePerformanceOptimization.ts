@@ -92,7 +92,7 @@ export function usePerformanceOptimization(
       if ('geometry' in object && object.geometry) {
         // 지오메트리가 사용되지 않는 경우 dispose
         const geometry = object.geometry as THREE.BufferGeometry;
-        if (geometry.userData?.disposeAfter === true) {
+        if (geometry.userData?.['disposeAfter'] === true) {
           geometry.dispose();
         }
       }
@@ -102,13 +102,13 @@ export function usePerformanceOptimization(
         if (Array.isArray(object.material)) {
           object.material.forEach(mat => {
             const material = mat as THREE.MeshStandardMaterial;
-            if ('map' in material && material.map && material.map.userData?.disposeAfter === true) {
+            if ('map' in material && material.map && material.map.userData?.['disposeAfter'] === true) {
               material.map.dispose();
             }
           });
         } else {
           const material = object.material as THREE.MeshStandardMaterial;
-          if ('map' in material && material.map && material.map.userData?.disposeAfter === true) {
+          if ('map' in material && material.map && material.map.userData?.['disposeAfter'] === true) {
             material.map.dispose();
           }
         }

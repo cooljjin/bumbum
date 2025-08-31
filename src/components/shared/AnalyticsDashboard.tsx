@@ -48,11 +48,11 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   const hasLocalStorage = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
   const [currentSession, setCurrentSession] = useState<UserSession | null>(null);
   const [analyticsData, setAnalyticsData] = useState<UserSession[]>([]);
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'day' | 'week' | 'month'>('week');
+
   const [isRecording, setIsRecording] = useState(true);
 
   const placedItems = useEditorStore(state => state.placedItems);
-  const selectedItemId = useEditorStore(state => state.selectedItemId);
+
 
   // 세션 초기화
   useEffect(() => {
@@ -148,16 +148,16 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     const sessions = analyticsData.length > 0 ? analyticsData : persisted;
 
     const totalSessions = sessions.length;
-    const totalActions = sessions.reduce((sum, session) => sum + session.actions.length, 0);
+    const totalActions = sessions.reduce((sum: number, session: UserSession) => sum + session.actions.length, 0);
     const averageSessionDuration = sessions.length > 0
-      ? sessions.reduce((sum, session) => {
+              ? sessions.reduce((sum: number, session: UserSession) => {
           const duration = session.endTime ? session.endTime - session.startTime : 0;
           return sum + duration;
         }, 0) / sessions.length / 1000 / 60 // 분 단위
       : 0;
 
     // 행동별 통계
-    const actionStats = sessions.reduce((stats, session) => {
+    const actionStats = sessions.reduce((stats: Record<string, number>, session: UserSession) => {
       session.actions.forEach(action => {
         stats[action.type] = (stats[action.type] || 0) + 1;
       });
@@ -165,7 +165,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     }, {} as Record<string, number>);
 
     // 시간대별 활동
-    const hourlyActivity = sessions.reduce((activity, session) => {
+    const hourlyActivity = sessions.reduce((activity: Record<number, number>, session: UserSession) => {
       session.actions.forEach(action => {
         const hour = new Date(action.timestamp).getHours();
         activity[hour] = (activity[hour] || 0) + 1;
@@ -174,7 +174,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     }, {} as Record<number, number>);
 
     // 디바이스별 통계
-    const deviceStats = sessions.reduce((stats, session) => {
+    const deviceStats = sessions.reduce((stats: Record<string, number>, session: UserSession) => {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(session.deviceInfo.userAgent);
       const deviceType = isMobile ? 'mobile' : 'desktop';
       stats[deviceType] = (stats[deviceType] || 0) + 1;
@@ -341,14 +341,14 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                       <span className="text-sm font-medium text-gray-700 capitalize">
                         {action.replace('_', ' ')}
                       </span>
-                      <span className="text-lg font-bold text-gray-900">{count}</span>
+                      <span className="text-lg font-bold text-gray-900">{count as number}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                       <motion.div
                         className="bg-blue-600 h-2 rounded-full"
                         initial={{ width: 0 }}
                         animate={{
-                          width: `${(count / Math.max(...Object.values(analytics.actionStats))) * 100}%`
+                          width: `${((count as number) / Math.max(...Object.values(analytics.actionStats) as number[])) * 100}%`
                         }}
                         transition={{ duration: 0.5, delay: 0.1 }}
                       />
@@ -368,7 +368,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                     className="flex-1 bg-gray-50 p-4 rounded-xl border border-gray-200 text-center"
                     whileHover={{ scale: 1.02 }}
                   >
-                    <span className="text-2xl font-bold text-gray-900">{count}</span>
+                    <span className="text-2xl font-bold text-gray-900">{count as number}</span>
                     <p className="text-sm text-gray-600 mt-1 capitalize">{device}</p>
                   </motion.div>
                 ))}
@@ -385,7 +385,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                       key={hour}
                       className="flex-1 bg-blue-500 rounded-t hover:bg-blue-600 transition-colors"
                       style={{
-                        height: `${((analytics.hourlyActivity[hour] || 0) / Math.max(...Object.values(analytics.hourlyActivity), 1)) * 100}%`
+                        height: `${((analytics.hourlyActivity[hour] || 0) / Math.max(...Object.values(analytics.hourlyActivity) as number[], 1)) * 100}%`
                       }}
                       whileHover={{ scale: 1.05 }}
                       title={`${hour}:00 - ${analytics.hourlyActivity[hour] || 0}회`}

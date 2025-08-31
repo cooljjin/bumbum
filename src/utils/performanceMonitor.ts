@@ -102,23 +102,29 @@ class PerformanceMonitor {
 
   // 성능 리포트 생성
   generateReport(storeName?: string): string {
-    const data = storeName ? this.metrics[storeName] : this.metrics;
-    
-    if (!data) return '데이터가 없습니다.';
-
-    let report = '📊 성능 리포트\n';
-    report += '='.repeat(30) + '\n';
-
     if (storeName) {
+      const data = this.metrics[storeName];
+      if (!data) return '데이터가 없습니다.';
+
+      let report = '📊 성능 리포트\n';
+      report += '='.repeat(30) + '\n';
       report += this.formatMetricReport(storeName, data);
+
+      return report;
     } else {
+      const data = this.metrics;
+      if (Object.keys(data).length === 0) return '데이터가 없습니다.';
+
+      let report = '📊 성능 리포트\n';
+      report += '='.repeat(30) + '\n';
+
       Object.entries(data).forEach(([name, metric]) => {
         report += this.formatMetricReport(name, metric);
         report += '\n';
       });
-    }
 
-    return report;
+      return report;
+    }
   }
 
   // 메트릭 리포트 포맷팅
@@ -169,16 +175,7 @@ class PerformanceMonitor {
     this.observers.delete(callback);
   }
 
-  // 옵저버들에게 데이터 전달
-  private notifyObservers(): void {
-    this.observers.forEach(callback => {
-      try {
-        callback({ ...this.metrics });
-      } catch (error) {
-        console.error('옵저버 콜백 실행 중 오류:', error);
-      }
-    });
-  }
+
 
   // 성능 최적화 권장사항
   getOptimizationSuggestions(storeName: string): string[] {

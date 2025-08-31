@@ -142,4 +142,4 @@ export const themes: Record<string, Theme> = {
   }
 };
 
-export const defaultTheme = themes.calm;
+export const defaultTheme = themes['calm'];

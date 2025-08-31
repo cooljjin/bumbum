@@ -3,7 +3,7 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Vector3, Euler, Group } from 'three';
-import { useEditorStore } from '../store/editorStore';
+import { useEditorStore } from '../../store/editorStore';
 
 interface TouchGesture {
   type: 'none' | 'pan' | 'pinch' | 'rotate';

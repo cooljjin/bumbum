@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FurnitureCategory } from '../types/furniture';
+import { FurnitureCategory } from '../../types/furniture';
 
 interface BottomCategoryTabsProps {
   selectedCategory?: FurnitureCategory | 'all';

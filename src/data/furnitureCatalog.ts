@@ -1330,9 +1330,9 @@ export const createPlacedItemFromFurniture = (
     footprint: furniture.footprint,
     metadata: {
       category: furniture.category,
-      brand: furniture.metadata.brand,
-      price: furniture.metadata.price,
-      description: furniture.metadata.description,
+      ...(furniture.metadata.brand && { brand: furniture.metadata.brand }),
+      ...(furniture.metadata.price && { price: furniture.metadata.price }),
+      ...(furniture.metadata.description && { description: furniture.metadata.description }),
       furnitureId: furniture.id // furniture ID를 metadata에 저장
     }
   };

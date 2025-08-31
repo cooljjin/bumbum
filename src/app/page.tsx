@@ -77,7 +77,7 @@ export default function HomePage() {
 
         {/* Undo/Redo 히스토리 */}
         {uiManager.isEditMode && (
-          <UndoRedoHistory position="top-right" />
+          <UndoRedoHistory position="top-left" />
         )}
 
         {/* 모바일 UI */}

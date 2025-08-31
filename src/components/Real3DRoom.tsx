@@ -12,6 +12,9 @@ import {
 import * as THREE from 'three';
 import { Vector3, Euler } from 'three';
 import Room from './features/room/Room';
+import RoomBoundaryVisualizer from './features/room/RoomBoundaryVisualizer';
+import RoomSizeSettings from './features/room/RoomSizeSettings';
+import { updateRoomDimensions, isFurnitureInRoom, constrainFurnitureToRoom } from '../utils/roomBoundary';
 
 
 import EnhancedFurnitureCatalog from './features/furniture/EnhancedFurnitureCatalog';
@@ -21,7 +24,7 @@ import EditToolbar from './layout/EditToolbar';
 import RoomTemplateSelector from './features/room/RoomTemplateSelector';
 import { PerformanceMonitor } from './shared/PerformanceMonitor';
 import TouchControls from './features/editor/TouchControls';
-import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, selectItem, addItem, clearAllItems, useGridSettings } from '../store/editorStore';
+import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, selectItem, addItem, clearAllItems } from '../store/editorStore';
 
 interface Real3DRoomProps {
   shadowMode?: 'baked' | 'realtime';
@@ -33,7 +36,7 @@ interface Real3DRoomProps {
 import { FurnitureItem } from '../types/furniture';
 import { createPlacedItemFromFurniture, sampleFurniture } from '../data/furnitureCatalog';
 import { applyRoomTemplate, RoomTemplate } from '../data/roomTemplates';
-import { cacheUtils } from '../utils/modelCache';
+
 
 // 카메라 컨트롤러 컴포넌트
 function CameraController({
@@ -143,13 +146,14 @@ export default function Real3DRoom({
   const [showTransitionEffect, setShowTransitionEffect] = useState(false);
   const [showFurnitureCatalog, setShowFurnitureCatalog] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [showRoomSizeSettings, setShowRoomSizeSettings] = useState(false);
   const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
 
   // 모바일 환경 감지
   const [isMobile, setIsMobile] = useState(false);
 
   // 성능 최적화 상태
-  const [performanceOptimizationEnabled, setPerformanceOptimizationEnabled] = useState(true);
+  const [performanceOptimizationEnabled] = useState(true);
 
 
 
@@ -181,7 +185,6 @@ export default function Real3DRoom({
   const storeEditMode = useEditorMode();
   const placedItems = usePlacedItems();
   const selectedItemId = useSelectedItemId();
-  const gridSettings = useGridSettings();
 
   // 카메라 컨트롤러 ref
   const cameraControlsRef = useRef<import('camera-controls').default>(null);
@@ -485,12 +488,8 @@ export default function Real3DRoom({
         );
       }
     } else {
-      // 첫 번째 가구는 중앙 근처 랜덤 위치에 배치
-      position = new Vector3(
-        (Math.random() - 0.5) * 4, // -2 ~ 2m 범위
-        0,
-        (Math.random() - 0.5) * 4  // -2 ~ 2m 범위
-      );
+      // 첫 번째 가구는 정확히 중앙에 배치
+      position = new Vector3(0, 0, 0);
     }
 
     // 편집 스토어에 가구 추가 (createPlacedItemFromFurniture 함수 사용으로 일관성 유지)
@@ -542,7 +541,7 @@ export default function Real3DRoom({
   };
 
   return (
-    <div className="relative w-full h-full overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-slate-100" style={{ zIndex: 10 }}>
+    <div className="relative w-full h-full overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-slate-100 z-10">
       {/* 우측 상단 룸 편집 버튼 */}
       <motion.button
         onClick={handleEditModeToggle}
@@ -581,13 +580,8 @@ export default function Real3DRoom({
           powerPreference: 'high-performance'
         }}
         dpr={[minDpr, maxDpr]}
+        className="w-full h-full block absolute top-0 left-0"
         style={{
-          width: '100%',
-          height: '100%',
-          display: 'block',
-          position: 'absolute',
-          top: 0,
-          left: 0,
           backgroundColor: '#f8fafc',
           background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'
         }}
@@ -630,6 +624,15 @@ export default function Real3DRoom({
 
         {/* 3D 룸 */}
         <Room receiveShadow={shadowMode === 'realtime'} />
+
+        {/* 방 경계 시각화 - 편집 모드에서만 표시 */}
+        {isEditMode && (
+          <RoomBoundaryVisualizer 
+            visible={true} 
+            color="#ff6b6b" 
+            lineWidth={2} 
+          />
+        )}
 
         {/* 성능 모니터링 */}
         <PerformanceMonitor
@@ -733,23 +736,23 @@ export default function Real3DRoom({
             }
           }}
           className="absolute bottom-4 right-4 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-2xl hover:from-red-700 hover:to-red-800 hover:scale-105 border-2 border-red-800 z-[9999] flex items-center gap-2"
-          style={{ zIndex: 9999 }}
         >
           <span className="text-lg">🗑️</span>
           <span>모든 객체 삭제 ({placedItems.length}개)</span>
         </button>
       )}
 
-      {/* 편집 도구바 - 편집 모드에서만 표시 */}
-      {isEditMode && (
-        <EditToolbar
-          onToggleFurnitureCatalog={handleToggleFurnitureCatalog}
-          showFurnitureCatalog={showFurnitureCatalog}
-          onToggleTemplateSelector={() => setShowTemplateSelector(!showTemplateSelector)}
-          showTemplateSelector={showTemplateSelector}
-          isMobile={isMobile}
-        />
-      )}
+              {/* 편집 도구바 - 편집 모드에서만 표시 */}
+        {isEditMode && (
+          <EditToolbar
+            onToggleFurnitureCatalog={handleToggleFurnitureCatalog}
+            showFurnitureCatalog={showFurnitureCatalog}
+            onToggleTemplateSelector={() => setShowTemplateSelector(!showTemplateSelector)}
+            showTemplateSelector={showTemplateSelector}
+            onToggleRoomSizeSettings={() => setShowRoomSizeSettings(!showRoomSizeSettings)}
+            isMobile={isMobile}
+          />
+        )}
 
       {/* 가구 카탈로그 하단 패널 - 화면 하단 2/3 차지 */}
       {isEditMode && showFurnitureCatalog && (
@@ -758,26 +761,20 @@ export default function Real3DRoom({
           animate={{ transform: 'translateY(0)' }}
           exit={{ transform: 'translateY(100%)' }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed left-0 right-0 w-full bg-white border-t-2 border-blue-200 overflow-hidden shadow-2xl flex flex-col"
-          style={{ 
-            height: '66vh', 
-            zIndex: 9999,
-            bottom: '0',
-            position: 'fixed'
-          }}
+          className="fixed left-0 right-0 w-full bg-white border-t-2 border-blue-200 overflow-hidden shadow-2xl flex flex-col h-[66vh] z-[9999] bottom-0"
         >
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 border-b-2 border-blue-300">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <h3 className="text-base font-bold">
-                  {isPlacingFurniture ? '🎯 가구 배치 중' : '🪑 가구 라이브러리'}
+                <h3 className="text-sm font-bold">
+                  {isPlacingFurniture ? '🎯 가구배치중' : '🪑 가구라이브러리'}
                 </h3>
-                <p className="text-blue-100 text-xs mt-1">
-                  {isPlacingFurniture
-                    ? `${selectedFurniture?.nameKo || selectedFurniture?.name}을(를) 배치하세요 (ESC로 취소)`
-                    : '편집할 가구를 선택하세요'
-                  }
-                </p>
+                                  <p className="text-blue-100 text-xs mt-1">
+                    {isPlacingFurniture
+                      ? `${selectedFurniture?.nameKo || selectedFurniture?.name} 배치 (ESC취소)`
+                      : '편집할 가구 선택'
+                    }
+                  </p>
               </div>
               <button
                 onClick={handleToggleFurnitureCatalog}
@@ -799,20 +796,39 @@ export default function Real3DRoom({
         </motion.div>
       )}
 
-      {/* 가구 배치 완료 버튼 - 배치 모드에서만 표시 (우측 최상단) */}
-      {isPlacingFurniture && (
-        <motion.button
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          onClick={handleFurniturePlaced}
-          className="fixed top-4 right-4 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-2xl hover:from-green-700 hover:to-green-800 hover:scale-105 border-2 border-green-800 z-[99999] flex items-center gap-2"
-          style={{ zIndex: 99999 }}
-        >
-          <span className="text-lg">✅</span>
-          <span>배치 완료</span>
-        </motion.button>
-      )}
+              {/* 가구 배치 완료 버튼 - 배치 모드에서만 표시 (우측 최상단) */}
+        {isPlacingFurniture && (
+          <motion.button
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            onClick={handleFurniturePlaced}
+            className="fixed top-4 right-4 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-2xl hover:from-green-700 hover:to-green-800 hover:scale-105 border-2 border-green-800 z-[99999] flex items-center gap-2"
+          >
+            <span className="text-lg">✅</span>
+            <span>배치 완료</span>
+          </motion.button>
+        )}
+
+        {/* 방 크기 설정 모달 */}
+        <RoomSizeSettings
+          isOpen={showRoomSizeSettings}
+          onClose={() => setShowRoomSizeSettings(false)}
+          onRoomSizeChange={(dimensions) => {
+            console.log('🏠 방 크기 변경:', dimensions);
+            // 방 크기 업데이트
+            updateRoomDimensions(dimensions);
+            
+            // 기존 가구들이 새로운 방 크기에 맞는지 검증하고 필요시 이동
+            placedItems.forEach(item => {
+              if (!isFurnitureInRoom(item)) {
+                console.log(`🚨 방 크기 변경 후 가구가 벽 밖으로 나감: ${item.name || item.id}`);
+                const constrainedItem = constrainFurnitureToRoom(item);
+                updateItem(item.id, { position: constrainedItem.position });
+              }
+            });
+          }}
+        />
 
       {/* 하단 카테고리 탭 - 편집 모드에서만 표시 (일시적으로 비활성화) */}
       {/* {isEditMode && (
@@ -835,8 +851,8 @@ export default function Real3DRoom({
           <div className="bg-white rounded-lg p-6 flex items-center gap-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
             <div>
-              <p className="font-medium">템플릿 적용 중...</p>
-              <p className="text-sm text-gray-600">잠시만 기다려주세요</p>
+              <p className="font-medium text-sm">템플릿 적용중...</p>
+              <p className="text-xs text-gray-600">잠시만 기다려주세요</p>
             </div>
           </div>
         </div>

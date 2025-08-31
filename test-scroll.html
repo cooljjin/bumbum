@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가구 라이브러리 휠스크롤 테스트</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 8px 0 0 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .search-bar {
+            padding: 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .furniture-grid {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        /* 가구 라이브러리 스크롤바 개선 */
+        .furniture-catalog-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .furniture-catalog-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        .furniture-catalog-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .furniture-catalog-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .furniture-catalog-scroll::-webkit-scrollbar-thumb:active {
+            background: #64748b;
+        }
+
+        .furniture-catalog-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f1f5f9;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            overscroll-behavior: contain;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .furniture-item {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .furniture-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+
+        .furniture-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .furniture-name {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .furniture-category {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .footer {
+            padding: 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            color: #64748b;
+        }
+
+        .test-info {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            color: #92400e;
+        }
+
+        .test-info h3 {
+            margin: 0 0 8px 0;
+            color: #d97706;
+        }
+
+        .test-info ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .test-info li {
+            margin: 4px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🪑 가구 라이브러리</h1>
+            <p>휠스크롤 테스트 - 마우스 휠로 스크롤해보세요</p>
+        </div>
+
+        <div class="search-bar">
+            <input 
+                type="text" 
+                class="search-input" 
+                placeholder="가구 검색... (이름, 카테고리)"
+            >
+        </div>
+
+        <div class="test-info">
+            <h3>🧪 휠스크롤 테스트 가이드</h3>
+            <ul>
+                <li>아래 가구 목록에서 마우스 휠을 사용하여 스크롤해보세요</li>
+                <li>스크롤바가 보이지 않아도 휠스크롤이 작동해야 합니다</li>
+                <li>부드럽고 자연스러운 스크롤 동작을 확인해보세요</li>
+                <li>모바일에서는 터치 스크롤도 테스트해보세요</li>
+            </ul>
+        </div>
+
+        <div class="furniture-grid furniture-catalog-scroll">
+            <div class="grid">
+                <!-- 가구 아이템들 -->
+                <div class="furniture-item">
+                    <div class="furniture-icon">🛋️</div>
+                    <div class="furniture-name">모던 소파</div>
+                    <div class="furniture-category">거실 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🛏️</div>
+                    <div class="furniture-name">퀸 사이즈 침대</div>
+                    <div class="furniture-category">침실 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🍳</div>
+                    <div class="furniture-name">주방 테이블</div>
+                    <div class="furniture-category">주방 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">💼</div>
+                    <div class="furniture-name">사무용 책상</div>
+                    <div class="furniture-category">사무실 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🚿</div>
+                    <div class="furniture-name">욕실 수납장</div>
+                    <div class="furniture-category">욕실 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🌳</div>
+                    <div class="furniture-name">정원 의자</div>
+                    <div class="furniture-category">야외 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🎨</div>
+                    <div class="furniture-name">장식 선반</div>
+                    <div class="furniture-category">장식 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">📦</div>
+                    <div class="furniture-name">옷장</div>
+                    <div class="furniture-category">수납 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🪑</div>
+                    <div class="furniture-name">다이닝 체어</div>
+                    <div class="furniture-category">식당 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🛋️</div>
+                    <div class="furniture-name">리클라이너</div>
+                    <div class="furniture-category">거실 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🛏️</div>
+                    <div class="furniture-name">킹 사이즈 침대</div>
+                    <div class="furniture-category">침실 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🍳</div>
+                    <div class="furniture-name">바 스툴</div>
+                    <div class="furniture-category">주방 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">💼</div>
+                    <div class="furniture-name">회의용 테이블</div>
+                    <div class="furniture-category">사무실 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🚿</div>
+                    <div class="furniture-name">욕실 벤치</div>
+                    <div class="furniture-category">욕실 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🌳</div>
+                    <div class="furniture-name">파티오 세트</div>
+                    <div class="furniture-category">야외 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🎨</div>
+                    <div class="furniture-name">미니어처 선반</div>
+                    <div class="furniture-category">장식 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">📦</div>
+                    <div class="furniture-name">신발장</div>
+                    <div class="furniture-category">수납 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🪑</div>
+                    <div class="furniture-name">커피 테이블</div>
+                    <div class="furniture-category">거실 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🛋️</div>
+                    <div class="furniture-name">러브시트</div>
+                    <div class="furniture-category">거실 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🛏️</div>
+                    <div class="furniture-name">싱글 침대</div>
+                    <div class="furniture-category">침실 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🍳</div>
+                    <div class="furniture-name">아일랜드 카운터</div>
+                    <div class="furniture-category">주방 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">💼</div>
+                    <div class="furniture-name">스탠딩 데스크</div>
+                    <div class="furniture-category">사무실 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🚿</div>
+                    <div class="furniture-name">욕실 타월 랙</div>
+                    <div class="furniture-category">욕실 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🌳</div>
+                    <div class="furniture-name">정원 벤치</div>
+                    <div class="furniture-category">야외 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">🎨</div>
+                    <div class="furniture-name">벽면 선반</div>
+                    <div class="furniture-category">장식 가구</div>
+                </div>
+                <div class="furniture-item">
+                    <div class="furniture-icon">📦</div>
+                    <div class="furniture-name">서랍장</div>
+                    <div class="furniture-category">수납 가구</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>총 24개의 가구 • 휠스크롤 테스트 완료</p>
+        </div>
+    </div>
+
+    <script>
+        // 검색 기능
+        const searchInput = document.querySelector('.search-input');
+        const furnitureItems = document.querySelectorAll('.furniture-item');
+
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            furnitureItems.forEach(item => {
+                const name = item.querySelector('.furniture-name').textContent.toLowerCase();
+                const category = item.querySelector('.furniture-category').textContent.toLowerCase();
+                
+                if (name.includes(searchTerm) || category.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        // 가구 아이템 클릭 이벤트
+        furnitureItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const name = item.querySelector('.furniture-name').textContent;
+                alert(`선택된 가구: ${name}`);
+            });
+        });
+
+        // 휠스크롤 테스트 로그
+        const scrollContainer = document.querySelector('.furniture-grid');
+        scrollContainer.addEventListener('scroll', () => {
+            console.log('스크롤 위치:', scrollContainer.scrollTop);
+        });
+
+        console.log('🎯 가구 라이브러리 휠스크롤 테스트 페이지가 로드되었습니다.');
+        console.log('마우스 휠을 사용하여 스크롤해보세요!');
+    </script>
+</body>
+</html>

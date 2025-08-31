@@ -94,16 +94,16 @@ export const UserPreferences: React.FC<UserPreferencesProps> = ({
     setIsLoading(true);
     try {
       const layout = await storageManager.loadLayout(designId);
-      if (layout) {
+      if (layout && Array.isArray(layout)) {
         // 현재 디자인을 모두 지우고 불러온 디자인으로 교체
         clearAllItems();
 
         // 불러온 아이템들을 추가
-        layout.data.items.forEach((item: PlacedItem) => {
+        layout.forEach((item: PlacedItem) => {
           addItem(item);
         });
 
-        alert(`${layout.metadata.name} 디자인이 불러와졌습니다!`);
+        alert(`디자인이 불러와졌습니다!`);
         onClose();
       }
         } catch (error) {

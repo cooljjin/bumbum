@@ -139,8 +139,8 @@ class StorageManager {
           name,
           timestamp: Date.now(),
           itemCount: items.length,
-          description,
-          tags
+          description: description || '',
+          tags: tags || []
         },
         data: this.compressItems(items)
       };

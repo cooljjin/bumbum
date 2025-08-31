@@ -14,6 +14,7 @@ import {
   CompressedState
 } from '../types/editor';
 import { storageManager } from '../utils/storageManager';
+import { isFurnitureInRoom, constrainFurnitureToRoom } from '../utils/roomBoundary';
 
 // 성능 최적화를 위한 상수
 const PERFORMANCE_CONSTANTS = {
@@ -130,7 +131,7 @@ export const useEditorStore = create<EditorStore>()(
       ...initialState,
 
       // 최적화된 히스토리 캡처 함수
-      captureHistory: (description?: string) => {
+      captureHistory: () => {
         const { placedItems, history } = get();
         const currentState = performanceUtils.compressState(placedItems);
 
@@ -215,16 +216,24 @@ export const useEditorStore = create<EditorStore>()(
           return;
         }
 
-        const newItems = [...placedItems, item];
+        // 가구가 방 안에 있는지 검증하고, 벽 밖에 있다면 자동으로 이동
+        let validatedItem = item;
+        if (!isFurnitureInRoom(item)) {
+          console.log(`🚨 가구가 벽 밖에 배치됨: ${item.name || item.id}`);
+          validatedItem = constrainFurnitureToRoom(item);
+          console.log(`✅ 가구를 방 안으로 이동: ${validatedItem.position.x.toFixed(2)}, ${validatedItem.position.y.toFixed(2)}, ${validatedItem.position.z.toFixed(2)}`);
+        }
+
+        const newItems = [...placedItems, validatedItem];
         
         // 배치 업데이트로 성능 향상
         set({
           placedItems: newItems,
-          selectedItemId: item.id
+          selectedItemId: validatedItem.id
         });
 
         // 히스토리 캡처를 다음 프레임으로 지연
-        requestAnimationFrame(() => captureHistory(`item_added_${item.id}`));
+        requestAnimationFrame(() => captureHistory(`item_added_${validatedItem.id}`));
       },
 
       updateItem: (id: string, updates: Partial<PlacedItem>) => {
@@ -234,15 +243,23 @@ export const useEditorStore = create<EditorStore>()(
         if (itemIndex === -1) return;
 
         const currentItem = placedItems[itemIndex];
-        const updatedItem = { ...currentItem, ...updates };
+        const updatedItem: PlacedItem = { ...currentItem, ...(updates as any) };
 
         // 실제 변경사항이 있는지 확인
         if (performanceUtils.deepEqual(currentItem, updatedItem)) {
           return;
         }
 
+        // 위치가 변경된 경우 벽 안에 있는지 검증
+        let validatedItem: PlacedItem = updatedItem;
+        if (updates.position && !isFurnitureInRoom(updatedItem)) {
+          console.log(`🚨 가구 이동 시 벽 밖으로 나감: ${updatedItem.name || updatedItem.id}`);
+          validatedItem = constrainFurnitureToRoom(updatedItem);
+          console.log(`✅ 가구를 방 안으로 이동: ${validatedItem.position.x.toFixed(2)}, ${validatedItem.position.y.toFixed(2)}, ${validatedItem.position.z.toFixed(2)}`);
+        }
+
         const updatedItems = [...placedItems];
-        updatedItems[itemIndex] = updatedItem;
+        updatedItems[itemIndex] = validatedItem;
 
         set({ placedItems: updatedItems });
 
@@ -311,7 +328,7 @@ export const useEditorStore = create<EditorStore>()(
         if (itemIndex === -1) return;
 
         const currentItem = placedItems[itemIndex];
-        if (currentItem.isLocked) return; // 이미 고정된 경우
+        if (!currentItem || currentItem.isLocked) return; // 이미 고정된 경우
 
         const updatedItems = [...placedItems];
         updatedItems[itemIndex] = {
@@ -338,7 +355,7 @@ export const useEditorStore = create<EditorStore>()(
         if (itemIndex === -1) return;
 
         const currentItem = placedItems[itemIndex];
-        if (!currentItem.isLocked) return; // 이미 고정 해제된 경우
+        if (!currentItem || !currentItem.isLocked) return; // 이미 고정 해제된 경우
 
         const updatedItems = [...placedItems];
         updatedItems[itemIndex] = { ...currentItem, isLocked: false };
@@ -397,8 +414,8 @@ export const useEditorStore = create<EditorStore>()(
         const currentIndex = tools.indexOf(tool);
         const nextIndex = (currentIndex + 1) % tools.length;
         const nextTool = tools[nextIndex];
-        
-        if (tool !== nextTool) {
+
+        if (nextTool && tool !== nextTool) {
           set({ tool: nextTool });
         }
       },
@@ -443,6 +460,9 @@ export const useEditorStore = create<EditorStore>()(
         if (history.past.length === 0) return;
 
         const previousCompressed = history.past[history.past.length - 1];
+
+        if (!previousCompressed) return; // 실행 취소할 항목이 없음
+
         const newPast = history.past.slice(0, -1);
         const newFuture = [history.present, ...history.future];
 
@@ -470,6 +490,9 @@ export const useEditorStore = create<EditorStore>()(
         if (history.future.length === 0) return;
 
         const nextCompressed = history.future[0];
+
+        if (!nextCompressed) return; // 재실행할 항목이 없음
+
         const newFuture = history.future.slice(1);
         const newPast = [...history.past, history.present];
 

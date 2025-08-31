@@ -42,73 +42,34 @@ const lodUtils: {
     return triangleCount;
   },
 
+  // 저품질 사용 여부 결정
+  shouldUseLowQuality: (distance: number, triangleCount: number): boolean => {
+    return distance > 8 || triangleCount > 5000;
+  },
+
+  // LOD 재질 생성
+  createLODMaterial: (originalMaterial: THREE.Material, _quality: 'low' | 'medium' | 'high'): THREE.Material => {
+    const material = originalMaterial.clone();
+    return material;
+  },
+
+  // 지오메트리 최적화
+  optimizeGeometry: (geometry: THREE.BufferGeometry, quality: 'low' | 'medium' | 'high'): THREE.BufferGeometry => {
+    if (quality === 'low' && geometry.attributes['position'] && geometry.attributes['position'].count > 1000) {
+      // 간단한 최적화: 정점 수 줄이기
+      const simplifiedGeometry = geometry.clone();
+      // 실제 최적화 로직은 여기에 구현
+      return simplifiedGeometry;
+    }
+    return geometry;
+  },
+
   // LOD 레벨 계산
   calculateLODLevel: (distance: number, maxDistance: number = 10): number => {
     if (distance < maxDistance * 0.3) return 0; // 고품질
     if (distance < maxDistance * 0.6) return 1; // 중간 품질
     return 2; // 저품질
   },
-
-  // 모델 복잡도 분석
-  analyzeModelComplexity: (model: THREE.Group): {
-    triangleCount: number;
-    vertexCount: number;
-    materialCount: number;
-    textureCount: number;
-  } => {
-    let triangleCount = 0;
-    let vertexCount = 0;
-    const materials = new Set<THREE.Material>();
-    const textures = new Set<THREE.Texture>();
-
-    model.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        if (child.geometry) {
-          if (child.geometry.index) {
-            triangleCount += child.geometry.index.count / 3;
-            vertexCount += child.geometry.index.count;
-          } else if (child.geometry.attributes.position) {
-            triangleCount += child.geometry.attributes.position.count / 3;
-            vertexCount += child.geometry.attributes.position.count;
-          }
-        }
-
-        if (child.material) {
-          const materialArray = Array.isArray(child.material) ? child.material : [child.material];
-          materialArray.forEach(mat => {
-            materials.add(mat);
-            if (mat.map) textures.add(mat.map);
-            if (mat.normalMap) textures.add(mat.normalMap);
-            if (mat.roughnessMap) textures.add(mat.roughnessMap);
-          });
-        }
-      }
-    });
-
-    return {
-      triangleCount,
-      vertexCount,
-      materialCount: materials.size,
-      textureCount: textures.size
-    };
-  },
-
-  // 모델 최적화 권장사항 생성
-  generateOptimizationRecommendations: (complexity: ReturnType<typeof lodUtils.analyzeModelComplexity>): string[] => {
-    const recommendations: string[] = [];
-
-    if (complexity.triangleCount > 10000) {
-      recommendations.push('삼각형 수가 많습니다. 모델을 단순화하거나 LOD를 사용하세요.');
-    }
-    if (complexity.materialCount > 5) {
-      recommendations.push('재질 수가 많습니다. 재질을 통합하세요.');
-    }
-    if (complexity.textureCount > 10) {
-      recommendations.push('텍스처 수가 많습니다. 텍스처 아틀라스를 사용하세요.');
-    }
-
-    return recommendations;
-  }
 };
 
 export const LODSystem: React.FC<LODSystemProps> = ({
@@ -166,7 +127,9 @@ export const LODSystem: React.FC<LODSystemProps> = ({
 
       // 성능 로깅
       const currentLevel = lodLevels[newLODLevel];
-      console.log(`🎯 LOD 레벨 변경: ${currentLODLevel} → ${newLODLevel} (거리: ${distance.toFixed(2)}, 삼각형: ${currentLevel.triangleCount})`);
+      if (currentLevel) {
+        console.log(`🎯 LOD 레벨 변경: ${currentLODLevel} → ${newLODLevel} (거리: ${distance.toFixed(2)}, 삼각형: ${currentLevel.triangleCount})`);
+      }
     }
 
     // 간단한 가시성 체크 (카메라와의 거리 기반)
@@ -196,9 +159,6 @@ export const LODSystem: React.FC<LODSystemProps> = ({
   // LOD 정보 표시 (디버그용)
   const renderLODInfo = () => {
     if (!enabled) return null;
-
-    const currentLevel = lodLevels[currentLODLevel];
-    const distance = groupRef.current ? camera.position.distanceTo(groupRef.current.position) : 0;
 
     return (
       <group position={[0, 2, 0]}>

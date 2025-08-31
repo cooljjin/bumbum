@@ -1,7 +1,7 @@
 // Zustand 스토어 성능 최적화 테스트
 
 import { performanceMonitor, startStoreMonitoring, getPerformanceReport } from '../src/utils/performanceMonitor';
-import { storeOptimizer, createOptimizedUpdater, checkMemoryUsage } from '../src/utils/storeOptimizer';
+import { storeOptimizer, checkMemoryUsage } from '../src/utils/storeOptimizer';
 
 // 성능 테스트 클래스
 class PerformanceTest {
@@ -217,7 +217,7 @@ class PerformanceTest {
   }
 
   // 단일 업데이트 시뮬레이션
-  private async simulateSingleUpdate(index: number): Promise<void> {
+  private async simulateSingleUpdate(_index: number): Promise<void> {
     return new Promise(resolve => {
       setTimeout(() => {
         performanceMonitor.incrementRenderCount('editor-store');

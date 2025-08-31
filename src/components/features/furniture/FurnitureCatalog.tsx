@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   getAllFurnitureItems,
@@ -36,6 +36,28 @@ export const FurnitureCatalog: React.FC<FurnitureCatalogProps> = ({
 
   // Intersection Observer 설정
   const imageObserver = useRef<IntersectionObserver | null>(null);
+
+  // 스크롤 컨테이너 ref
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // 휠스크롤 이벤트 처리
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const scrollAmount = e.deltaY;
+      scrollContainer.scrollTop += scrollAmount;
+    };
+
+    // 휠스크롤 이벤트 리스너 추가
+    scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      scrollContainer.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
 
   React.useEffect(() => {
     const checkMobile = () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiSearch, FiFilter, FiGrid, FiList, FiHeart, FiShoppingCart } from 'react-icons/fi';
 import { FurnitureItem } from '../../../types/furniture';
@@ -30,6 +30,28 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [recentlyViewed, setRecentlyViewed] = useState<FurnitureItem[]>([]);
+
+  // 스크롤 컨테이너 ref
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // 휠스크롤 이벤트 처리
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const scrollAmount = e.deltaY;
+      scrollContainer.scrollTop += scrollAmount;
+    };
+
+    // 휠스크롤 이벤트 리스너 추가
+    scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      scrollContainer.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
 
   // 카테고리 및 서브카테고리 추출
   const categories = useMemo(() => {
@@ -311,8 +333,16 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
         </div>
       )}
 
-      {/* 가구 그리드/리스트 */}
-      <div className="p-3 flex-1 overflow-y-auto min-h-0">
+      {/* 가구 그리드/리스트 - 스크롤 컨테이너로 개선 */}
+      <div 
+        ref={scrollContainerRef}
+        className="p-3 flex-1 overflow-y-auto min-h-0 furniture-catalog-scroll" 
+        style={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#CBD5E1 #F1F5F9',
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
         {filteredFurniture.length === 0 ? (
           <div className="text-center py-12">
             <FiSearch size={48} className="mx-auto text-gray-400 mb-4" />

@@ -310,7 +310,7 @@ export const createTableModel = (furniture: FurnitureItem): THREE.Group => {
 
   legPositions.forEach(pos => {
     const leg = new THREE.Mesh(legGeometry, legMaterial);
-    leg.position.set(pos[0], pos[1], pos[2]);
+    leg.position.set(pos[0] || 0, pos[1] || 0, pos[2] || 0);
     group.add(leg);
   });
 
@@ -363,7 +363,7 @@ export const createChairModel = (furniture: FurnitureItem): THREE.Group => {
 
   legPositions.forEach(pos => {
     const leg = new THREE.Mesh(legGeometry, legMaterial);
-    leg.position.set(pos[0], pos[1], pos[2]);
+    leg.position.set(pos[0] || 0, pos[1] || 0, pos[2] || 0);
     group.add(leg);
   });
 

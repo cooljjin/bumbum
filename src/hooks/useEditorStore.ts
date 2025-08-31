@@ -195,26 +195,37 @@ export const useSelectionManager = () => {
     if (placedItems.length === 0) return;
     
     if (!selectedItemId) {
-      selectItem(placedItems[0].id);
+      if (placedItems.length > 0 && placedItems[0]) {
+        selectItem(placedItems[0].id);
+      }
       return;
     }
     
     const currentIndex = placedItems.findIndex(item => item.id === selectedItemId);
     const nextIndex = (currentIndex + 1) % placedItems.length;
-    selectItem(placedItems[nextIndex].id);
+    if (placedItems[nextIndex]) {
+      selectItem(placedItems[nextIndex].id);
+    }
   }, [placedItems, selectedItemId, selectItem]);
   
   const selectPrevious = useCallback(() => {
     if (placedItems.length === 0) return;
     
     if (!selectedItemId) {
-      selectItem(placedItems[placedItems.length - 1].id);
+      if (placedItems.length > 0) {
+        const lastItem = placedItems[placedItems.length - 1];
+        if (lastItem) {
+          selectItem(lastItem.id);
+        }
+      }
       return;
     }
     
     const currentIndex = placedItems.findIndex(item => item.id === selectedItemId);
     const prevIndex = currentIndex === 0 ? placedItems.length - 1 : currentIndex - 1;
-    selectItem(placedItems[prevIndex].id);
+    if (placedItems[prevIndex]) {
+      selectItem(placedItems[prevIndex].id);
+    }
   }, [placedItems, selectedItemId, selectItem]);
   
   const selectAll = useCallback(() => {
