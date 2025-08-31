@@ -1,0 +1,16 @@
+<svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="150" fill="#f3f4f6"/>
+  <circle cx="100" cy="85" r="60" fill="#92400e"/>
+  <circle cx="100" cy="85" r="55" fill="#d97706"/>
+  <circle cx="100" cy="85" r="45" fill="#f59e0b"/>
+  <circle cx="100" cy="85" r="35" fill="#fbbf24"/>
+  <circle cx="70" cy="55" r="8" fill="#92400e"/>
+  <circle cx="130" cy="55" r="8" fill="#92400e"/>
+  <circle cx="100" cy="35" r="8" fill="#92400e"/>
+  <circle cx="58" cy="85" r="8" fill="#92400e"/>
+  <circle cx="142" cy="85" r="8" fill="#92400e"/>
+  <circle cx="70" cy="115" r="8" fill="#92400e"/>
+  <circle cx="130" cy="115" r="8" fill="#92400e"/>
+  <circle cx="100" cy="125" r="8" fill="#92400e"/>
+  <text x="100" y="25" text-anchor="middle" fill="#6b7280" font-family="Arial" font-size="10">원형 식탁</text>
+</svg>

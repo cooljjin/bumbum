@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bondidi 테스트 대시보드</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .stat-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-description {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .coverage-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .coverage-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .coverage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .coverage-item {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+
+        .coverage-percentage {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .coverage-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .test-results {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .test-results h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .test-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .test-table th,
+        .test-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .test-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .test-status {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-passed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-skipped {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .performance-metrics {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .performance-metrics h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .metric-chart {
+            height: 300px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .refresh-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .refresh-button:hover {
+            background: #5a6fd8;
+        }
+
+        .last-updated {
+            text-align: center;
+            color: white;
+            opacity: 0.8;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .coverage-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Bondidi 테스트 대시보드</h1>
+            <p>3D 룸 에디터 테스트 결과 및 성능 모니터링</p>
+        </div>
+
+        <button class="refresh-button" onclick="refreshDashboard()">🔄 대시보드 새로고침</button>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>전체 테스트</h3>
+                <div class="stat-value" id="total-tests">0</div>
+                <div class="stat-description">실행된 테스트 수</div>
+            </div>
+
+            <div class="stat-card">
+                <h3>통과한 테스트</h3>
+                <div class="stat-value" id="passed-tests">0</div>
+                <div class="stat-description">성공한 테스트 수</div>
+            </div>
+
+            <div class="stat-card">
+                <h3>실패한 테스트</h3>
+                <div class="stat-value" id="failed-tests">0</div>
+                <div class="stat-description">실패한 테스트 수</div>
+            </div>
+
+            <div class="stat-card">
+                <h3>테스트 커버리지</h3>
+                <div class="stat-value" id="test-coverage">0%</div>
+                <div class="stat-description">전체 코드 커버리지</div>
+            </div>
+        </div>
+
+        <div class="coverage-section">
+            <h2>📊 상세 커버리지</h2>
+            <div class="coverage-grid">
+                <div class="coverage-item">
+                    <div class="coverage-percentage" id="statements-coverage">0%</div>
+                    <div class="coverage-label">Statements</div>
+                </div>
+                <div class="coverage-item">
+                    <div class="coverage-percentage" id="branches-coverage">0%</div>
+                    <div class="coverage-label">Branches</div>
+                </div>
+                <div class="coverage-item">
+                    <div class="coverage-percentage" id="functions-coverage">0%</div>
+                    <div class="coverage-label">Functions</div>
+                </div>
+                <div class="coverage-item">
+                    <div class="coverage-percentage" id="lines-coverage">0%</div>
+                    <div class="coverage-label">Lines</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-results">
+            <h2>📋 최근 테스트 결과</h2>
+            <table class="test-table">
+                <thead>
+                    <tr>
+                        <th>테스트 이름</th>
+                        <th>상태</th>
+                        <th>실행 시간</th>
+                        <th>브라우저</th>
+                        <th>마지막 실행</th>
+                    </tr>
+                </thead>
+                <tbody id="test-results-body">
+                    <!-- 테스트 결과가 여기에 동적으로 추가됩니다 -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="performance-metrics">
+            <h2>⚡ 성능 메트릭</h2>
+            <div class="metric-chart" id="performance-chart">
+                성능 데이터 로딩 중...
+            </div>
+        </div>
+
+        <div class="last-updated">
+            마지막 업데이트: <span id="last-updated-time">-</span>
+        </div>
+    </div>
+
+    <script>
+        // 대시보드 데이터 구조
+        let dashboardData = {
+            tests: {
+                total: 0,
+                passed: 0,
+                failed: 0,
+                skipped: 0
+            },
+            coverage: {
+                statements: 0,
+                branches: 0,
+                functions: 0,
+                lines: 0
+            },
+            performance: {
+                pageLoad: 0,
+                renderTime: 0,
+                fps: 0,
+                memoryUsage: 0
+            },
+            lastUpdated: new Date()
+        };
+
+        // 대시보드 초기화
+        function initDashboard() {
+            loadTestResults();
+            loadCoverageData();
+            loadPerformanceData();
+            updateLastUpdated();
+        }
+
+        // 테스트 결과 로드
+        function loadTestResults() {
+            // 실제 구현에서는 API나 파일에서 데이터를 가져옵니다
+            // 여기서는 샘플 데이터를 사용합니다
+            const sampleResults = [
+                { name: 'EditableFurniture.test.tsx', status: 'passed', duration: '1.2s', browser: 'Chrome', lastRun: '2분 전' },
+                { name: 'Real3DRoom.test.tsx', status: 'passed', duration: '2.1s', browser: 'Chrome', lastRun: '2분 전' },
+                { name: 'useEditorStore.test.ts', status: 'passed', duration: '0.8s', browser: 'Chrome', lastRun: '2분 전' },
+                { name: 'snapUtils.test.ts', status: 'passed', duration: '1.5s', browser: 'Chrome', lastRun: '2분 전' },
+                { name: 'performance-benchmark.spec.ts', status: 'passed', duration: '15.3s', browser: 'Chrome', lastRun: '5분 전' }
+            ];
+
+            updateTestResultsTable(sampleResults);
+            updateTestStats(sampleResults);
+        }
+
+        // 커버리지 데이터 로드
+        function loadCoverageData() {
+            // 실제 구현에서는 coverage 파일에서 데이터를 가져옵니다
+            const coverageData = {
+                statements: 92,
+                branches: 88,
+                functions: 95,
+                lines: 90
+            };
+
+            updateCoverageDisplay(coverageData);
+        }
+
+        // 성능 데이터 로드
+        function loadPerformanceData() {
+            // 실제 구현에서는 성능 테스트 결과에서 데이터를 가져옵니다
+            const performanceData = {
+                pageLoad: 1200,
+                renderTime: 3500,
+                fps: 58,
+                memoryUsage: 45
+            };
+
+            updatePerformanceDisplay(performanceData);
+        }
+
+        // 테스트 결과 테이블 업데이트
+        function updateTestResultsTable(results) {
+            const tbody = document.getElementById('test-results-body');
+            tbody.innerHTML = '';
+
+            results.forEach(result => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${result.name}</td>
+                    <td><span class="test-status status-${result.status}">${result.status}</span></td>
+                    <td>${result.duration}</td>
+                    <td>${result.browser}</td>
+                    <td>${result.lastRun}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 테스트 통계 업데이트
+        function updateTestStats(results) {
+            const total = results.length;
+            const passed = results.filter(r => r.status === 'passed').length;
+            const failed = results.filter(r => r.status === 'failed').length;
+
+            document.getElementById('total-tests').textContent = total;
+            document.getElementById('passed-tests').textContent = passed;
+            document.getElementById('failed-tests').textContent = failed;
+        }
+
+        // 커버리지 표시 업데이트
+        function updateCoverageDisplay(coverage) {
+            document.getElementById('statements-coverage').textContent = coverage.statements + '%';
+            document.getElementById('branches-coverage').textContent = coverage.branches + '%';
+            document.getElementById('functions-coverage').textContent = coverage.functions + '%';
+            document.getElementById('lines-coverage').textContent = coverage.lines + '%';
+
+            // 전체 커버리지 계산
+            const overall = Math.round((coverage.statements + coverage.branches + coverage.functions + coverage.lines) / 4);
+            document.getElementById('test-coverage').textContent = overall + '%';
+        }
+
+        // 성능 표시 업데이트
+        function updatePerformanceDisplay(performance) {
+            const chart = document.getElementById('performance-chart');
+            chart.innerHTML = `
+                <div style="text-align: center; width: 100%;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; height: 100%; align-items: center;">
+                        <div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${performance.pageLoad}ms</div>
+                            <div style="font-size: 0.9rem; color: #666;">페이지 로드</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${performance.fps} FPS</div>
+                            <div style="font-size: 0.9rem; color: #666;">렌더링 성능</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${performance.renderTime}ms</div>
+                            <div style="font-size: 0.9rem; color: #666;">3D 렌더링</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${performance.memoryUsage}MB</div>
+                            <div style="font-size: 0.9rem; color: #666;">메모리 사용량</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 마지막 업데이트 시간 업데이트
+        function updateLastUpdated() {
+            const now = new Date();
+            const timeString = now.toLocaleString('ko-KR');
+            document.getElementById('last-updated-time').textContent = timeString;
+        }
+
+        // 대시보드 새로고침
+        function refreshDashboard() {
+            initDashboard();
+        }
+
+        // 페이지 로드 시 대시보드 초기화
+        document.addEventListener('DOMContentLoaded', initDashboard);
+
+        // 30초마다 자동 새로고침
+        setInterval(refreshDashboard, 30000);
+    </script>
+</body>
+</html>
+

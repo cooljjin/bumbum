@@ -1,0 +1,317 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 255, 255, 255;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 한국어 폰트 클래스 */
+.font-kr {
+  font-family: 'Noto Sans KR', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 500;
+}
+
+/* ===== 접근성 개선 CSS ===== */
+
+/* 스크린 리더 전용 콘텐츠 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 포커스 표시 개선 */
+*:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* 키보드 네비게이션 활성화 시 포커스 표시 강화 */
+.keyboard-navigation *:focus {
+  outline: 3px solid #ef4444;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 1px #ffffff, 0 0 0 4px #ef4444;
+}
+
+/* 고대비 모드 */
+.high-contrast {
+  --bg-primary: #000000;
+  --bg-secondary: #ffffff;
+  --text-primary: #ffffff;
+  --text-secondary: #000000;
+  --border-color: #ffffff;
+  --focus-color: #ffff00;
+}
+
+.high-contrast * {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+.high-contrast *:focus {
+  outline: 3px solid var(--focus-color) !important;
+  outline-offset: 2px !important;
+}
+
+/* 글자 크기 조정 */
+.font-small {
+  font-size: 14px;
+}
+
+.font-medium {
+  font-size: 16px;
+}
+
+.font-large {
+  font-size: 20px;
+}
+
+/* 버튼 및 인터랙티브 요소 접근성 */
+button,
+[role="button"],
+input,
+select,
+textarea {
+  min-height: 44px; /* 터치 타겟 최소 크기 */
+  min-width: 44px;
+}
+
+/* 모바일에서 더 큰 터치 타겟 */
+@media (max-width: 768px) {
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}
+
+/* 애니메이션 감소 (선호도에 따라) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 색각 이상 고려 */
+@media (prefers-contrast: high) {
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --text-primary: #000000;
+    --text-secondary: #333333;
+    --border-color: #000000;
+  }
+}
+
+/* 색각 이상 - 적록색맹 */
+.color-blind-protanopia {
+  filter: url(#protanopia-filter);
+}
+
+.color-blind-deuteranopia {
+  filter: url(#deuteranopia-filter);
+}
+
+.color-blind-tritanopia {
+  filter: url(#tritanopia-filter);
+}
+
+/* SVG 필터 정의 (색각 이상 시뮬레이션) */
+svg {
+  position: absolute;
+  left: -9999px;
+  visibility: hidden;
+}
+
+#protanopia-filter feColorMatrix {
+  values: "0.567 0.433 0 0 0  0.558 0.442 0 0 0  0 0.242 0.758 0 0  0 0 0 1 0";
+}
+
+#deuteranopia-filter feColorMatrix {
+  values: "0.625 0.375 0 0 0  0.7 0.3 0 0 0  0 0.3 0.7 0 0  0 0 0 1 0";
+}
+
+#tritanopia-filter feColorMatrix {
+  values: "0.95 0.05 0 0 0  0 0.433 0.567 0 0  0 0.475 0.525 0 0  0 0 0 1 0";
+}
+
+/* ===== 기존 스타일 ===== */
+
+/* 커스텀 스크롤바 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 기본 애니메이션 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* 드래그 앤 드롭 애니메이션 */
+@keyframes dragStart {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes dragMove {
+  0%, 100% {
+    transform: scale(1.05);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes dropSuccess {
+  0% {
+    transform: scale(1.1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-drag-start {
+  animation: dragStart 0.2s ease-out;
+}
+
+.animate-drag-move {
+  animation: dragMove 1s ease-in-out infinite;
+}
+
+.animate-drop-success {
+  animation: dropSuccess 0.3s ease-out;
+}
+
+/* 모드 전환 애니메이션 */
+@keyframes modeTransition {
+  from {
+    opacity: 0;
+    transform: scale(0.95) rotate(-2deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.animate-mode-transition {
+  animation: modeTransition 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 터치 피드백 애니메이션 */
+@keyframes touchFeedback {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-touch-feedback {
+  animation: touchFeedback 0.2s ease-out;
+}
+
+/* 그리드 스냅 애니메이션 */
+@keyframes gridSnap {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+}
+
+.animate-grid-snap {
+  animation: gridSnap 0.3s ease-out;
+}

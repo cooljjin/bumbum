@@ -1,0 +1,6 @@
+# Dummy GLB file for sofa-simple-3seater
+# This is a placeholder file for development purposes
+# Replace with actual 3D model file when available
+model_type: sofa-simple-3seater
+dimensions: 100x50x50
+category: furniture

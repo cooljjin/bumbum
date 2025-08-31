@@ -1,0 +1,196 @@
+{
+  "tasks": [
+    {
+      "id": "25a4d83c-5dea-4070-b954-9a76c640a3d0",
+      "name": "TransformControls 스냅 시스템 기본 구현",
+      "description": "EditableFurniture 컴포넌트에 TransformControls의 그리드 스냅과 회전 스냅 기능을 기본적으로 구현합니다. editorStore의 grid/rotationSnap 설정을 TransformControls에 적용하고, 실시간 스냅 계산을 통해 정확한 위치와 회전을 제공합니다.",
+      "notes": "기존 EditableFurniture 컴포넌트를 확장하여 스냅 기능을 추가합니다. TransformControls의 내장 스냅 기능을 최대한 활용하여 성능을 최적화합니다.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-08-27T12:26:31.989Z",
+      "updatedAt": "2025-08-27T12:29:07.210Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/EditableFurniture.tsx",
+          "type": "TO_MODIFY",
+          "description": "TransformControls 스냅 기능 추가",
+          "lineStart": 1,
+          "lineEnd": 188
+        },
+        {
+          "path": "src/store/editorStore.ts",
+          "type": "REFERENCE",
+          "description": "그리드 및 회전 스냅 설정 참조",
+          "lineStart": 1,
+          "lineEnd": 100
+        }
+      ],
+      "implementationGuide": "1. EditableFurniture 컴포넌트에 transformControlsRef 추가\\n2. useEffect를 사용하여 grid/rotationSnap 설정을 TransformControls에 적용\\n3. setTranslationSnap과 setRotationSnap 메서드로 스냅 값 설정\\n4. 스냅 설정 변경 시 실시간 업데이트 처리\\n5. 기본적인 스냅 계산 로직 구현",
+      "verificationCriteria": "TransformControls가 그리드 스냅과 회전 스냅 설정을 올바르게 적용하고, 편집 모드에서 스냅 기능이 정상적으로 작동하는지 확인",
+      "analysisResult": "TransformControls 기반 편집 가능한 가구 컴포넌트의 그리드 스냅과 회전 스냅 기능을 완성하여 전문적인 편집 인터페이스를 구축합니다. 기존 EditableFurniture 컴포넌트를 확장하고, editorStore와의 완벽한 통합을 통해 직관적이고 효율적인 편집 경험을 제공합니다.",
+      "summary": "TransformControls 스냅 시스템 기본 구현을 완료했습니다. 그리드 스냅과 회전 스냅 기능이 editorStore와 연동되어 실시간으로 적용되며, 'scale' 도구를 포함한 완전한 편집 도구 시스템을 구축했습니다.",
+      "completedAt": "2025-08-27T12:29:07.207Z"
+    },
+    {
+      "id": "268f56cb-5e5f-4d3e-80ec-4eeb9d3a0730",
+      "name": "스냅 계산 최적화 및 성능 개선",
+      "description": "스냅 계산 로직을 최적화하고 성능을 개선합니다. useCallback을 사용하여 불필요한 재계산을 방지하고, 스냅 계산을 효율적으로 처리하여 부드러운 편집 경험을 제공합니다.",
+      "notes": "성능 최적화를 위해 스냅 계산을 메모이제이션하고, 불필요한 재렌더링을 방지합니다. 스냅 계산 로직을 재사용 가능한 유틸리티로 분리합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "25a4d83c-5dea-4070-b954-9a76c640a3d0"
+        }
+      ],
+      "createdAt": "2025-08-27T12:26:31.989Z",
+      "updatedAt": "2025-08-27T12:35:01.804Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/EditableFurniture.tsx",
+          "type": "TO_MODIFY",
+          "description": "스냅 계산 최적화 및 성능 개선",
+          "lineStart": 80,
+          "lineEnd": 120
+        },
+        {
+          "path": "src/utils/snapUtils.ts",
+          "type": "CREATE",
+          "description": "스냅 계산 유틸리티 함수들",
+          "lineStart": 1,
+          "lineEnd": 50
+        }
+      ],
+      "implementationGuide": "1. 스냅 계산 함수들을 useCallback으로 최적화\\n2. 그리드 스냅 계산 로직을 별도 유틸리티 함수로 분리\\n3. 회전 스냅 계산 로직을 별도 유틸리티 함수로 분리\\n4. 스냅 계산 결과를 메모이제이션하여 성능 향상\\n5. 스냅 설정 변경 시에만 재계산하도록 최적화",
+      "verificationCriteria": "스냅 계산이 최적화되어 부드러운 편집 경험을 제공하고, 성능 병목이 발생하지 않는지 확인",
+      "analysisResult": "TransformControls 기반 편집 가능한 가구 컴포넌트의 그리드 스냅과 회전 스냅 기능을 완성하여 전문적인 편집 인터페이스를 구축합니다. 기존 EditableFurniture 컴포넌트를 확장하고, editorStore와의 완벽한 통합을 통해 직관적이고 효율적인 편집 경험을 제공합니다.",
+      "summary": "스냅 계산 최적화 및 성능 개선 작업을 완료했습니다. useCallback을 사용하여 불필요한 재계산을 방지하고, 스냅 계산 결과를 메모이제이션하여 성능을 향상시켰습니다. 스냅 설정 변경 시에만 재계산하도록 최적화하여 부드러운 편집 경험을 제공합니다.",
+      "completedAt": "2025-08-27T12:35:01.798Z"
+    },
+    {
+      "id": "40ba06b8-808b-49de-9d93-620d86807d02",
+      "name": "스냅 시각적 피드백 시스템 구현",
+      "description": "스냅 상태에 따른 시각적 피드백을 제공하여 사용자가 스냅 동작을 직관적으로 이해할 수 있도록 합니다. 그리드 스냅 가이드라인과 회전 스냅 가이드를 표시합니다.",
+      "notes": "사용자 경험을 향상시키기 위해 스냅 동작을 시각적으로 표현합니다. 스냅 가이드라인은 편집 모드에서만 표시되며, 선택된 가구에 대해서만 활성화됩니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "268f56cb-5e5f-4d3e-80ec-4eeb9d3a0730"
+        }
+      ],
+      "createdAt": "2025-08-27T12:26:31.989Z",
+      "updatedAt": "2025-08-27T12:36:14.251Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/EditableFurniture.tsx",
+          "type": "TO_MODIFY",
+          "description": "스냅 시각적 피드백 렌더링 추가",
+          "lineStart": 150,
+          "lineEnd": 188
+        },
+        {
+          "path": "src/components/GridSnapGuide.tsx",
+          "type": "CREATE",
+          "description": "그리드 스냅 시각적 가이드 컴포넌트",
+          "lineStart": 1,
+          "lineEnd": 80
+        },
+        {
+          "path": "src/components/RotationSnapGuide.tsx",
+          "type": "CREATE",
+          "description": "회전 스냅 시각적 가이드 컴포넌트",
+          "lineStart": 1,
+          "lineEnd": 60
+        }
+      ],
+      "implementationGuide": "1. GridSnapGuide 컴포넌트 생성 - 그리드 스냅 시각적 피드백\\n2. RotationSnapGuide 컴포넌트 생성 - 회전 스냅 시각적 피드백\\n3. EditableFurniture에 스냅 피드백 렌더링 추가\\n4. 스냅 상태에 따른 동적 피드백 표시\\n5. 스냅 거리 및 각도 정보를 실시간으로 표시",
+      "verificationCriteria": "스냅 시각적 피드백이 올바르게 표시되고, 사용자가 스냅 동작을 직관적으로 이해할 수 있는지 확인",
+      "analysisResult": "TransformControls 기반 편집 가능한 가구 컴포넌트의 그리드 스냅과 회전 스냅 기능을 완성하여 전문적인 편집 인터페이스를 구축합니다. 기존 EditableFurniture 컴포넌트를 확장하고, editorStore와의 완벽한 통합을 통해 직관적이고 효율적인 편집 경험을 제공합니다.",
+      "summary": "스냅 시각적 피드백 시스템을 성공적으로 구현했습니다. GridSnapGuide와 RotationSnapGuide 컴포넌트를 생성하여 사용자가 스냅 동작을 직관적으로 이해할 수 있도록 했습니다. 그리드 스냅 가이드라인과 회전 스냅 가이드가 편집 모드에서 선택된 가구에 대해서만 활성화되어 표시됩니다.",
+      "completedAt": "2025-08-27T12:36:14.250Z"
+    },
+    {
+      "id": "f252af97-7fd7-4d66-bbfb-b8bf8757b5ca",
+      "name": "키보드 단축키 및 사용자 경험 개선",
+      "description": "편집 모드에서의 사용자 경험을 개선하기 위한 키보드 단축키와 추가 기능을 구현합니다. 스냅 설정 토글, 빠른 도구 전환, 그리고 편집 효율성을 높이는 기능들을 추가합니다.",
+      "notes": "전문적인 편집 도구와 같은 수준의 키보드 단축키를 제공하여 사용자의 편집 효율성을 크게 향상시킵니다. 스냅 설정을 빠르게 토글할 수 있어 다양한 편집 상황에 대응할 수 있습니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "40ba06b8-808b-49de-9d93-620d86807d02"
+        }
+      ],
+      "createdAt": "2025-08-27T12:26:31.989Z",
+      "updatedAt": "2025-08-27T12:38:52.501Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/EditableFurniture.tsx",
+          "type": "TO_MODIFY",
+          "description": "키보드 단축키 및 사용자 경험 개선",
+          "lineStart": 100,
+          "lineEnd": 130
+        },
+        {
+          "path": "src/components/RoomEditor.tsx",
+          "type": "TO_MODIFY",
+          "description": "스냅 설정 UI 및 단축키 안내 추가",
+          "lineStart": 80,
+          "lineEnd": 120
+        },
+        {
+          "path": "src/store/editorStore.ts",
+          "type": "TO_MODIFY",
+          "description": "스냅 설정 토글 액션 추가",
+          "lineStart": 200,
+          "lineEnd": 250
+        }
+      ],
+      "implementationGuide": "1. 스냅 설정 토글을 위한 키보드 단축키 추가 (G: 그리드, R: 회전)\\n2. 빠른 도구 전환을 위한 숫자 키 단축키 개선\\n3. 스냅 설정 변경 시 즉시 적용되는 실시간 피드백\\n4. 편집 모드 전환 시 스냅 설정 상태 유지\\n5. 사용자 정의 스냅 설정 저장 및 복원 기능",
+      "verificationCriteria": "키보드 단축키가 정상적으로 작동하고, 스냅 설정 토글이 즉시 적용되며, 전체적인 편집 경험이 향상되었는지 확인",
+      "analysisResult": "TransformControls 기반 편집 가능한 가구 컴포넌트의 그리드 스냅과 회전 스냅 기능을 완성하여 전문적인 편집 인터페이스를 구축합니다. 기존 EditableFurniture 컴포넌트를 확장하고, editorStore와의 완벽한 통합을 통해 직관적이고 효율적인 편집 경험을 제공합니다.",
+      "summary": "키보드 단축키 및 사용자 경험 개선 작업을 성공적으로 완료했습니다. 스냅 설정 토글을 위한 키보드 단축키(G, R), 빠른 도구 전환(1-4, Tab), 스냅 설정 저장/복원(Ctrl+S, Ctrl+L) 기능을 구현했습니다. 편집 모드 전환 시 스냅 설정 상태를 유지하고, RoomEditor에 직관적인 스냅 설정 UI와 단축키 안내를 추가하여 전체적인 편집 경험을 크게 향상시켰습니다.",
+      "completedAt": "2025-08-27T12:38:52.500Z"
+    },
+    {
+      "id": "517a263b-26a1-4135-a47c-9b645f1e1c13",
+      "name": "통합 테스트 및 최종 검증",
+      "description": "구현된 모든 스냅 기능을 통합 테스트하고, 성능 최적화 및 버그 수정을 통해 완성도 높은 편집 시스템을 완성합니다. 실제 사용 시나리오를 테스트하여 안정성을 확보합니다.",
+      "notes": "실제 사용 환경에서의 안정성과 성능을 검증하여 프로덕션 레벨의 품질을 확보합니다. 사용자 피드백을 반영하여 최종 개선사항을 적용합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "f252af97-7fd7-4d66-bbfb-b8bf8757b5ca"
+        }
+      ],
+      "createdAt": "2025-08-27T12:26:31.989Z",
+      "updatedAt": "2025-08-27T12:47:14.505Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/EditableFurniture.tsx",
+          "type": "REFERENCE",
+          "description": "최종 통합 테스트 대상",
+          "lineStart": 1,
+          "lineEnd": 188
+        },
+        {
+          "path": "src/app/room-editor/page.tsx",
+          "type": "REFERENCE",
+          "description": "편집 모드 페이지 테스트",
+          "lineStart": 1,
+          "lineEnd": 20
+        },
+        {
+          "path": "tests/transform-controls-snap.spec.ts",
+          "type": "CREATE",
+          "description": "TransformControls 스냅 기능 테스트",
+          "lineStart": 1,
+          "lineEnd": 100
+        }
+      ],
+      "implementationGuide": "1. 모든 스냅 기능의 통합 테스트 수행\\n2. 성능 테스트 및 최적화 검증\\n3. 다양한 그리드 크기와 회전 각도에서의 테스트\\n4. 스냅 설정 변경 시 안정성 테스트\\n5. 사용자 시나리오 기반 테스트 및 개선사항 적용",
+      "verificationCriteria": "모든 스냅 기능이 안정적으로 작동하고, 성능이 최적화되었으며, 실제 사용 시나리오에서 문제없이 동작하는지 확인",
+      "analysisResult": "TransformControls 기반 편집 가능한 가구 컴포넌트의 그리드 스냅과 회전 스냅 기능을 완성하여 전문적인 편집 인터페이스를 구축합니다. 기존 EditableFurniture 컴포넌트를 확장하고, editorStore와의 완벽한 통합을 통해 직관적이고 효율적인 편집 경험을 제공합니다.",
+      "summary": "통합 테스트 및 최종 검증 작업을 완료했습니다. TransformControls 스냅 기능 통합 테스트 파일을 생성하고, 성능 최적화를 위한 메트릭 시스템을 구현했습니다. 빌드 과정에서 Next.js App Router 호환성 문제와 타입 에러를 발견하여 수정 작업을 진행했으며, 모든 스냅 기능이 안정적으로 작동하도록 최적화했습니다.",
+      "completedAt": "2025-08-27T12:47:14.505Z"
+    }
+  ]
+}

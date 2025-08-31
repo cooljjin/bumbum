@@ -1,0 +1,259 @@
+{
+  "tasks": [
+    {
+      "id": "d8f0d11a-7dfe-473f-b559-6b44f56f467c",
+      "name": "가구 회전 기능 구현",
+      "description": "DraggableFurniture 컴포넌트에 마우스 휠과 키보드 기반의 가구 회전 기능을 구현합니다. Y축 중심 회전을 15도 단위로 스냅하며, 기존 회전 스냅 설정과 연동하여 자연스러운 회전 경험을 제공합니다.",
+      "notes": "기존 item.rotation 속성을 활용하여 구현하며, 회전 스냅은 editorStore의 rotationSnap 설정과 연동합니다. 마우스 휠 이벤트는 선택된 가구에서만 작동하도록 제한합니다.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-08-29T11:55:39.515Z",
+      "updatedAt": "2025-08-29T11:58:25.618Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/DraggableFurniture.tsx",
+          "type": "TO_MODIFY",
+          "description": "회전 기능 추가를 위한 이벤트 핸들러 및 로직 구현",
+          "lineStart": 1,
+          "lineEnd": 371
+        },
+        {
+          "path": "src/store/editorStore.ts",
+          "type": "REFERENCE",
+          "description": "회전 스냅 설정 참조",
+          "lineStart": 1,
+          "lineEnd": 100
+        }
+      ],
+      "implementationGuide": "1. DraggableFurniture에 handleWheel 이벤트 핸들러 추가\\n2. 마우스 휠로 Y축 회전 (15도 단위)\\n3. 키보드 R키 + 방향키로 정밀 회전\\n4. 회전 중 시각적 피드백 (회전 가이드 표시)\\n5. 기존 rotation 스냅 설정과 연동\\n6. 회전 제한 및 경계값 설정",
+      "verificationCriteria": "1. 마우스 휠로 가구가 Y축 중심으로 회전하는지 확인\\n2. 15도 단위로 스냅되는지 확인\\n3. 키보드 단축키로 정밀 회전이 가능한지 확인\\n4. 회전 중 시각적 피드백이 표시되는지 확인\\n5. 기존 회전 스냅 설정과 연동되는지 확인",
+      "analysisResult": "Task 5: 고급 편집 기능 및 성능 최적화 구현 - 현재까지 완성된 미니룸 가구 배치 시스템을 기반으로 추가적인 고급 기능들을 구현하여 사용자 경험을 더욱 향상시킵니다. 가구 회전 기능, 가구 크기 조절, 가구 저장/불러오기, 그리고 성능 최적화를 포함합니다.",
+      "summary": "Task 1이 성공적으로 완료되었습니다. DraggableFurniture 컴포넌트에 마우스 휠과 키보드 기반의 가구 회전 기능을 구현했습니다. 마우스 휠로 15도 단위 회전, R키 + 방향키로 정밀 회전(5도/1도), 회전 제한 및 경계값 설정이 모두 구현되었습니다.",
+      "completedAt": "2025-08-29T11:58:25.617Z"
+    },
+    {
+      "id": "01d90ada-0fd7-43ca-80e8-55c5a7ea587e",
+      "name": "TransformControls 기반 가구 크기 조절 구현",
+      "description": "React Three Fiber의 TransformControls를 사용하여 가구의 크기 조절 기능을 구현합니다. 편집 모드에서 선택된 가구에 대해 translate, rotate, scale 모드를 전환할 수 있으며, 비례 조절과 크기 제한을 포함합니다.",
+      "notes": "TransformControls는 선택된 가구와 편집 모드에서만 활성화되며, 기존 scale 속성과 연동합니다. 성능을 고려하여 필요시에만 렌더링하도록 최적화합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "d8f0d11a-7dfe-473f-b559-6b44f56f467c"
+        }
+      ],
+      "createdAt": "2025-08-29T11:55:39.515Z",
+      "updatedAt": "2025-08-29T12:02:13.455Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/DraggableFurniture.tsx",
+          "type": "TO_MODIFY",
+          "description": "TransformControls 컴포넌트 추가 및 크기 조절 로직 구현",
+          "lineStart": 1,
+          "lineEnd": 371
+        },
+        {
+          "path": "src/components/EditToolbar.tsx",
+          "type": "TO_MODIFY",
+          "description": "Transform 모드 전환 버튼 추가",
+          "lineStart": 1,
+          "lineEnd": 100
+        },
+        {
+          "path": "src/store/editorStore.ts",
+          "type": "TO_MODIFY",
+          "description": "Transform 모드 상태 관리 추가",
+          "lineStart": 1,
+          "lineEnd": 100
+        }
+      ],
+      "implementationGuide": "1. TransformControls 컴포넌트 import 및 추가\\n2. 편집 모드별 transform 모드 전환 (translate/rotate/scale)\\n3. 크기 조절 시 비례 조절 옵션 제공\\n4. 최소/최대 크기 제한으로 비현실적 크기 방지\\n5. 크기 조절 중 실시간 시각적 피드백\\n6. 그리드 스냅과 연동하여 정확한 크기 조절",
+      "verificationCriteria": "1. TransformControls가 선택된 가구에 표시되는지 확인\\n2. translate/rotate/scale 모드 전환이 가능한지 확인\\n3. 크기 조절 시 비례 조절이 작동하는지 확인\\n4. 크기 제한이 적용되는지 확인\\n5. 그리드 스냅과 연동되는지 확인",
+      "analysisResult": "Task 5: 고급 편집 기능 및 성능 최적화 구현 - 현재까지 완성된 미니룸 가구 배치 시스템을 기반으로 추가적인 고급 기능들을 구현하여 사용자 경험을 더욱 향상시킵니다. 가구 회전 기능, 가구 크기 조절, 가구 저장/불러오기, 그리고 성능 최적화를 포함합니다.",
+      "summary": "Task 2가 성공적으로 완료되었습니다. React Three Fiber의 TransformControls를 사용하여 가구의 크기 조절, 회전, 이동 기능을 구현했습니다. 크기 제한(0.1~3.0), 모드별 동작, 상태 동기화가 모두 구현되었습니다.",
+      "completedAt": "2025-08-29T12:02:13.453Z"
+    },
+    {
+      "id": "69363fcd-4ac0-4a5c-9892-9040020259ed",
+      "name": "가구 배치 상태 저장/불러오기 시스템 구현",
+      "description": "localStorage 기반의 가구 배치 상태 영구 저장 시스템을 구현합니다. 자동 저장, 수동 저장, 여러 버전의 레이아웃 백업/복원을 지원하며, 압축된 형태로 저장하여 성능을 최적화합니다.",
+      "notes": "기존 editorStore의 압축된 상태 저장 방식을 활용하여 구현합니다. localStorage 용량 제한을 고려하여 데이터 압축 및 정리 전략을 포함합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "01d90ada-0fd7-43ca-80e8-55c5a7ea587e"
+        }
+      ],
+      "createdAt": "2025-08-29T11:55:39.515Z",
+      "updatedAt": "2025-08-29T12:12:45.654Z",
+      "relatedFiles": [
+        {
+          "path": "src/utils/storageManager.ts",
+          "type": "CREATE",
+          "description": "저장/불러오기 관련 유틸리티 함수들",
+          "lineStart": 1,
+          "lineEnd": 100
+        },
+        {
+          "path": "src/components/EditToolbar.tsx",
+          "type": "TO_MODIFY",
+          "description": "저장/불러오기 버튼 추가",
+          "lineStart": 1,
+          "lineEnd": 100
+        },
+        {
+          "path": "src/store/editorStore.ts",
+          "type": "TO_MODIFY",
+          "description": "저장/불러오기 액션 함수 추가",
+          "lineStart": 1,
+          "lineEnd": 100
+        }
+      ],
+      "implementationGuide": "1. utils/storageManager.ts 모듈 생성\\n2. 압축된 가구 데이터 저장/불러오기 함수 구현\\n3. 자동 저장: 편집 완료 시 자동으로 localStorage에 저장\\n4. 수동 저장: 사용자가 명시적으로 저장 버튼 클릭\\n5. 여러 버전의 레이아웃 저장 지원\\n6. 저장/불러오기 성공/실패 피드백 제공",
+      "verificationCriteria": "1. 가구 배치 상태가 localStorage에 저장되는지 확인\\n2. 저장된 상태를 불러올 수 있는지 확인\\n3. 자동 저장이 편집 완료 시 작동하는지 확인\\n4. 여러 버전의 레이아웃을 저장할 수 있는지 확인\\n5. 저장/불러오기 실패 시 적절한 에러 처리가 되는지 확인",
+      "analysisResult": "Task 5: 고급 편집 기능 및 성능 최적화 구현 - 현재까지 완성된 미니룸 가구 배치 시스템을 기반으로 추가적인 고급 기능들을 구현하여 사용자 경험을 더욱 향상시킵니다. 가구 회전 기능, 가구 크기 조절, 가구 저장/불러오기, 그리고 성능 최적화를 포함합니다.",
+      "summary": "Task 3가 성공적으로 완료되었습니다. localStorage 기반의 가구 배치 상태 저장/불러오기 시스템을 구현했습니다. storageManager 유틸리티, editorStore 액션, 압축된 데이터 저장, 여러 버전 관리, 자동 저장, 에러 처리가 모두 포함되었습니다.",
+      "completedAt": "2025-08-29T12:12:45.653Z"
+    },
+    {
+      "id": "af34fdff-1690-4748-9006-2c7b7748f9ff",
+      "name": "LOD 및 성능 최적화 시스템 구현",
+      "description": "Level of Detail(LOD) 시스템과 프러스텀 컬링을 구현하여 3D 렌더링 성능을 최적화합니다. 카메라 거리에 따른 모델 품질 조절, 화면 밖 객체 렌더링 제외, 메모리 관리 최적화를 포함합니다.",
+      "notes": "기존 useFrame 최적화 패턴을 확장하여 구현합니다. 성능 저하 시 자동으로 LOD 레벨을 낮추어 사용자 경험을 유지합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "69363fcd-4ac0-4a5c-9892-9040020259ed"
+        }
+      ],
+      "createdAt": "2025-08-29T11:55:39.515Z",
+      "updatedAt": "2025-08-29T12:16:34.845Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/DraggableFurniture.tsx",
+          "type": "TO_MODIFY",
+          "description": "LOD 시스템 및 성능 최적화 로직 추가",
+          "lineStart": 1,
+          "lineEnd": 371
+        },
+        {
+          "path": "src/components/Real3DRoom.tsx",
+          "type": "TO_MODIFY",
+          "description": "프러스텀 컬링 및 성능 모니터링 추가",
+          "lineStart": 1,
+          "lineEnd": 100
+        },
+        {
+          "path": "src/hooks/usePerformanceOptimization.ts",
+          "type": "CREATE",
+          "description": "성능 최적화 관련 커스텀 훅",
+          "lineStart": 1,
+          "lineEnd": 100
+        }
+      ],
+      "implementationGuide": "1. LOD 시스템: 카메라 거리에 따른 모델 품질 조절\\n2. 프러스텀 컬링: 화면 밖 객체 렌더링 제외\\n3. 메모리 관리: 사용하지 않는 텍스처/지오메트리 dispose\\n4. 렌더링 최적화: useFrame에서 불필요한 계산 제거\\n5. 성능 모니터링: FPS 및 메모리 사용량 추적\\n6. 동적 품질 조절: 성능에 따른 자동 품질 조절",
+      "verificationCriteria": "1. LOD 시스템이 카메라 거리에 따라 작동하는지 확인\\n2. 프러스텀 컬링이 화면 밖 객체를 제외하는지 확인\\n3. 메모리 사용량이 최적화되는지 확인\\n4. 성능 모니터링이 정상 작동하는지 확인\\n5. 성능 저하 시 자동 품질 조절이 작동하는지 확인",
+      "analysisResult": "Task 5: 고급 편집 기능 및 성능 최적화 구현 - 현재까지 완성된 미니룸 가구 배치 시스템을 기반으로 추가적인 고급 기능들을 구현하여 사용자 경험을 더욱 향상시킵니다. 가구 회전 기능, 가구 크기 조절, 가구 저장/불러오기, 그리고 성능 최적화를 포함합니다.",
+      "summary": "Task 4가 성공적으로 완료되었습니다. LOD 시스템, 프러스텀 컬링, 성능 모니터링, 메모리 관리, 동적 품질 조절을 포함한 포괄적인 성능 최적화 시스템을 구현했습니다.",
+      "completedAt": "2025-08-29T12:16:34.844Z"
+    },
+    {
+      "id": "b17411ad-a390-4528-b9b3-3e903160a9d1",
+      "name": "고급 단축키 및 사용자 설정 시스템 구현",
+      "description": "키보드 단축키 시스템과 사용자 설정 저장 기능을 구현합니다. R(회전), S(크기), T(이동), Delete(삭제) 등의 단축키를 제공하며, 사용자 설정을 localStorage에 저장하여 개인화된 경험을 제공합니다.",
+      "notes": "기존 EditToolbar와 통합하여 구현하며, 사용자 설정은 storageManager를 통해 관리합니다. 단축키는 편집 모드에서만 활성화됩니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "af34fdff-1690-4748-9006-2c7b7748f9ff"
+        }
+      ],
+      "createdAt": "2025-08-29T11:55:39.515Z",
+      "updatedAt": "2025-08-29T12:23:37.169Z",
+      "relatedFiles": [
+        {
+          "path": "src/hooks/useKeyboardShortcuts.ts",
+          "type": "CREATE",
+          "description": "키보드 단축키 처리 커스텀 훅",
+          "lineStart": 1,
+          "lineEnd": 100
+        },
+        {
+          "path": "src/components/EditToolbar.tsx",
+          "type": "TO_MODIFY",
+          "description": "설정 UI 및 단축키 도움말 추가",
+          "lineStart": 1,
+          "lineEnd": 100
+        },
+        {
+          "path": "src/components/SettingsModal.tsx",
+          "type": "CREATE",
+          "description": "사용자 설정 관리 모달",
+          "lineStart": 1,
+          "lineEnd": 100
+        },
+        {
+          "path": "src/store/editorStore.ts",
+          "type": "TO_MODIFY",
+          "description": "사용자 설정 상태 관리 추가",
+          "lineStart": 1,
+          "lineEnd": 100
+        }
+      ],
+      "implementationGuide": "1. useKeyboardShortcuts 커스텀 훅 생성\\n2. 기본 단축키: R(회전), S(크기), T(이동), Delete(삭제)\\n3. 사용자 설정 시스템: 그리드 크기, 스냅 강도, UI 테마 등\\n4. 설정 UI: 모달 또는 사이드바로 설정 관리\\n5. 단축키 도움말: F1키로 단축키 목록 표시\\n6. 설정 저장/불러오기: localStorage 기반 영구 저장",
+      "verificationCriteria": "1. 기본 단축키가 정상 작동하는지 확인\\n2. 사용자 설정이 저장/불러오기되는지 확인\\n3. 설정 UI가 정상적으로 표시되는지 확인\\n4. 단축키 도움말이 F1키로 표시되는지 확인\\n5. 설정 변경이 즉시 적용되는지 확인",
+      "analysisResult": "Task 5: 고급 편집 기능 및 성능 최적화 구현 - 현재까지 완성된 미니룸 가구 배치 시스템을 기반으로 추가적인 고급 기능들을 구현하여 사용자 경험을 더욱 향상시킵니다. 가구 회전 기능, 가구 크기 조절, 가구 저장/불러오기, 그리고 성능 최적화를 포함합니다.",
+      "summary": "Task 5가 성공적으로 완료되었습니다. 고급 단축키 시스템과 사용자 설정 시스템을 구현했습니다. R(회전), S(크기), T(이동), Delete(삭제) 등의 단축키를 제공하며, 사용자 설정을 localStorage에 저장하여 개인화된 경험을 제공합니다.",
+      "completedAt": "2025-08-29T12:23:37.168Z"
+    },
+    {
+      "id": "5634a698-b6d2-43ca-974f-bd609f3f2a99",
+      "name": "에러 처리 및 예외 상황 대응 시스템 구현",
+      "description": "견고한 에러 처리 시스템을 구현하여 사용자 경험을 향상시킵니다. 모델 로딩 실패, 메모리 부족, 네트워크 오류 등의 예외 상황에 대한 적절한 대응과 사용자 친화적인 피드백을 제공합니다.",
+      "notes": "기존 error.tsx와 연동하여 구현하며, 사용자에게 친화적인 에러 메시지와 복구 방법을 제공합니다. 에러 로깅 및 분석을 위한 시스템도 포함합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "b17411ad-a390-4528-b9b3-3e903160a9d1"
+        }
+      ],
+      "createdAt": "2025-08-29T11:55:39.515Z",
+      "updatedAt": "2025-08-29T12:28:48.820Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/ErrorBoundary.tsx",
+          "type": "CREATE",
+          "description": "React 에러 바운더리 컴포넌트",
+          "lineStart": 1,
+          "lineEnd": 100
+        },
+        {
+          "path": "src/components/ErrorModal.tsx",
+          "type": "CREATE",
+          "description": "사용자 친화적 에러 표시 모달",
+          "lineStart": 1,
+          "lineEnd": 100
+        },
+        {
+          "path": "src/utils/errorHandler.ts",
+          "type": "CREATE",
+          "description": "에러 처리 및 로깅 유틸리티",
+          "lineStart": 1,
+          "lineEnd": 100
+        },
+        {
+          "path": "src/components/DraggableFurniture.tsx",
+          "type": "TO_MODIFY",
+          "description": "에러 처리 및 복구 메커니즘 추가",
+          "lineStart": 1,
+          "lineEnd": 371
+        }
+      ],
+      "implementationGuide": "1. 에러 바운더리 컴포넌트 생성\\n2. 모델 로딩 실패: 폴백 모델 자동 전환\\n3. 메모리 부족: LOD 자동 조절, 오래된 객체 정리\\n4. 네트워크 오류: 오프라인 모드 지원\\n5. 사용자 피드백: 에러 상황을 사용자에게 명확히 전달\\n6. 복구 메커니즘: 자동 복구 및 수동 복구 옵션 제공",
+      "verificationCriteria": "1. 에러 바운더리가 예외 상황을 적절히 처리하는지 확인\\n2. 모델 로딩 실패 시 폴백 모델이 표시되는지 확인\\n3. 메모리 부족 시 자동 최적화가 작동하는지 확인\\n4. 사용자에게 친화적인 에러 메시지가 표시되는지 확인\\n5. 복구 메커니즘이 정상 작동하는지 확인",
+      "analysisResult": "Task 5: 고급 편집 기능 및 성능 최적화 구현 - 현재까지 완성된 미니룸 가구 배치 시스템을 기반으로 추가적인 고급 기능들을 구현하여 사용자 경험을 더욱 향상시킵니다. 가구 회전 기능, 가구 크기 조절, 가구 저장/불러오기, 그리고 성능 최적화를 포함합니다.",
+      "summary": "Task 6가 성공적으로 완료되었습니다. 견고한 에러 처리 시스템을 구현하여 사용자 경험을 향상시켰습니다. 모델 로딩 실패, 메모리 부족, 네트워크 오류 등의 예외 상황에 대한 적절한 대응과 사용자 친화적인 피드백을 제공합니다.",
+      "completedAt": "2025-08-29T12:28:48.818Z"
+    }
+  ]
+}

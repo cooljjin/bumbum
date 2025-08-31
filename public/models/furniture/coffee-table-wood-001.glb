@@ -1,0 +1,7 @@
+# Dummy GLB file for coffee-table-wood-001
+# This is a placeholder file for development purposes
+# Replace with actual 3D model file when available
+model_type: coffee_table_wood
+dimensions: 120x60x45
+category: tables
+material: wood

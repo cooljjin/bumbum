@@ -1,0 +1,10 @@
+<svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="150" fill="#f3f4f6"/>
+  <rect x="20" y="80" width="160" height="60" fill="#8b5cf6" rx="5"/>
+  <rect x="130" y="20" width="60" height="140" fill="#8b5cf6" rx="5"/>
+  <rect x="30" y="90" width="50" height="40" fill="#a78bfa" rx="3"/>
+  <rect x="140" y="30" width="40" height="50" fill="#a78bfa" rx="3"/>
+  <rect x="40" y="100" width="30" height="20" fill="#c4b5fd" rx="2"/>
+  <rect x="150" y="40" width="20" height="30" fill="#c4b5fd" rx="2"/>
+  <text x="100" y="40" text-anchor="middle" fill="#6b7280" font-family="Arial" font-size="10">코너 소파</text>
+</svg>

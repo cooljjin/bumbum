@@ -1,0 +1,6 @@
+# Dummy GLB file for wardrobe-001
+# This is a placeholder file for development purposes
+# Replace with actual 3D model file when available
+model_type: wardrobe-001
+dimensions: 100x50x50
+category: furniture

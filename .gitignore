@@ -1,0 +1,25 @@
+# Dependencies and build outputs
+node_modules/
+.next/
+dist/
+out/
+.turbo/
+.swc/
+
+# Test and reports
+coverage/
+test-results/
+playwright-report/
+
+# OS/Editor junk
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Env files
+.env
+.env.*
+
+# Misc cache
+.cache/

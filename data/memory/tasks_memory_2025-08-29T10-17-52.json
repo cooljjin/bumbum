@@ -1,0 +1,122 @@
+{
+  "tasks": [
+    {
+      "id": "68f3940d-80f5-4daf-b280-0a15096129c8",
+      "name": "편집 모드 진입 시 그리드 자동 활성화 구현",
+      "description": "편집 모드로 전환할 때 그리드와 스냅 기능을 자동으로 활성화하여 사용자가 가구를 정확하게 배치할 수 있도록 합니다. editorStore.ts의 setMode 함수를 수정하고, Real3DRoom.tsx에서 편집 모드 전환 시 그리드 시스템이 자동으로 표시되도록 합니다.",
+      "notes": "기존 코드에서 편집 모드 진입 시 그리드가 비활성화되는 부분을 반대로 변경해야 합니다. 사용자 경험을 위해 그리드 활성화 상태를 명확하게 표시해야 합니다.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-08-29T08:22:58.206Z",
+      "updatedAt": "2025-08-29T08:25:52.586Z",
+      "relatedFiles": [
+        {
+          "path": "src/store/editorStore.ts",
+          "type": "TO_MODIFY",
+          "description": "setMode 함수에서 편집 모드 진입 시 그리드와 스냅 자동 활성화",
+          "lineStart": 100,
+          "lineEnd": 120
+        },
+        {
+          "path": "src/components/Real3DRoom.tsx",
+          "type": "TO_MODIFY",
+          "description": "편집 모드 전환 시 그리드 시스템 자동 표시",
+          "lineStart": 200,
+          "lineEnd": 250
+        }
+      ],
+      "implementationGuide": "1. editorStore.ts의 setMode 함수에서 편집 모드 진입 시 grid.enabled = true, rotationSnap.enabled = true로 설정\n2. Real3DRoom.tsx에서 편집 모드 전환 시 그리드 시스템이 자동으로 표시되도록 useEffect 수정\n3. 그리드 활성화 상태를 시각적으로 표시하는 UI 요소 추가",
+      "verificationCriteria": "편집 모드 진입 시 그리드가 자동으로 활성화되고, 그리드 시스템이 시각적으로 표시되는지 확인. 콘솔에서 그리드 활성화 로그가 출력되는지 확인.",
+      "summary": "편집 모드 진입 시 그리드 자동 활성화 기능이 성공적으로 완성되었습니다. editorStore.ts에서 setMode 함수를 수정하여 편집 모드 진입 시 grid.enabled = true, rotationSnap.enabled = true로 설정하고, 콘솔에 그리드 활성화 로그를 출력하도록 했습니다. Real3DRoom.tsx에서는 useGridSettings를 사용하여 그리드 설정을 가져오고, 편집 모드에서 그리드 상태 표시기를 추가하여 사용자에게 그리드가 활성화되었음을 시각적으로 알려줍니다. 그리드 시스템은 이미 isEditMode 조건으로 렌더링되어 자동으로 표시됩니다.",
+      "completedAt": "2025-08-29T08:25:52.584Z"
+    },
+    {
+      "id": "6956019e-7998-4571-b291-c043eab44dd0",
+      "name": "스냅 임계값 기반 자연스러운 그리드 스냅 구현",
+      "description": "가구를 드래그할 때 그리드 라인 근처에 놓으면 자동으로 스냅되도록 하는 기능을 구현합니다. 기존의 강제 스냅 대신 임계값 기반의 자연스러운 스냅을 적용하여 사용자가 원하는 위치에 정확하게 배치할 수 있도록 합니다.",
+      "notes": "기존의 강제 스냅을 제거하고 사용자가 의도한 위치를 유지하면서도 그리드에 맞춰 정렬할 수 있도록 해야 합니다. 스냅 임계값은 사용자가 조절할 수 있도록 설정 가능해야 합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "68f3940d-80f5-4daf-b280-0a15096129c8"
+        }
+      ],
+      "createdAt": "2025-08-29T08:22:58.206Z",
+      "updatedAt": "2025-08-29T08:31:03.985Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/EditableFurniture.tsx",
+          "type": "TO_MODIFY",
+          "description": "스냅 임계값 기반 자연스러운 그리드 스냅 함수 추가 및 적용",
+          "lineStart": 200,
+          "lineEnd": 300
+        }
+      ],
+      "implementationGuide": "1. EditableFurniture.tsx에 snapToGridIfNearby 함수 추가 - 스냅 임계값 내에 있을 때만 스냅 적용\n2. handleTransformChange 함수에서 기존 snapPosition 대신 snapToGridIfNearby 사용\n3. 스냅 임계값을 그리드 셀 크기의 절반으로 설정하여 자연스러운 스냅 경험 제공\n4. 스냅 적용 시 시각적 피드백 추가",
+      "verificationCriteria": "가구를 그리드 라인 근처에 드래그했을 때 자동으로 스냅되는지 확인. 스냅 임계값을 벗어난 위치에서는 원래 위치가 유지되는지 확인. 스냅 적용 시 시각적 피드백이 제공되는지 확인.",
+      "summary": "스냅 임계값 기반 자연스러운 그리드 스냅 구현이 완료되었습니다. snapToGridIfNearby 함수를 추가하여 가구를 드래그할 때 그리드 라인 근처에 놓으면 자동으로 스냅되도록 했습니다. 스냅 임계값을 그리드 셀 크기의 절반으로 설정하여 자연스러운 스냅 경험을 제공하고, 스냅 적용 시 시각적 피드백도 추가했습니다. 기존의 강제 스냅을 대체하여 사용자가 원하는 위치를 유지하면서도 그리드에 맞춰 정렬할 수 있도록 구현했습니다.",
+      "completedAt": "2025-08-29T08:31:03.983Z"
+    },
+    {
+      "id": "1992816d-d558-4b18-99c3-85425ee4b598",
+      "name": "TransformControls 스냅 설정 최적화",
+      "description": "TransformControls의 내장 스냅 기능을 최적화하여 더 부드럽고 정확한 가구 조작을 제공합니다. 기존의 1/4 스냅 설정을 개선하고, 실시간 스냅 피드백을 제공합니다.",
+      "notes": "TransformControls의 내장 스냅과 커스텀 스냅 로직 간의 충돌을 방지해야 합니다. 사용자가 스냅 강도를 조절할 수 있도록 설정 옵션을 제공해야 합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "6956019e-7998-4571-b291-c043eab44dd0"
+        }
+      ],
+      "createdAt": "2025-08-29T08:22:58.206Z",
+      "updatedAt": "2025-08-29T09:24:52.814Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/EditableFurniture.tsx",
+          "type": "TO_MODIFY",
+          "description": "TransformControls 스냅 설정 최적화 및 실시간 피드백 추가",
+          "lineStart": 150,
+          "lineEnd": 200
+        }
+      ],
+      "implementationGuide": "1. EditableFurniture.tsx의 TransformControls 스냅 설정을 cellSize와 snapAngle으로 직접 설정\n2. 실시간 스냅 피드백을 위한 시각적 표시 추가\n3. 스냅 강도 조절을 위한 사용자 설정 옵션 추가\n4. 스냅 적용 시 성능 최적화",
+      "verificationCriteria": "TransformControls 사용 시 그리드에 정확하게 스냅되는지 확인. 실시간 스냅 피드백이 제공되는지 확인. 스냅 강도 조절 옵션이 정상 작동하는지 확인.",
+      "summary": "TransformControls 스냅 설정 최적화가 완료되었습니다. 기존의 1/4 스냅 설정을 개선하여 더 부드럽고 정확한 가구 조작을 제공합니다. TransformControls의 내장 스냅과 커스텀 스냅 로직 간의 충돌을 방지하고, 실시간 스냅 피드백을 위한 설정을 추가했습니다. 또한 editorStore에 snapStrength 설정을 추가하여 사용자가 스냅 강도를 조절할 수 있도록 구현했습니다.",
+      "completedAt": "2025-08-29T09:24:52.813Z"
+    },
+    {
+      "id": "2e7748a7-2166-4569-8a1c-9ab933dcfa7d",
+      "name": "스냅 설정 UI 및 사용자 제어 기능 추가",
+      "description": "사용자가 그리드 스냅과 회전 스냅의 강도를 조절할 수 있는 UI를 추가하고, 스냅 설정을 저장/복원할 수 있는 기능을 구현합니다. 편집 도구바에 스냅 설정 컨트롤을 추가합니다.",
+      "notes": "사용자가 편집 중에도 스냅 설정을 쉽게 조절할 수 있어야 합니다. 스냅 강도는 0(스냅 없음)부터 1(강한 스냅)까지 조절 가능해야 합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "1992816d-d558-4b18-99c3-85425ee4b598"
+        }
+      ],
+      "createdAt": "2025-08-29T08:22:58.206Z",
+      "updatedAt": "2025-08-29T09:29:39.638Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/EditToolbar.tsx",
+          "type": "TO_MODIFY",
+          "description": "스냅 설정 컨트롤 UI 추가",
+          "lineStart": 1,
+          "lineEnd": 100
+        },
+        {
+          "path": "src/store/editorStore.ts",
+          "type": "TO_MODIFY",
+          "description": "스냅 강도 설정 상태 및 저장/복원 기능 추가",
+          "lineStart": 30,
+          "lineEnd": 50
+        }
+      ],
+      "implementationGuide": "1. EditToolbar.tsx에 스냅 설정 컨트롤 추가 (그리드 스냅 토글, 회전 스냅 토글, 스냅 강도 슬라이더)\n2. editorStore.ts에 스냅 강도 설정 상태 추가\n3. 스냅 설정을 localStorage에 저장하고 복원하는 기능 구현\n4. 스냅 설정 변경 시 실시간으로 적용되도록 연동",
+      "verificationCriteria": "편집 도구바에 스냅 설정 컨트롤이 표시되는지 확인. 스냅 강도 조절이 실시간으로 적용되는지 확인. 스냅 설정이 localStorage에 저장되고 페이지 새로고침 후 복원되는지 확인.",
+      "summary": "스냅 설정 UI 및 사용자 제어 기능 추가가 완료되었습니다. EditToolbar에 스냅 강도 조절을 위한 슬라이더와 토글 버튼을 추가했습니다. 그리드 스냅과 회전 스냅의 강도를 0부터 2까지 조절할 수 있으며, 스냅 강도 시스템을 활성화/비활성화할 수 있습니다. 또한 editorStore에 snapStrength 설정을 추가하고, localStorage에 저장/복원하는 기능을 구현했습니다. 사용자가 편집 중에도 스냅 설정을 쉽게 조절할 수 있도록 실시간으로 적용되도록 연동했습니다.",
+      "completedAt": "2025-08-29T09:29:39.637Z"
+    }
+  ]
+}

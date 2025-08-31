@@ -1,0 +1,119 @@
+{
+  "tasks": [
+    {
+      "id": "40bd22aa-e146-4046-95cf-356025f8da4f",
+      "name": "EditableFurniture 컴포넌트 컴파일 오류 해결",
+      "description": "EditableFurniture 컴포넌트에서 누락된 드래그 관련 상태 변수들을 정의하고 컴파일 오류를 해결합니다. isDragging, dragStartPosition, dragStartMousePosition 등의 상태 변수와 raycaster, dragPlane ref를 추가하여 기본 구조를 완성합니다.",
+      "notes": "기존 TransformControls 시스템은 그대로 유지하고, 드래그 앤 드롭은 추가 기능으로 구현합니다.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-08-29T11:02:11.279Z",
+      "updatedAt": "2025-08-29T11:41:54.581Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/EditableFurniture.tsx",
+          "type": "TO_MODIFY",
+          "description": "드래그 관련 상태 변수와 ref 추가",
+          "lineStart": 30,
+          "lineEnd": 50
+        }
+      ],
+      "implementationGuide": "1. 필요한 상태 변수들을 useState로 정의\\n2. raycaster와 dragPlane ref를 useRef로 생성\\n3. 기존 코드와의 호환성 확인\\n4. 컴파일 오류 해결 확인",
+      "verificationCriteria": "컴파일 오류가 해결되고, 필요한 상태 변수들이 올바르게 정의되었는지 확인",
+      "analysisResult": "Real3DRoom 컴포넌트의 드래그 앤 드롭 기능 구현 및 가구 배치 시스템 개선 프로젝트. 기존 아키텍처와 완벽하게 호환되며, 사용자 경험을 크게 향상시킬 수 있는 안전하고 효율적인 구현이 가능합니다.",
+      "summary": "EditableFurniture 컴포넌트에 드래그 앤 드롭 기능을 위한 필요한 상태 변수들(isDragging, dragStartPosition, dragStartMousePosition)과 ref들(raycaster, dragPlane)을 성공적으로 추가했습니다. 컴파일 오류가 해결되고 프로젝트가 성공적으로 빌드되었습니다.",
+      "completedAt": "2025-08-29T11:41:54.579Z"
+    },
+    {
+      "id": "0c763e10-fc82-4148-a683-01827993a6eb",
+      "name": "드래그 앤 드롭 이벤트 핸들러 구현",
+      "description": "EditableFurniture 컴포넌트에 완전한 드래그 앤 드롭 기능을 구현합니다. 마우스 이벤트 핸들러(handleDragStart, handleDrag, handleDragEnd)를 완성하고, 레이캐스터를 사용한 3D 공간 위치 계산과 그리드 스냅 시스템과의 연동을 구현합니다.",
+      "notes": "기존 TransformControls와 병행 사용하여 사용자에게 선택권을 제공합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "40bd22aa-e146-4046-95cf-356025f8da4f"
+        }
+      ],
+      "createdAt": "2025-08-29T11:02:11.279Z",
+      "updatedAt": "2025-08-29T11:45:43.689Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/EditableFurniture.tsx",
+          "type": "TO_MODIFY",
+          "description": "드래그 앤 드롭 이벤트 핸들러 구현",
+          "lineStart": 70,
+          "lineEnd": 180
+        }
+      ],
+      "implementationGuide": "1. handleDragStart: 드래그 시작 시 상태 설정 및 선택\\n2. handleDrag: 마우스 이동 시 3D 위치 계산 및 그리드 스냅\\n3. handleDragEnd: 드래그 종료 시 상태 정리\\n4. 전역 마우스 이벤트 리스너 설정\\n5. 그리드 시스템과의 연동",
+      "verificationCriteria": "드래그 앤 드롭이 정상적으로 작동하고, 그리드 스냅과 연동되는지 확인",
+      "analysisResult": "Real3DRoom 컴포넌트의 드래그 앤 드롭 기능 구현 및 가구 배치 시스템 개선 프로젝트. 기존 아키텍처와 완벽하게 호환되며, 사용자 경험을 크게 향상시킬 수 있는 안전하고 효율적인 구현이 가능합니다.",
+      "summary": "드래그 앤 드롭 이벤트 핸들러 구현이 성공적으로 완료되었습니다. DraggableFurniture 컴포넌트를 새로 생성하여 완전한 드래그 앤 드롭 기능을 구현했으며, 마우스 이벤트 핸들러(handleDragStart, handleDrag, handleDragEnd), 3D 공간 위치 계산, 그리드 스냅 시스템과의 연동이 모두 구현되었습니다.",
+      "completedAt": "2025-08-29T11:45:43.688Z"
+    },
+    {
+      "id": "c58ee2a3-b444-4a81-82b0-274bdf24f3d4",
+      "name": "가구 배치 위치 계산 로직 개선",
+      "description": "Real3DRoom 컴포넌트의 가구 배치 시스템을 개선하여 벽면, 구석 등 다양한 위치에 가구를 배치할 수 있도록 합니다. 카테고리별 배치 전략을 구현하고, 기존 가구들과의 충돌을 방지하면서도 다양한 위치 옵션을 제공합니다.",
+      "notes": "기존의 중앙 집중 배치 방식을 개선하여 현실적인 방 배치가 가능하도록 합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "0c763e10-fc82-4148-a683-01827993a6eb"
+        }
+      ],
+      "createdAt": "2025-08-29T11:02:11.279Z",
+      "updatedAt": "2025-08-29T11:46:06.497Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/Real3DRoom.tsx",
+          "type": "TO_MODIFY",
+          "description": "가구 배치 로직이 개선된 메인 컴포넌트",
+          "lineStart": 270,
+          "lineEnd": 450
+        }
+      ],
+      "implementationGuide": "1. 카테고리별 배치 전략 함수 구현 (getWallPosition, getCornerPosition, getCenterPosition)\\n2. 기존 가구들과의 충돌 감지 및 방지 로직 개선\\n3. handleFurnitureSelect 함수의 위치 계산 로직 수정\\n4. 다양한 배치 옵션 제공 (랜덤, 벽면, 구석, 중앙)",
+      "verificationCriteria": "가구들이 벽면, 구석 등 다양한 위치에 배치되고, 중앙 집중 문제가 해결되었는지 확인",
+      "analysisResult": "Real3DRoom 컴포넌트의 드래그 앤 드롭 기능 구현 및 가구 배치 시스템 개선 프로젝트. 기존 아키텍처와 완벽하게 호환되며, 사용자 경험을 크게 향상시킬 수 있는 안전하고 효율적인 구현이 가능합니다.",
+      "summary": "가구 배치 위치 계산 로직 개선이 성공적으로 완료되었습니다. 카테고리별 배치 전략(center, wall, corner, smart), 스마트 배치 로직, 안전한 위치 복사 및 평균 위치 계산이 모두 구현되어 3개 가구의 균형잡힌 배치를 성공적으로 달성했습니다. Playwright MCP를 통한 실제 테스트에서도 완벽하게 작동하는 것을 확인했습니다.",
+      "completedAt": "2025-08-29T11:46:06.496Z"
+    },
+    {
+      "id": "ac607eed-e7e8-4963-8027-a3d0b890e0c2",
+      "name": "사용자 경험 향상 및 시각적 피드백 구현",
+      "description": "드래그 앤 드롭 기능과 개선된 가구 배치 시스템에 대한 사용자 경험을 향상시킵니다. 드래그 중인 상태 표시, 배치 가능한 위치 하이라이트, 툴팁 등의 시각적 피드백을 추가하여 직관적인 인터페이스를 제공합니다.",
+      "notes": "기존 UI와 일관성을 유지하면서 새로운 기능에 대한 명확한 피드백을 제공합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "c58ee2a3-b444-4a81-82b0-274bdf24f3d4"
+        }
+      ],
+      "createdAt": "2025-08-29T11:02:11.279Z",
+      "updatedAt": "2025-08-29T11:51:40.304Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/EditableFurniture.tsx",
+          "type": "TO_MODIFY",
+          "description": "시각적 피드백 및 사용자 경험 개선",
+          "lineStart": 800,
+          "lineEnd": 874
+        },
+        {
+          "path": "src/components/Real3DRoom.tsx",
+          "type": "TO_MODIFY",
+          "description": "가구 배치 가이드 및 툴팁 추가",
+          "lineStart": 500,
+          "lineEnd": 578
+        }
+      ],
+      "implementationGuide": "1. 드래그 중인 상태 시각적 표시 (커서 변경, 하이라이트)\\n2. 배치 가능한 위치 표시 (그리드 하이라이트, 영역 표시)\\n3. 가구 카테고리별 배치 가이드 툴팁\\n4. 드래그 앤 드롭 vs TransformControls 선택 옵션 제공",
+      "verificationCriteria": "사용자가 드래그 앤 드롭과 개선된 배치 시스템을 직관적으로 사용할 수 있는지 확인",
+      "analysisResult": "Real3DRoom 컴포넌트의 드래그 앤 드롭 기능 구현 및 가구 배치 시스템 개선 프로젝트. 기존 아키텍처와 완벽하게 호환되며, 사용자 경험을 크게 향상시킬 수 있는 안전하고 효율적인 구현이 가능합니다.",
+      "summary": "Task 4가 성공적으로 완료되었습니다. 가구 배치 가이드 툴팁(중앙/벽면/구석), 가구별 시각적 피드백(드래그/호버/선택/고정 상태), DraggableFurniture 컴포넌트 통합이 모두 구현되었습니다.",
+      "completedAt": "2025-08-29T11:51:40.303Z"
+    }
+  ]
+}

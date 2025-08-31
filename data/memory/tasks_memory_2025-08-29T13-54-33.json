@@ -1,0 +1,198 @@
+{
+  "tasks": [
+    {
+      "id": "94698193-55bc-40d1-97fa-7fb166cd8661",
+      "name": "하단 카테고리 네비게이션 탭 컴포넌트 생성",
+      "description": "스크린샷과 유사한 하단 카테고리 탭을 구현합니다. 텍스트만 사용하여 간단하고 직관적인 UI를 만들고, 카테고리 선택 상태를 관리하며, 기존 FurnitureCategory 타입과 연동합니다.",
+      "notes": "기존 ThemeSelector.tsx의 탭 선택 UI 패턴을 참고하여 구현합니다. 카테고리별 아이템 수 표시 기능도 포함합니다.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-08-29T13:20:56.906Z",
+      "updatedAt": "2025-08-29T13:25:10.317Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/BottomCategoryTabs.tsx",
+          "type": "CREATE",
+          "description": "새로 생성할 하단 카테고리 탭 컴포넌트"
+        },
+        {
+          "path": "src/components/ThemeSelector.tsx",
+          "type": "REFERENCE",
+          "description": "탭 선택 UI 패턴 참고용",
+          "lineStart": 20,
+          "lineEnd": 40
+        },
+        {
+          "path": "src/types/furniture.ts",
+          "type": "REFERENCE",
+          "description": "FurnitureCategory 타입 정의 참고",
+          "lineStart": 1,
+          "lineEnd": 20
+        }
+      ],
+      "implementationGuide": "1. BottomCategoryTabs.tsx 컴포넌트 생성\\n2. 카테고리 데이터 구조 정의 (전체, 거실, 침실, 주방, 장식품, 벽걸이)\\n3. 선택된 카테고리 상태 관리\\n4. Tailwind CSS로 모바일 친화적인 스타일링\\n5. 클릭 이벤트 핸들러 구현\\n6. 기존 FurnitureCategory 타입과 연동",
+      "verificationCriteria": "1. 하단에 카테고리 탭이 정상적으로 표시됨\\n2. 각 카테고리 클릭 시 선택 상태가 올바르게 변경됨\\n3. 모바일과 데스크톱에서 모두 정상 동작함\\n4. 카테고리별 아이템 수가 정확하게 표시됨\\n5. 기존 FurnitureCategory 타입과 완벽하게 연동됨",
+      "analysisResult": "가구 라이브러리 UI를 스크린샷과 유사한 직관적이고 모바일 친화적인 형태로 개선하는 작업입니다. 현재 좌측 사이드바 형태의 복잡한 텍스트 기반 UI를 하단에서 올라오는 이미지 중심의 간단한 UI로 변경하고, 하단에 카테고리 네비게이션 탭을 추가하여 사용자 경험을 향상시키는 것이 목표입니다.",
+      "summary": "하단 카테고리 네비게이션 탭 컴포넌트가 성공적으로 구현되었습니다. ThemeSelector의 UI 패턴을 참고하여 직관적인 탭 선택 인터페이스를 만들었고, 모든 FurnitureCategory 타입과 완벽하게 연동됩니다. 카테고리별 아이템 수 표시, 모바일 친화적인 반응형 디자인, 가로 스크롤 지원, 애니메이션 효과 등이 모두 구현되었습니다.",
+      "completedAt": "2025-08-29T13:25:10.316Z"
+    },
+    {
+      "id": "f1825694-6938-4ff1-a396-3a1a88789a1f",
+      "name": "가구 카탈로그 UI 단순화 및 이미지 중심 레이아웃 구현",
+      "description": "기존 FurnitureCatalog 컴포넌트의 복잡한 텍스트 기반 UI를 이미지 중심의 간단한 그리드 레이아웃으로 변경합니다. 썸네일 이미지만 표시하고 불필요한 텍스트 정보를 제거하여 직관성을 향상시킵니다.",
+      "notes": "기존 handleDragStart, handleDragEnd 로직은 그대로 유지하고, UI만 단순화합니다. 썸네일 이미지가 없는 경우 기본 가구 아이콘을 표시합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "94698193-55bc-40d1-97fa-7fb166cd8661"
+        }
+      ],
+      "createdAt": "2025-08-29T13:20:56.906Z",
+      "updatedAt": "2025-08-29T13:29:48.464Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/FurnitureCatalog.tsx",
+          "type": "TO_MODIFY",
+          "description": "UI를 이미지 중심 그리드로 변경할 컴포넌트",
+          "lineStart": 200,
+          "lineEnd": 299
+        },
+        {
+          "path": "src/data/furnitureCatalog.ts",
+          "type": "REFERENCE",
+          "description": "가구 데이터 및 썸네일 경로 참고",
+          "lineStart": 1,
+          "lineEnd": 100
+        },
+        {
+          "path": "public/thumbnails/furniture/",
+          "type": "REFERENCE",
+          "description": "썸네일 이미지 파일들"
+        }
+      ],
+      "implementationGuide": "1. FurnitureCatalog.tsx의 카드 UI를 이미지 그리드로 변경\\n2. 복잡한 텍스트 정보(브랜드, 가격, 크기 등) 제거\\n3. 4열 그리드 레이아웃으로 변경 (grid-cols-4)\\n4. 썸네일 이미지 로드 실패 시 기본 아이콘 표시\\n5. 드래그 앤 드롭 기능 유지\\n6. 검색 기능은 상단에 간단하게 유지\\n7. 카테고리 필터링은 하단 탭과 연동",
+      "verificationCriteria": "1. 복잡한 텍스트 정보가 제거되고 이미지만 표시됨\\n2. 4열 그리드 레이아웃이 정상적으로 작동함\\n3. 썸네일 이미지가 정상적으로 로드됨\\n4. 이미지 로드 실패 시 기본 아이콘이 표시됨\\n5. 드래그 앤 드롭 기능이 정상적으로 작동함\\n6. 검색 기능이 간단하게 유지됨",
+      "analysisResult": "가구 라이브러리 UI를 스크린샷과 유사한 직관적이고 모바일 친화적인 형태로 개선하는 작업입니다. 현재 좌측 사이드바 형태의 복잡한 텍스트 기반 UI를 하단에서 올라오는 이미지 중심의 간단한 UI로 변경하고, 하단에 카테고리 네비게이션 탭을 추가하여 사용자 경험을 향상시키는 것이 목표입니다.",
+      "summary": "FurnitureCatalog 컴포넌트가 성공적으로 이미지 중심의 간단한 그리드 레이아웃으로 변경되었습니다. 복잡한 텍스트 정보(브랜드, 가격, 크기 등)가 제거되고 썸네일 이미지만 표시되며, 4열 그리드 레이아웃으로 변경되었습니다. 썸네일 이미지 로드 실패 시 카테고리별 기본 아이콘이 표시되고, 드래그 앤 드롭 기능과 검색 기능이 정상적으로 유지됩니다.",
+      "completedAt": "2025-08-29T13:29:48.463Z"
+    },
+    {
+      "id": "1ee6076c-94a6-4ae8-8893-6b4901feb3b6",
+      "name": "Real3DRoom 레이아웃 변경 - 가구 라이브러리를 하단으로 이동",
+      "description": "Real3DRoom 컴포넌트에서 가구 라이브러리의 위치를 좌측 사이드바에서 하단에서 올라오는 형태로 변경합니다. 하단 카테고리 탭과 함께 통합된 UI를 구현합니다.",
+      "notes": "기존 showFurnitureCatalog 상태와 handleToggleFurnitureCatalog 함수는 그대로 유지하고, UI 위치만 변경합니다. 하단에서 올라오는 애니메이션은 Framer Motion을 활용합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "f1825694-6938-4ff1-a396-3a1a88789a1f"
+        }
+      ],
+      "createdAt": "2025-08-29T13:20:56.906Z",
+      "updatedAt": "2025-08-29T13:37:42.719Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/Real3DRoom.tsx",
+          "type": "TO_MODIFY",
+          "description": "가구 라이브러리 위치를 하단으로 변경할 메인 컴포넌트",
+          "lineStart": 600,
+          "lineEnd": 665
+        },
+        {
+          "path": "src/components/BottomCategoryTabs.tsx",
+          "type": "DEPENDENCY",
+          "description": "하단 카테고리 탭 컴포넌트"
+        },
+        {
+          "path": "src/components/FurnitureCatalog.tsx",
+          "type": "DEPENDENCY",
+          "description": "단순화된 가구 카탈로그 컴포넌트"
+        }
+      ],
+      "implementationGuide": "1. Real3DRoom.tsx의 가구 카탈로그 사이드바를 하단으로 이동\\n2. 좌측 사이드바 제거 및 하단 오버레이 형태로 변경\\n3. 하단 카테고리 탭과 가구 라이브러리 통합\\n4. 애니메이션 효과 추가 (하단에서 올라오는 효과)\\n5. z-index 조정으로 3D 씬과의 겹침 문제 해결\\n6. 모바일 환경에서의 터치 인터페이스 최적화",
+      "verificationCriteria": "1. 가구 라이브러리가 좌측이 아닌 하단에서 올라옴\\n2. 하단 카테고리 탭과 가구 라이브러리가 통합되어 표시됨\\n3. 애니메이션이 부드럽게 작동함\\n4. 3D 씬과의 겹침 문제가 해결됨\\n5. 모바일 환경에서 터치 인터페이스가 정상 작동함\\n6. 기존 편집 기능이 모두 정상적으로 동작함",
+      "analysisResult": "가구 라이브러리 UI를 스크린샷과 유사한 직관적이고 모바일 친화적인 형태로 개선하는 작업입니다. 현재 좌측 사이드바 형태의 복잡한 텍스트 기반 UI를 하단에서 올라오는 이미지 중심의 간단한 UI로 변경하고, 하단에 카테고리 네비게이션 탭을 추가하여 사용자 경험을 향상시키는 것이 목표입니다.",
+      "summary": "Real3DRoom 컴포넌트에서 가구 라이브러리의 위치를 좌측 사이드바에서 하단으로 이동하는 작업이 완료되었습니다. BottomCategoryTabs 컴포넌트와 단순화된 FurnitureCatalog가 통합되어 하단에서 올라오는 UI 형태로 구현되었습니다. 카테고리 상태 관리와 애니메이션 효과가 추가되어 모바일 친화적인 인터페이스가 구현되었습니다.",
+      "completedAt": "2025-08-29T13:37:42.718Z"
+    },
+    {
+      "id": "4811cde5-6298-44e5-ae31-e82ebb8b2f51",
+      "name": "상태 관리 연동 및 카테고리 선택 동기화",
+      "description": "새로 구현된 하단 카테고리 탭과 가구 카탈로그 간의 상태를 동기화하고, editorStore와 연동하여 카테고리 선택 상태를 관리합니다. 기존 기능과의 호환성을 유지합니다.",
+      "notes": "기존 useEditorStore의 상태 관리 패턴을 따라 구현합니다. 카테고리 변경 시 콘솔에 로그를 출력하여 디버깅을 용이하게 합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "1ee6076c-94a6-4ae8-8893-6b4901feb3b6"
+        }
+      ],
+      "createdAt": "2025-08-29T13:20:56.906Z",
+      "updatedAt": "2025-08-29T13:42:21.578Z",
+      "relatedFiles": [
+        {
+          "path": "src/store/editorStore.ts",
+          "type": "TO_MODIFY",
+          "description": "selectedCategory 상태를 추가할 Zustand 스토어",
+          "lineStart": 1,
+          "lineEnd": 100
+        },
+        {
+          "path": "src/components/BottomCategoryTabs.tsx",
+          "type": "DEPENDENCY",
+          "description": "상태를 구독할 하단 카테고리 탭 컴포넌트"
+        },
+        {
+          "path": "src/components/FurnitureCatalog.tsx",
+          "type": "DEPENDENCY",
+          "description": "상태 변경을 반영할 가구 카탈로그 컴포넌트"
+        }
+      ],
+      "implementationGuide": "1. editorStore.ts에 selectedCategory 상태 추가\\n2. BottomCategoryTabs와 FurnitureCatalog 간 상태 동기화\\n3. 카테고리 변경 시 가구 목록 필터링 자동 업데이트\\n4. 기존 검색 및 정렬 기능과의 호환성 유지\\n5. 상태 변경 시 적절한 로깅 추가\\n6. 에러 처리 및 예외 상황 대응",
+      "verificationCriteria": "1. 하단 카테고리 탭 선택 시 가구 목록이 올바르게 필터링됨\\n2. editorStore의 selectedCategory 상태가 정확하게 업데이트됨\\n3. 기존 검색 및 정렬 기능이 정상적으로 작동함\\n4. 카테고리 변경 시 적절한 로그가 출력됨\\n5. 상태 동기화가 실시간으로 이루어짐\\n6. 에러 상황에서도 안정적으로 동작함",
+      "analysisResult": "가구 라이브러리 UI를 스크린샷과 유사한 직관적이고 모바일 친화적인 형태로 개선하는 작업입니다. 현재 좌측 사이드바 형태의 복잡한 텍스트 기반 UI를 하단에서 올라오는 이미지 중심의 간단한 UI로 변경하고, 하단에 카테고리 네비게이션 탭을 추가하여 사용자 경험을 향상시키는 것이 목표입니다.",
+      "summary": "상태 관리 연동 및 카테고리 선택 동기화 작업이 완료되었습니다. editorStore에 selectedCategory 상태와 setSelectedCategory 액션이 추가되었고, BottomCategoryTabs와 FurnitureCatalog 컴포넌트가 editorStore와 연동되어 상태를 동기화합니다. 카테고리 변경 시 히스토리 캡처와 로깅이 추가되어 디버깅이 용이해졌습니다.",
+      "completedAt": "2025-08-29T13:42:21.577Z"
+    },
+    {
+      "id": "9a454a4b-63f5-4e1c-84fb-c4874b3ae04f",
+      "name": "반응형 디자인 및 모바일 터치 인터페이스 최적화",
+      "description": "새로 구현된 UI가 모바일과 데스크톱 환경에서 모두 최적화되도록 반응형 디자인을 적용하고, 터치 인터페이스를 개선합니다. 사용자 경험을 향상시킵니다.",
+      "notes": "기존 isMobile 상태 감지 로직을 활용하여 모바일 환경을 감지하고, 적절한 UI를 제공합니다. 터치 인터페이스는 모바일 우선으로 설계합니다.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "4811cde5-6298-44e5-ae31-e82ebb8b2f51"
+        }
+      ],
+      "createdAt": "2025-08-29T13:20:56.906Z",
+      "updatedAt": "2025-08-29T13:46:56.584Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/BottomCategoryTabs.tsx",
+          "type": "TO_MODIFY",
+          "description": "반응형 디자인을 적용할 하단 카테고리 탭",
+          "lineStart": 1,
+          "lineEnd": 50
+        },
+        {
+          "path": "src/components/FurnitureCatalog.tsx",
+          "type": "TO_MODIFY",
+          "description": "모바일 최적화를 적용할 가구 카탈로그",
+          "lineStart": 200,
+          "lineEnd": 299
+        },
+        {
+          "path": "src/components/Real3DRoom.tsx",
+          "type": "TO_MODIFY",
+          "description": "반응형 레이아웃을 적용할 메인 컴포넌트",
+          "lineStart": 600,
+          "lineEnd": 665
+        }
+      ],
+      "implementationGuide": "1. Tailwind CSS의 반응형 클래스 활용 (sm:, md:, lg:)\\n2. 모바일에서 터치 친화적인 버튼 크기 및 간격 조정\\n3. 하단 카테고리 탭의 터치 영역 최적화\\n4. 가구 이미지 그리드의 모바일 최적화 (2열 또는 3열)\\n5. 터치 제스처 지원 (스와이프, 탭 등)\\n6. 접근성 개선 (키보드 네비게이션, 스크린 리더 지원)",
+      "verificationCriteria": "1. 모바일과 데스크톱에서 모두 최적화된 UI가 표시됨\\n2. 터치 인터페이스가 부드럽게 작동함\\n3. 반응형 그리드가 화면 크기에 따라 적절히 조정됨\\n4. 접근성이 개선되어 키보드와 스크린 리더에서 정상 동작함\\n5. 터치 제스처가 정상적으로 인식됨\\n6. 모든 디바이스에서 일관된 사용자 경험 제공",
+      "analysisResult": "가구 라이브러리 UI를 스크린샷과 유사한 직관적이고 모바일 친화적인 형태로 개선하는 작업입니다. 현재 좌측 사이드바 형태의 복잡한 텍스트 기반 UI를 하단에서 올라오는 이미지 중심의 간단한 UI로 변경하고, 하단에 카테고리 네비게이션 탭을 추가하여 사용자 경험을 향상시키는 것이 목표입니다.",
+      "summary": "반응형 디자인 및 모바일 터치 인터페이스 최적화 작업이 완료되었습니다. Tailwind CSS의 반응형 클래스(sm:, md:, lg:)를 활용하여 모바일과 데스크톱 환경에서 모두 최적화된 UI를 구현했습니다. 터치 친화적인 버튼 크기(44px 이상), 반응형 그리드(모바일 2-3열, 데스크톱 4열), 접근성 개선(aria-label, role, tabIndex)이 추가되었습니다.",
+      "completedAt": "2025-08-29T13:46:56.583Z"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+# Dummy GLB file for bookshelf-simple-small
+# This is a placeholder file for development purposes
+# Replace with actual 3D model file when available
+model_type: bookshelf-simple-small
+dimensions: 100x50x50
+category: furniture

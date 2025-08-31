@@ -1,0 +1,770 @@
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+
+import { TransformControls, Box } from '@react-three/drei';
+import { Vector3, Euler, Group } from 'three';
+import { useEditorStore } from '../../../store/editorStore';
+import { PlacedItem } from '../../../types/editor';
+import { createFallbackModel, createFurnitureModel } from '../../../utils/modelLoader';
+import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
+import MobileTouchHandler from '../../ui/MobileTouchHandler';
+
+interface EditableFurnitureProps {
+  item: PlacedItem;
+  isSelected: boolean;
+  isEditMode: boolean;
+  onSelect: (id: string | null) => void;
+  onUpdate: (id: string, updates: Partial<PlacedItem>) => void;
+  onDelete: (id: string) => void;
+}
+
+export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
+  item,
+  isSelected,
+  isEditMode,
+  onSelect,
+  onUpdate,
+  onDelete
+}) => {
+  // 컴포넌트 마운트 확인 로그
+  console.log('[EditableFurniture] mounted', item?.id);
+
+  const meshRef = useRef<Group>(null);
+  const transformControlsRef = useRef<any>(null);
+
+
+
+  const [model, setModel] = useState<Group | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const lastUpdateTime = useRef<number>(0);
+
+
+
+  const { mode, tool, grid, rotationSnap, snapStrength } = useEditorStore();
+
+
+  // 모바일 환경 감지
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTouchMode, setIsTouchMode] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+      const isMobileDevice = mobileRegex.test(navigator.userAgent) || window.innerWidth <= 768;
+      setIsMobile(isMobileDevice);
+
+      // 모바일 환경에서는 터치 모드 활성화
+      if (isMobileDevice && isSelected && isEditMode && !item.isLocked) {
+        setIsTouchMode(true);
+      } else {
+        setIsTouchMode(false);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [isSelected, isEditMode, item.isLocked]);
+
+  // 터치 변환 핸들러
+  const handleTouchTransform = useCallback((position: Vector3, rotation: Euler, scale: Vector3) => {
+    onUpdate(item.id, { position, rotation, scale });
+  }, [item.id, onUpdate]);
+
+  // 모델 로딩 - item.id를 기준으로 한 번만 실행
+  useEffect(() => {
+    const loadModel = async () => {
+      try {
+        setIsLoading(true);
+        setLoadError(null);
+
+        // FurnitureItem 정보 가져오기
+        const furniture = getFurnitureFromPlacedItem(item);
+        if (!furniture) {
+          console.warn('가구 정보를 찾을 수 없어 기본 박스로 표시합니다:', item);
+          setLoadError('가구 정보를 찾을 수 없습니다');
+          setIsLoading(false);
+          return;
+        }
+
+        // 실제 3D 모델 생성 함수를 우선적으로 사용
+        console.info(`가구 모델 생성: ${furniture.nameKo} (${furniture.category})`);
+        const realModel = createFurnitureModel(furniture);
+        setModel(realModel);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to create furniture model:', error);
+        setLoadError(error instanceof Error ? error.message : 'Unknown error');
+
+        // 에러 발생 시 폴백 모델 사용
+        const furniture = getFurnitureFromPlacedItem(item);
+        if (furniture) {
+          const fallbackModel = createFallbackModel(furniture);
+          setModel(fallbackModel);
+        }
+        setIsLoading(false);
+      }
+    };
+
+    loadModel();
+  }, [item.id]); // item.id로 변경하여 item 객체 변경 시 불필요한 재실행 방지
+
+  // 위치, 회전, 크기 동기화 - 최적화된 의존성 배열
+  useEffect(() => {
+    if (!meshRef.current || item.isLocked) return;
+
+    try {
+      // Three.js 객체의 속성들을 직접 비교하여 변경된 경우에만 업데이트
+      const currentPos = meshRef.current.position;
+      const currentRot = meshRef.current.rotation;
+      const currentScale = meshRef.current.scale;
+
+      const itemPosition = new Vector3(item.position.x, item.position.y, item.position.z);
+      const itemRotation = new Euler(item.rotation.x, item.rotation.y, item.rotation.z);
+      const itemScale = new Vector3(item.scale.x, item.scale.y, item.scale.z);
+
+      // 더 엄격한 오차 허용 범위 적용
+      const TOLERANCE = 0.0001;
+
+      const needsPositionUpdate = !currentPos.equals(itemPosition) &&
+        Math.abs(currentPos.distanceTo(itemPosition)) > TOLERANCE;
+      const needsRotationUpdate = !currentRot.equals(itemRotation) &&
+        (Math.abs(currentRot.x - itemRotation.x) > TOLERANCE ||
+         Math.abs(currentRot.y - itemRotation.y) > TOLERANCE ||
+         Math.abs(currentRot.z - itemRotation.z) > TOLERANCE);
+      const needsScaleUpdate = !currentScale.equals(itemScale) &&
+        Math.abs(currentScale.distanceTo(itemScale)) > TOLERANCE;
+
+      if (needsPositionUpdate) {
+        meshRef.current.position.copy(itemPosition);
+        console.log(`📍 가구 ${item.id} 위치 동기화:`, {
+          x: itemPosition.x.toFixed(3),
+          y: itemPosition.y.toFixed(3),
+          z: itemPosition.z.toFixed(3)
+        });
+      }
+      if (needsRotationUpdate) {
+        meshRef.current.rotation.copy(itemRotation);
+      }
+      if (needsScaleUpdate) {
+        meshRef.current.scale.copy(itemScale);
+      }
+    } catch (error) {
+      console.warn('Position/Rotation/Scale sync failed:', error);
+    }
+  }, [item.id, item.isLocked]); // 최적화된 의존성 배열
+
+  // TransformControls 스냅 설정 적용 - Blueprint3D 스타일 개선
+  useEffect(() => {
+    if (transformControlsRef.current && isSelected && mode === 'edit' && !item.isLocked) {
+      // 그리드 스냅 설정 - 스냅 강도에 따라 조절
+      if (grid.enabled && snapStrength.enabled) {
+        const cellSize = grid.size / grid.divisions;
+        // 스냅 강도에 따라 TransformControls 스냅 설정
+        const snapValue = cellSize * snapStrength.translation;
+        transformControlsRef.current.setTranslationSnap(snapValue);
+      } else {
+        transformControlsRef.current.setTranslationSnap(null);
+      }
+
+      // 회전 스냅 설정 - 스냅 강도에 따라 조절
+      if (rotationSnap.enabled && snapStrength.enabled) {
+        const snapAngle = (rotationSnap.angle * Math.PI) / 180; // 도를 라디안으로 변환
+        // 스냅 강도에 따라 회전 스냅 설정
+        const snapValue = snapAngle * snapStrength.rotation;
+        transformControlsRef.current.setRotationSnap(snapValue);
+      } else {
+        transformControlsRef.current.setRotationSnap(null);
+      }
+
+      // TransformControls의 키보드 이벤트 방지 및 개선된 단축키 처리
+      const originalAddEventListener = transformControlsRef.current.addEventListener;
+      if (originalAddEventListener) {
+        // L, G, R 키 이벤트 차단 및 개선된 단축키 지원
+        transformControlsRef.current.addEventListener = function(type: string, listener: EventListener, options?: boolean | AddEventListenerOptions) {
+          if (type === 'keydown' || type === 'keyup' || type === 'keypress') {
+            const blockedKeys = ['l', 'L', 'g', 'G', 'r', 'R'];
+            const originalListener = listener;
+            listener = function(this: any, event: Event) {
+              if ('key' in event && blockedKeys.includes((event as KeyboardEvent).key)) {
+                event.stopPropagation();
+                return;
+              }
+              return originalListener.apply(this, [event]);
+            };
+          }
+          return originalAddEventListener.call(this, type, listener, options);
+        };
+      }
+    }
+  }, [isSelected, mode, grid.enabled, grid.size, grid.divisions, rotationSnap.enabled, rotationSnap.angle, snapStrength, item.isLocked]);
+
+  // 스냅 함수들 - Blueprint3D 스타일 개선
+  const snapToGrid = React.useCallback((value: number, snapSize: number = 0.25): number => {
+    return Math.round(value / snapSize) * snapSize;
+  }, []);
+
+  const snapPosition = React.useCallback((position: Vector3, snapSize: number = 0.25): Vector3 => {
+    return new Vector3(
+      snapToGrid(position.x, snapSize),
+      position.y, // Y축은 바닥에 고정 (스냅하지 않음)
+      snapToGrid(position.z, snapSize)
+    );
+  }, [snapToGrid]);
+
+  const snapRotation = React.useCallback((rotation: Euler, snapAngle: number = 15): Euler => {
+    const snapAngleRad = (snapAngle * Math.PI) / 180;
+    return new Euler(
+      Math.round(rotation.x / snapAngleRad) * snapAngleRad,
+      Math.round(rotation.y / snapAngleRad) * snapAngleRad,
+      Math.round(rotation.z / snapAngleRad) * snapAngleRad
+    );
+  }, []);
+
+  // TransformControls 변경 이벤트 처리 - 스냅 기능 포함
+  const handleTransformChange = React.useCallback(() => {
+    if (!meshRef.current || !transformControlsRef.current) return;
+
+    const now = Date.now();
+    // 최소 16ms (약 60fps) 간격으로 업데이트 제한
+    if (now - lastUpdateTime.current < 16) return;
+    lastUpdateTime.current = now;
+
+    try {
+      let currentPosition = meshRef.current.position.clone();
+      let currentRotation = meshRef.current.rotation.clone();
+      const currentScale = meshRef.current.scale.clone();
+
+      // 그리드 스냅 적용 (편집 모드에서만)
+      if (grid.enabled && mode === 'edit') {
+        const cellSize = grid.size / grid.divisions;
+        currentPosition = snapPosition(currentPosition, cellSize);
+      }
+
+      // 회전 스냅 적용 (편집 모드에서만)
+      if (rotationSnap.enabled && mode === 'edit') {
+        currentRotation = snapRotation(currentRotation, rotationSnap.angle);
+      }
+
+      // 현재 값과 이전 값을 비교하여 실제 변경된 경우에만 업데이트
+      const itemPosition = new Vector3(item.position.x, item.position.y, item.position.z);
+      const itemRotation = new Euler(item.rotation.x, item.rotation.y, item.rotation.z);
+      const itemScale = new Vector3(item.scale.x, item.scale.y, item.scale.z);
+
+      // 값이 실제로 변경된 경우에만 업데이트 (약간의 오차 허용)
+      const TOLERANCE = 0.001;
+      const positionChanged = !currentPosition.equals(itemPosition) &&
+        Math.abs(currentPosition.distanceTo(itemPosition)) > TOLERANCE;
+      const rotationChanged = !currentRotation.equals(itemRotation) &&
+        (Math.abs(currentRotation.x - itemRotation.x) > TOLERANCE ||
+         Math.abs(currentRotation.y - itemRotation.y) > TOLERANCE ||
+         Math.abs(currentRotation.z - itemRotation.z) > TOLERANCE);
+      const scaleChanged = !currentScale.equals(itemScale) &&
+        Math.abs(currentScale.distanceTo(itemScale)) > TOLERANCE;
+
+      if (positionChanged || rotationChanged || scaleChanged) {
+        // 스냅된 값으로 업데이트
+        onUpdate(item.id, {
+          position: currentPosition,
+          rotation: currentRotation,
+          scale: currentScale
+        });
+      }
+    } catch (error) {
+      console.warn('Transform update failed:', error);
+    }
+  }, [item.id, item.position, item.rotation, item.scale, onUpdate, grid, rotationSnap, mode, snapPosition, snapRotation]);
+
+  // TransformControls 드래그 종료 시 자동 고정
+  const handleTransformEnd = React.useCallback(() => {
+    if (!isSelected || item.isLocked) return;
+
+    console.log('🎯 드래그 종료 - 객체 위치 조정 완료:', item.id);
+
+    // 자동 고정 설정 확인
+    const { autoLock } = useEditorStore.getState();
+
+    if (autoLock.enabled) {
+      console.log(`⏱️ ${autoLock.delay}ms 후 자동 고정 예정...`);
+
+      // 설정된 지연 시간 후 자동 고정
+      setTimeout(() => {
+        // 현재 위치를 확실히 저장
+        if (meshRef.current && isSelected && !item.isLocked) {
+          const currentPosition = meshRef.current.position.clone();
+          const currentRotation = meshRef.current.rotation.clone();
+          const currentScale = meshRef.current.scale.clone();
+
+          // 현재 값으로 업데이트 (고정 전에 위치 확정)
+          onUpdate(item.id, {
+            position: currentPosition,
+            rotation: currentRotation,
+            scale: currentScale
+          });
+
+          console.log(`📍 자동 고정 준비: (${currentPosition.x.toFixed(2)}, ${currentPosition.z.toFixed(2)})`);
+
+          // 자동 고정 실행
+          useEditorStore.getState().lockItem(item.id);
+          console.log('🔒 자동 고정 완료!');
+        }
+      }, autoLock.delay);
+    } else {
+      console.log('🔓 자동 고정이 비활성화되어 있습니다. 수동으로 L키를 눌러 고정하세요.');
+    }
+  }, [isSelected, item.id, item.isLocked, onUpdate]);
+
+  // 객체 표시 상태 관리 - 고정 상태 변경 시에도 객체가 사라지지 않도록
+  const [isVisible, setIsVisible] = React.useState(true);
+  const [isPlacementMode, setIsPlacementMode] = React.useState(false);
+
+  // 고정 상태 변경 애니메이션을 위한 상태
+  const [lockAnimation, setLockAnimation] = React.useState(false);
+  const [previousLockState, setPreviousLockState] = React.useState(item.isLocked);
+
+  // 고정 상태 변경 감지 및 애니메이션 실행
+  React.useEffect(() => {
+    setIsVisible(true); // 항상 표시 상태 유지
+
+    // 고정 상태가 변경되었는지 확인
+    if (previousLockState !== item.isLocked) {
+      console.log(`🔒 고정 상태 변경: ${previousLockState ? '고정됨' : '해제됨'} → ${item.isLocked ? '고정됨' : '해제됨'}`);
+
+      // 애니메이션 실행
+      setLockAnimation(true);
+
+      // 애니메이션 완료 후 상태 정리
+      setTimeout(() => {
+        setLockAnimation(false);
+      }, 1000); // 1초 애니메이션
+
+      // 이전 상태 업데이트
+      setPreviousLockState(item.isLocked);
+    }
+  }, [item.isLocked, previousLockState]);
+
+  // 새로운 객체 배치 모드 감지 (최근 추가된 객체)
+  React.useEffect(() => {
+    // item이 새로 추가되었고 아직 고정되지 않은 경우 배치 모드로 설정
+    if (!item.isLocked && isSelected && isEditMode) {
+      setIsPlacementMode(true);
+    } else {
+      setIsPlacementMode(false);
+    }
+  }, [item.isLocked, isSelected, isEditMode, item.id]);
+
+  // 클릭 이벤트 처리 - 선택/해제 토글 (고정된 객체는 선택 불가)
+  const handleClick = (event: any) => {
+    event.stopPropagation();
+
+    // 고정된 객체는 선택할 수 없음
+    if (item.isLocked) {
+      console.log('고정된 객체는 선택할 수 없습니다:', item.id);
+      return;
+    }
+
+    // 이미 선택된 객체를 클릭하면 해제, 아니면 선택
+    if (isSelected) {
+      onSelect(null); // 선택 해제
+      console.log('객체 선택 해제:', item.id);
+    } else {
+      onSelect(item.id); // 선택
+      console.log('객체 선택:', item.id);
+    }
+  };
+
+  // 키보드 단축키 처리 - 이벤트 리스너 중복 등록 방지
+  useEffect(() => {
+    if (!isSelected || !isEditMode) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      switch (event.key) {
+        case 'Delete':
+        case 'Backspace':
+          event.preventDefault();
+          onDelete(item.id);
+          break;
+        case 'Escape':
+          event.preventDefault();
+          onSelect(item.id); // 선택 해제
+          break;
+        case 'g':
+        case 'G':
+          event.preventDefault();
+          // 이동 도구로 전환
+          useEditorStore.getState().setTool('translate');
+          break;
+        case 'r':
+        case 'R':
+          event.preventDefault();
+          // 회전 도구로 전환
+          useEditorStore.getState().setTool('rotate');
+          break;
+        case 'l':
+        case 'L':
+          event.preventDefault();
+          event.stopPropagation(); // TransformControls에 이벤트가 전달되지 않도록
+
+          // 객체 고정/해제 토글 - 현재 위치 확실히 저장
+          if (item.isLocked) {
+            useEditorStore.getState().unlockItem(item.id);
+            console.log('🔓 객체 고정 해제됨:', item.id);
+          } else {
+            // 고정하기 전에 현재 위치를 확실히 저장
+            if (meshRef.current && isSelected) {
+              const currentPosition = meshRef.current.position.clone();
+              const currentRotation = meshRef.current.rotation.clone();
+              const currentScale = meshRef.current.scale.clone();
+
+              // 현재 값으로 업데이트 (고정 전에 위치 확정)
+              onUpdate(item.id, {
+                position: currentPosition,
+                rotation: currentRotation,
+                scale: currentScale
+              });
+
+              console.log(`📍 현재 위치에 고정 준비: (${currentPosition.x.toFixed(2)}, ${currentPosition.z.toFixed(2)})`);
+            }
+
+            // 잠시 후에 고정 설정 (위치 저장 완료 대기)
+            setTimeout(() => {
+              useEditorStore.getState().lockItem(item.id);
+              console.log('🔒 객체 고정됨 - 현재 위치에 고정되었습니다!');
+            }, 100);
+          }
+          break;
+        case 's':
+        case 'S':
+          event.preventDefault();
+          // 크기 조정 도구로 전환
+          useEditorStore.getState().setTool('scale');
+          break;
+        case 'q':
+        case 'Q':
+          event.preventDefault();
+          // 선택 도구로 전환
+          useEditorStore.getState().setTool('select');
+          break;
+
+        case 'g':
+        case 'G':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            // 그리드 스냅 토글
+            useEditorStore.getState().toggleGridSnap();
+            console.log('그리드 스냅 토글:', useEditorStore.getState().grid.enabled ? 'ON' : 'OFF');
+          } else {
+            event.preventDefault();
+            // 이동 도구로 전환
+            useEditorStore.getState().setTool('translate');
+          }
+          break;
+        case 'r':
+        case 'R':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            // 회전 스냅 토글
+            useEditorStore.getState().toggleRotationSnap();
+            console.log('회전 스냅 토글:', useEditorStore.getState().rotationSnap.enabled ? 'ON' : 'OFF');
+          } else {
+            event.preventDefault();
+            // 회전 도구로 전환
+            useEditorStore.getState().setTool('rotate');
+          }
+          break;
+      }
+    };
+
+    // 캡처 단계에서 이벤트 리스너 추가하여 TransformControls의 기본 동작을 먼저 차단
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [isSelected, onDelete, onSelect, item.id]);
+
+  // 바운딩 박스 렌더링 (고정된 객체는 표시하지 않음)
+  const renderBoundingBox = () => {
+    if (!isSelected || !isEditMode || !model || item.isLocked) return null;
+
+    return (
+      <Box
+        args={[item.footprint.width, item.footprint.height, item.footprint.depth]}
+        position={[0, item.footprint.height / 2, 0]}
+        visible={true}
+      >
+        <meshBasicMaterial
+          color="#00ff00"
+          wireframe={true}
+          transparent={true}
+          opacity={0.5}
+        />
+      </Box>
+    );
+  };
+
+  // 고정 표시기 렌더링 (개선된 버전)
+  const renderLockIndicator = () => {
+    if (!item.isLocked || !model) return null;
+
+    // 애니메이션 효과 적용
+    const animationScale = lockAnimation ? 1.2 : 1.0;
+    const animationOpacity = lockAnimation ? 1.0 : 0.95;
+
+    return (
+      <group>
+        {/* 고정 바운딩 박스 - 더 두드러진 황금색 테두리 */}
+        <Box
+          args={[item.footprint.width + 0.3, item.footprint.height + 0.3, item.footprint.depth + 0.3]}
+          position={[0, item.footprint.height / 2, 0]}
+          visible={true}
+          scale={[animationScale, animationScale, animationScale]}
+        >
+          <meshBasicMaterial
+            color="#ffd700" // 밝은 황금색
+            wireframe={true}
+            transparent={true}
+            opacity={animationOpacity}
+          />
+        </Box>
+
+        {/* 고정 상태 강조 표시 - 바닥에 황금 원형 마커 */}
+        <mesh position={[0, 0.05, 0]}>
+          <cylinderGeometry args={[item.footprint.width / 2 + 0.2, item.footprint.width / 2 + 0.2, 0.1, 16]} />
+          <meshBasicMaterial
+            color="#ffd700"
+            transparent={true}
+            opacity={0.8}
+          />
+        </mesh>
+
+        {/* 고정 아이콘 표시 - 더 큰 크기 */}
+        <mesh position={[0, item.footprint.height + 0.6, 0]}>
+          <sphereGeometry args={[0.2, 12, 12]} />
+          <meshBasicMaterial color="#ffd700" />
+        </mesh>
+
+        {/* 자물쇠 아이콘 (개선된 디자인) */}
+        <group position={[0, item.footprint.height + 0.9, 0]}>
+          {/* 자물쇠 몸체 */}
+          <Box args={[0.25, 0.2, 0.12]} position={[0, 0, 0]}>
+            <meshBasicMaterial color="#333333" />
+          </Box>
+          {/* 자물쇠 구멍 */}
+          <Box args={[0.1, 0.1, 0.06]} position={[0, 0, 0]}>
+            <meshBasicMaterial color="#666666" />
+          </Box>
+          {/* 자물쇠 고리 */}
+          <Box args={[0.15, 0.05, 0.05]} position={[0, 0.15, 0]}>
+            <meshBasicMaterial color="#333333" />
+          </Box>
+        </group>
+
+        {/* 고정 상태 텍스트 표시 */}
+        <Box args={[0.8, 0.08, 0.01]} position={[0, item.footprint.height + 1.2, 0]}>
+          <meshBasicMaterial color="#ffd700" transparent opacity={0.9} />
+        </Box>
+      </group>
+    );
+  };
+
+    // 선택 표시기 렌더링 (개선된 버전)
+  const renderSelectionIndicator = () => {
+    if (!isSelected || !isEditMode || item.isLocked) return null;
+
+    const isTouching = isTouchMode;
+    const indicatorColor = isTouching ? '#f97316' : '#3b82f6'; // 터치 중 주황색, 일반 선택 파란색
+    const indicatorOpacity = isTouching ? 1.0 : 0.8;
+
+    return (
+      <group>
+        {/* 선택 바운딩 박스 - 더 명확한 파란색 테두리 */}
+        <Box
+          args={[item.footprint.width + 0.15, item.footprint.height + 0.15, item.footprint.depth + 0.15]}
+          position={[0, item.footprint.height / 2, 0]}
+          visible={true}
+        >
+          <meshBasicMaterial
+            color={indicatorColor}
+            wireframe={true}
+            transparent={true}
+            opacity={indicatorOpacity}
+          />
+        </Box>
+
+        {/* 편집 가능 표시 - 더 큰 크기 */}
+        <mesh position={[0, item.footprint.height + 0.4, 0]}>
+          <sphereGeometry args={[isTouching ? 0.18 : 0.12, 10, 10]} />
+          <meshBasicMaterial color={isTouching ? '#f97316' : '#10b981'} />
+        </mesh>
+
+        {/* 편집 상태 강조 표시 - 바닥에 원형 마커 */}
+        <mesh position={[0, 0.05, 0]}>
+          <cylinderGeometry args={[item.footprint.width / 2 + 0.15, item.footprint.width / 2 + 0.15, 0.08, 12]} />
+          <meshBasicMaterial
+            color={isTouching ? '#f97316' : '#10b981'}
+            transparent={true}
+            opacity={0.6}
+          />
+        </mesh>
+
+        {/* 터치 모드 표시 (모바일 전용) */}
+        {isMobile && (
+          <group position={[0, item.footprint.height + 0.7, 0]}>
+            <Box args={[0.4, 0.03, 0.01]} position={[0, 0, 0]}>
+              <meshBasicMaterial color="#f97316" transparent opacity={0.8} />
+            </Box>
+            <Box args={[0.1, 0.1, 0.01]} position={[0.15, 0, 0]}>
+              <meshBasicMaterial color="#f97316" transparent opacity={0.8} />
+            </Box>
+          </group>
+        )}
+
+        {/* 편집 모드 텍스트 표시를 위한 마커 */}
+        <Box args={[0.4, 0.06, 0.01]} position={[0, item.footprint.height + 0.6, 0]}>
+          <meshBasicMaterial color={isTouching ? '#f97316' : '#10b981'} transparent opacity={0.7} />
+        </Box>
+      </group>
+    );
+  };
+
+  // 배치 모드 표시기 렌더링
+  const renderPlacementModeIndicator = () => {
+    if (!isPlacementMode || !model) return null;
+
+    return (
+      <group>
+        {/* 배치 모드 바운딩 박스 (주황색) */}
+        <Box
+          args={[item.footprint.width + 0.15, item.footprint.height + 0.15, item.footprint.depth + 0.15]}
+          position={[0, item.footprint.height / 2, 0]}
+          visible={true}
+        >
+          <meshBasicMaterial
+            color="#f97316" // 주황색
+            wireframe={true}
+            transparent={true}
+            opacity={0.7}
+          />
+        </Box>
+
+        {/* 배치 중 표시 (주황색 원) */}
+        <mesh position={[0, item.footprint.height + 0.4, 0]}>
+          <sphereGeometry args={[0.12, 8, 8]} />
+          <meshBasicMaterial color="#f97316" />
+        </mesh>
+
+        {/* 움직이는 화살표 표시 */}
+        <group position={[0, item.footprint.height + 0.6, 0]}>
+          <Box args={[0.4, 0.03, 0.01]} position={[0, 0, 0]}>
+            <meshBasicMaterial color="#f97316" transparent opacity={0.8} />
+          </Box>
+          <Box args={[0.1, 0.1, 0.01]} position={[0.15, 0, 0]}>
+            <meshBasicMaterial color="#f97316" transparent opacity={0.8} />
+          </Box>
+        </group>
+      </group>
+    );
+  };
+
+  // 로딩 상태 표시
+  if (isLoading) {
+    return (
+      <group
+        ref={meshRef}
+        position={[item.position.x, item.position.y, item.position.z]}
+        rotation={[item.rotation.x, item.rotation.y, item.rotation.z]}
+        scale={[item.scale.x, item.scale.y, item.scale.z]}
+      >
+        <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
+          <meshBasicMaterial color="#cccccc" transparent opacity={0.5} />
+        </Box>
+      </group>
+    );
+  }
+
+  // 에러 상태 표시
+  if (loadError && !model) {
+    return (
+      <group
+        ref={meshRef}
+        position={[item.position.x, item.position.y, item.position.z]}
+        rotation={[item.rotation.x, item.rotation.y, item.rotation.z]}
+        scale={[item.scale.x, item.scale.y, item.scale.z]}
+      >
+        <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
+          <meshBasicMaterial color="#ff0000" transparent opacity={0.5} />
+        </Box>
+      </group>
+    );
+  }
+
+  return (
+    <>
+      {/* 실제 오브젝트 그룹 - 포인터 이벤트 전파 방지 및 범위 최소화 */}
+      <group
+        ref={meshRef}
+        onClick={handleClick}
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerMove={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
+        onPointerOver={(e) => e.stopPropagation()}
+        onPointerOut={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
+        visible={isVisible}
+      >
+        {/* 3D 모델 - 실제 조작이 필요한 요소에만 포인터 이벤트 활성화 */}
+        {model && (
+          <primitive
+            object={model}
+            onPointerDown={(e: any) => e.stopPropagation()}
+            onPointerMove={(e: any) => e.stopPropagation()}
+            onPointerUp={(e: any) => e.stopPropagation()}
+            onPointerOver={(e: any) => e.stopPropagation()}
+            onPointerOut={(e: any) => e.stopPropagation()}
+            onWheel={(e: any) => e.stopPropagation()}
+          />
+        )}
+
+        {/* 배치 모드 표시기 */}
+        {renderPlacementModeIndicator()}
+
+        {/* 선택 표시기 */}
+        {renderSelectionIndicator()}
+
+        {/* 바운딩 박스 */}
+        {renderBoundingBox()}
+
+        {/* 고정 표시기 */}
+        {renderLockIndicator()}
+      </group>
+
+      {/* 모바일 터치 핸들러 - 모바일 환경에서만 활성화 */}
+      {isTouchMode && meshRef.current && (
+        <MobileTouchHandler
+          target={meshRef.current}
+          enabled={isSelected && isEditMode && !item.isLocked}
+          onTransform={handleTouchTransform}
+          sensitivity={{ pan: 1, pinch: 1, rotate: 1 }}
+        />
+      )}
+
+      {/* TransformControls - 데스크톱 환경에서만 활성화 */}
+      {!isMobile && isSelected && isEditMode && !item.isLocked && meshRef.current && (
+        <TransformControls
+          ref={transformControlsRef}
+          object={meshRef.current}
+          mode={tool === 'rotate' ? 'rotate' : tool === 'scale' ? 'scale' : 'translate'}
+          onObjectChange={handleTransformChange}
+          onMouseUp={handleTransformEnd}
+          // 키보드 단축키 비활성화
+          showX={true}
+          showY={true}
+          showZ={true}
+          space="world"
+          size={0.75}
+        />
+      )}
+    </>
+  );
+};
+
+export default EditableFurniture;
