@@ -1,29 +1,31 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import dynamic from 'next/dynamic';
+
+// 클라이언트 사이드에서만 실행되는 컴포넌트들
+const Canvas = dynamic(() => import('@react-three/fiber').then(mod => ({ default: mod.Canvas })), { ssr: false });
+const CameraControls = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.CameraControls })), { ssr: false });
+const ContactShadows = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.ContactShadows })), { ssr: false });
+const AdaptiveDpr = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.AdaptiveDpr })), { ssr: false });
+const AdaptiveEvents = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.AdaptiveEvents })), { ssr: false });
+import { useThree, useFrame } from '@react-three/fiber';
 import { motion } from 'framer-motion';
-import {
-  CameraControls,
-  ContactShadows,
-  AdaptiveDpr,
-  AdaptiveEvents
-} from '@react-three/drei';
 import * as THREE from 'three';
 import { Vector3, Euler } from 'three';
-import Room from './features/room/Room';
-import RoomBoundaryVisualizer from './features/room/RoomBoundaryVisualizer';
-import RoomSizeSettings from './features/room/RoomSizeSettings';
+// 클라이언트 사이드에서만 실행되는 컴포넌트들
+const Room = dynamic(() => import('./features/room/Room'), { ssr: false });
+const RoomBoundaryVisualizer = dynamic(() => import('./features/room/RoomBoundaryVisualizer'), { ssr: false });
+const RoomSizeSettings = dynamic(() => import('./features/room/RoomSizeSettings'), { ssr: false });
+const EnhancedFurnitureCatalog = dynamic(() => import('./features/furniture/EnhancedFurnitureCatalog'), { ssr: false });
+const GridSystem = dynamic(() => import('./features/editor/GridSystem'), { ssr: false });
+const DraggableFurniture = dynamic(() => import('./features/furniture/DraggableFurniture'), { ssr: false });
+const EditToolbar = dynamic(() => import('./layout/EditToolbar'), { ssr: false });
+const RoomTemplateSelector = dynamic(() => import('./features/room/RoomTemplateSelector'), { ssr: false });
+const PerformanceMonitor = dynamic(() => import('./shared/PerformanceMonitor').then(mod => ({ default: mod.PerformanceMonitor })), { ssr: false });
+const TouchControls = dynamic(() => import('./features/editor/TouchControls'), { ssr: false });
+
 import { updateRoomDimensions, isFurnitureInRoom, constrainFurnitureToRoom } from '../utils/roomBoundary';
-
-
-import EnhancedFurnitureCatalog from './features/furniture/EnhancedFurnitureCatalog';
-import GridSystem from './features/editor/GridSystem';
-import DraggableFurniture from './features/furniture/DraggableFurniture';
-import EditToolbar from './layout/EditToolbar';
-import RoomTemplateSelector from './features/room/RoomTemplateSelector';
-import { PerformanceMonitor } from './shared/PerformanceMonitor';
-import TouchControls from './features/editor/TouchControls';
 import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, selectItem, addItem, clearAllItems } from '../store/editorStore';
 
 interface Real3DRoomProps {
@@ -36,6 +38,20 @@ interface Real3DRoomProps {
 import { FurnitureItem } from '../types/furniture';
 import { createPlacedItemFromFurniture, sampleFurniture } from '../data/furnitureCatalog';
 import { applyRoomTemplate, RoomTemplate } from '../data/roomTemplates';
+
+// SSR 문제 해결을 위한 로딩 상태 관리
+const useClientSideReady = () => {
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    // 클라이언트 사이드에서만 실행
+    if (typeof window !== 'undefined') {
+      setIsReady(true);
+    }
+  }, []);
+
+  return isReady;
+};
 
 
 // 카메라 컨트롤러 컴포넌트
@@ -143,6 +159,10 @@ export default function Real3DRoom({
   isEditMode: externalEditMode,
   onEditModeChange
 }: Real3DRoomProps) {
+  // 클라이언트 사이드 준비 상태
+  const isClientReady = useClientSideReady();
+
+  // 모든 useState 훅들은 항상 호출되어야 함 (React Hooks 규칙)
   const [showTransitionEffect, setShowTransitionEffect] = useState(false);
   const [showFurnitureCatalog, setShowFurnitureCatalog] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
@@ -539,6 +559,18 @@ export default function Real3DRoom({
   const handleToggleFurnitureCatalog = () => {
     setShowFurnitureCatalog(!showFurnitureCatalog);
   };
+
+  // 클라이언트 사이드가 준비되지 않은 경우 로딩 표시
+  if (!isClientReady) {
+    return (
+      <div className="flex items-center justify-center w-full h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-3" />
+          <p className="text-gray-600">3D 룸을 로딩 중입니다...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-full overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-slate-100 z-10">

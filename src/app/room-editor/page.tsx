@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 
@@ -16,6 +16,16 @@ const Real3DRoom = dynamic(() => import('../../components/Real3DRoom'), {
     </div>
   )
 });
+
+// 로딩 컴포넌트
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center h-screen">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4" />
+      <p className="text-xl text-gray-600">3D 룸을 로딩 중입니다...</p>
+    </div>
+  </div>
+);
 
 export default function RoomEditorPage() {
   const [isViewLocked, setIsViewLocked] = useState(false);
@@ -122,12 +132,14 @@ export default function RoomEditorPage() {
           transition={{ duration: 0.8, delay: 0.3 }}
           className="w-full h-[calc(100vh-80px)]"
         >
-                      <Real3DRoom
+          <Suspense fallback={<LoadingFallback />}>
+            <Real3DRoom
               shadowMode="realtime"
               isViewLocked={isViewLocked}
               isEditMode={isEditMode}
               onEditModeChange={handleEditModeChange}
             />
+          </Suspense>
         </motion.div>
       </main>
 

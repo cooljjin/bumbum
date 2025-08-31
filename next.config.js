@@ -3,13 +3,26 @@ const nextConfig = {
   // 워크스페이스 루트 경고 해결
   outputFileTracingRoot: require('path').join(__dirname),
 
-  // 이미지 최적화 (개발 환경에서는 최적화 활성화)
+  // Netlify static export 설정
+  output: 'export',
+  trailingSlash: true,
+  skipTrailingSlashRedirect: true,
+  distDir: 'out',
+
+  // 이미지 최적화 비활성화 (static export에서는 필요 없음)
   images: {
-    unoptimized: process.env.NODE_ENV === 'production' ? false : true,
-    formats: ['image/webp', 'image/avif'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    unoptimized: true,
   },
+
+  // SSR 문제 해결을 위한 설정
+  transpilePackages: [
+    '@react-three/fiber',
+    '@react-three/drei',
+    'three',
+    'framer-motion'
+  ],
+
+
   
   // 번들 최적화
   experimental: {

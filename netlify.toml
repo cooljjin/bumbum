@@ -2,14 +2,14 @@
   # 빌드 명령어
   command = "npm run build"
 
-  # 빌드 결과물 디렉토리
-  publish = ".next"
+  # 빌드 결과물 디렉토리 (static export의 경우 out 폴더)
+  publish = "out"
 
 [build.environment]
   # Node.js 버전 지정
   NODE_VERSION = "18"
 
-# 리다이렉트 설정 (필요시)
+# SPA fallback 설정 (Next.js static export용)
 [[redirects]]
   from = "/*"
   to = "/index.html"
