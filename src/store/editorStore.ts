@@ -70,7 +70,10 @@ const initialState: EditorState = {
   autoLock: {
     enabled: true,
     delay: 1000 // 1초 후 자동 고정
-  }
+  },
+
+  // 스크롤 락 설정 (모바일 편집모드용)
+  scrollLockEnabled: false
 };
 
 // 성능 최적화를 위한 유틸리티 함수들
@@ -189,14 +192,17 @@ export const useEditorStore = create<EditorStore>()(
           set({
             mode,
             grid: { ...grid, enabled: true },
-            rotationSnap: { ...rotationSnap, enabled: true }
+            rotationSnap: { ...rotationSnap, enabled: true },
+            scrollLockEnabled: true // 편집 모드 진입 시 스크롤 락 활성화
           });
-          console.log('🎯 편집 모드 진입: 그리드 및 스냅 자동 활성화');
+          console.log('🎯 편집 모드 진입: 그리드 및 스냅 자동 활성화, 스크롤 락 적용');
         } else {
-          set({ 
+          set({
             mode,
-            tool: mode === 'view' ? 'select' : get().tool
+            tool: mode === 'view' ? 'select' : get().tool,
+            scrollLockEnabled: false // 뷰 모드 진입 시 스크롤 락 해제
           });
+          console.log('👁️ 뷰 모드 진입: 스크롤 락 해제');
         }
       },
 
@@ -793,6 +799,21 @@ export const useEditorStore = create<EditorStore>()(
         } catch (error) {
           console.error('❌ 카테고리 변경 실패:', error);
         }
+      },
+
+      // 스크롤 락 토글 (최적화)
+      toggleScrollLock: () => {
+        const currentScrollLock = get().scrollLockEnabled;
+        set({ scrollLockEnabled: !currentScrollLock });
+        console.log(`🔒 스크롤 락 ${!currentScrollLock ? '활성화' : '비활성화'}`);
+      },
+
+      // 스크롤 락 설정 (최적화)
+      setScrollLockEnabled: (enabled: boolean) => {
+        const currentScrollLock = get().scrollLockEnabled;
+        if (currentScrollLock === enabled) return; // 불필요한 업데이트 방지
+        set({ scrollLockEnabled: enabled });
+        console.log(`🔒 스크롤 락 ${enabled ? '활성화' : '비활성화'}`);
       }
     })),
     {
@@ -815,6 +836,7 @@ export const useIsDragging = () => useEditorStore(state => state.isDragging);
 export const useSnapStrength = () => useEditorStore(state => state.snapStrength);
 export const useAutoLock = () => useEditorStore(state => state.autoLock);
 export const useSelectedCategory = () => useEditorStore(state => state.selectedCategory);
+export const useScrollLockEnabled = () => useEditorStore(state => state.scrollLockEnabled);
 
 // 액션 함수들
 export const {
@@ -859,5 +881,7 @@ export const {
   triggerAutoSave,
   getStorageUsage,
   cleanupStorage,
-  setSelectedCategory
+  setSelectedCategory,
+  toggleScrollLock,
+  setScrollLockEnabled
 } = useEditorStore.getState();

@@ -117,9 +117,107 @@ textarea {
 /* 모바일에서 더 큰 터치 타겟 */
 @media (max-width: 768px) {
   button,
-  [role="button"] {
+  [role="button"],
+  input,
+  select,
+  textarea {
     min-height: 48px;
     min-width: 48px;
+  }
+}
+
+/* ===== 모바일 스크롤 락 CSS ===== */
+
+/* 스크롤 체이닝 방지 유틸리티 */
+.overscroll-contain {
+  overscroll-behavior: contain;
+}
+
+
+/* 스크롤 락이 활성화된 상태 */
+.scroll-locked {
+  position: fixed !important;
+  overflow: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: none !important;
+  -ms-touch-action: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* iOS Safari 전용 스크롤 락 */
+.scroll-locked-ios {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  overflow: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: none !important;
+  -ms-touch-action: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* 편집 모드에서 3D 캔버스 영역만 터치 허용 */
+.edit-mode-canvas {
+  touch-action: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  -khtml-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* 모바일에서 스크롤 방지를 위한 추가 스타일 */
+@media (max-width: 768px) {
+  .scroll-locked * {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -khtml-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+  }
+  
+  /* 3D 캔버스 영역은 터치 허용 */
+  .scroll-locked canvas,
+  .scroll-locked .three-canvas {
+    touch-action: none !important;
+    -webkit-touch-callout: none !important;
+  }
+  
+  /* 클릭 가능한 요소들은 터치 허용 */
+  .scroll-locked button,
+  .scroll-locked a,
+  .scroll-locked input,
+  .scroll-locked select,
+  .scroll-locked textarea,
+  .scroll-locked label,
+  .scroll-locked [role="button"],
+  .scroll-locked [role="link"],
+  .scroll-locked [role="tab"],
+  .scroll-locked [role="menuitem"],
+  .scroll-locked [role="option"],
+  .scroll-locked .cursor-pointer,
+  .scroll-locked .clickable,
+  .scroll-locked .btn,
+  .scroll-locked .button {
+    touch-action: manipulation !important;
+    -webkit-touch-callout: default !important;
+    -webkit-user-select: auto !important;
+    -khtml-user-select: auto !important;
+    -moz-user-select: auto !important;
+    -ms-user-select: auto !important;
+    user-select: auto !important;
   }
 }
 

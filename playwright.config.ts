@@ -18,7 +18,7 @@ export default defineConfig({
     ['github'],
   ],
   use: {
-    baseURL: (process.env as any).BASE_URL || 'http://localhost:3000',
+    baseURL: (process.env as any).BASE_URL || 'http://localhost:3002',
     trace: (process.env as any).CI ? 'on-first-retry' : 'on',
     screenshot: 'only-on-failure',
     video: (process.env as any).CI ? 'retain-on-failure' : 'on-first-retry',
@@ -80,7 +80,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000',
+    url: 'http://localhost:3002',
     reuseExistingServer: !(process.env as any).CI,
     timeout: 120 * 1000,
     stderr: 'pipe',

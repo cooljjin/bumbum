@@ -11,6 +11,7 @@ const AdaptiveDpr = dynamic(() => import('@react-three/drei').then(mod => ({ def
 const AdaptiveEvents = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.AdaptiveEvents })), { ssr: false });
 import { useThree, useFrame } from '@react-three/fiber';
 import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { Vector3, Euler } from 'three';
 // 클라이언트 사이드에서만 실행되는 컴포넌트들
@@ -23,10 +24,19 @@ const DraggableFurniture = dynamic(() => import('./features/furniture/DraggableF
 const EditToolbar = dynamic(() => import('./layout/EditToolbar'), { ssr: false });
 const RoomTemplateSelector = dynamic(() => import('./features/room/RoomTemplateSelector'), { ssr: false });
 const PerformanceMonitor = dynamic(() => import('./shared/PerformanceMonitor').then(mod => ({ default: mod.PerformanceMonitor })), { ssr: false });
-const TouchControls = dynamic(() => import('./features/editor/TouchControls'), { ssr: false });
+const EnhancedTouchControls = dynamic(() => import('./features/editor/EnhancedTouchControls'), { ssr: false });
 
 import { updateRoomDimensions, isFurnitureInRoom, constrainFurnitureToRoom } from '../utils/roomBoundary';
-import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, selectItem, addItem, clearAllItems } from '../store/editorStore';
+import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, selectItem, addItem, clearAllItems, useIsDragging } from '../store/editorStore';
+import { 
+  enableScrollLock, 
+  disableScrollLock, 
+  preventTouchScroll, 
+  preventWheelScroll, 
+  preventKeyScroll,
+  // isIOSSafari,
+  isMobile as isMobileDevice
+} from '../utils/scrollLock';
 
 interface Real3DRoomProps {
   shadowMode?: 'baked' | 'realtime';
@@ -189,10 +199,15 @@ export default function Real3DRoom({
   const minDpr = 1;
   const maxDpr = Math.min(2, deviceDpr);
 
+  // 편집 스토어에서 상태 가져오기
+  const storeEditMode = useEditorMode();
+  const placedItems = usePlacedItems();
+  const selectedItemId = useSelectedItemId();
+  const isDragging = useIsDragging();
+
   useEffect(() => {
     const checkMobile = () => {
-      const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
-      setIsMobile(mobileRegex.test(navigator.userAgent) || window.innerWidth <= 768);
+      setIsMobile(isMobileDevice());
     };
 
     checkMobile();
@@ -201,10 +216,43 @@ export default function Real3DRoom({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // 편집 스토어에서 상태 가져오기
-  const storeEditMode = useEditorMode();
-  const placedItems = usePlacedItems();
-  const selectedItemId = useSelectedItemId();
+  // 스크롤 락 처리 (모바일에서 '드래그 중'에만 페이지 스크롤 방지)
+  useEffect(() => {
+    if (!isMobile) return undefined;
+
+    if (isDragging) {
+      enableScrollLock();
+
+      document.addEventListener('touchmove', preventTouchScroll, { passive: false, capture: true });
+      document.addEventListener('touchstart', preventTouchScroll, { passive: false, capture: true });
+      document.addEventListener('touchend', preventTouchScroll, { passive: false, capture: true });
+      document.addEventListener('wheel', preventWheelScroll, { passive: false, capture: true });
+      document.addEventListener('keydown', preventKeyScroll, { passive: false, capture: true });
+
+      document.addEventListener('gesturestart', preventTouchScroll, { passive: false, capture: true });
+      document.addEventListener('gesturechange', preventTouchScroll, { passive: false, capture: true });
+      document.addEventListener('gestureend', preventTouchScroll, { passive: false, capture: true });
+
+      console.log('🔒 드래그 중 스크롤 락 활성화');
+
+      return () => {
+        document.removeEventListener('touchmove', preventTouchScroll, { capture: true });
+        document.removeEventListener('touchstart', preventTouchScroll, { capture: true });
+        document.removeEventListener('touchend', preventTouchScroll, { capture: true });
+        document.removeEventListener('wheel', preventWheelScroll, { capture: true });
+        document.removeEventListener('keydown', preventKeyScroll, { capture: true });
+        document.removeEventListener('gesturestart', preventTouchScroll, { capture: true });
+        document.removeEventListener('gesturechange', preventTouchScroll, { capture: true });
+        document.removeEventListener('gestureend', preventTouchScroll, { capture: true });
+
+        disableScrollLock();
+        console.log('🔓 드래그 종료 스크롤 락 해제');
+      };
+    } else {
+      // 드래그가 아닌 상태에서 혹시 잠겨 있으면 해제
+      disableScrollLock();
+    }
+  }, [isDragging, isMobile]);
 
   // 카메라 컨트롤러 ref
   const cameraControlsRef = useRef<import('camera-controls').default>(null);
@@ -572,8 +620,11 @@ export default function Real3DRoom({
     );
   }
 
+  // iOS Safari 감지 (현재 사용하지 않음)
+  // const isIOS = isIOSSafari();
+
   return (
-    <div className="relative w-full h-full overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-slate-100 z-10">
+    <div className="relative w-full h-full overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-slate-100 z-10 overscroll-contain">
       {/* 우측 상단 룸 편집 버튼 */}
       <motion.button
         onClick={handleEditModeToggle}
@@ -612,10 +663,11 @@ export default function Real3DRoom({
           powerPreference: 'high-performance'
         }}
         dpr={[minDpr, maxDpr]}
-        className="w-full h-full block absolute top-0 left-0"
+        className={`w-full h-full block absolute top-0 left-0 ${isEditMode && isMobile ? 'edit-mode-canvas' : ''}`}
         style={{
           backgroundColor: '#f8fafc',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'
+          background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+          touchAction: isEditMode && isMobile ? 'none' : 'auto'
         }}
         onCreated={({ gl, scene }) => {
           gl.setClearColor('#f8fafc', 1);
@@ -628,6 +680,47 @@ export default function Real3DRoom({
           if (context) {
             context.clearColor(0.973, 0.98, 0.988, 1.0);
             context.clear(context.COLOR_BUFFER_BIT);
+          }
+        }}
+        onPointerDown={(e) => {
+          // 3D 캔버스 내에서의 터치는 허용
+          if (isEditMode && isMobile) {
+            e.stopPropagation();
+            console.log('🎯 3D 캔버스 터치 허용됨');
+          }
+        }}
+        onPointerMove={(e) => {
+          // 3D 캔버스 내에서의 터치 이동 허용
+          if (isEditMode && isMobile) {
+            e.stopPropagation();
+          }
+        }}
+        onPointerUp={(e) => {
+          // 3D 캔버스 내에서의 터치 해제 허용
+          if (isEditMode && isMobile) {
+            e.stopPropagation();
+          }
+        }}
+        onWheel={(e) => {
+          // 캔버스 위 스크롤/핀치 제스처가 페이지에 전파되지 않도록
+          e.stopPropagation();
+        }}
+        // 터치 이벤트 지원 (모바일)
+        onTouchStart={(e) => {
+          if (isEditMode && isMobile) {
+            e.stopPropagation();
+            console.log('🎯 3D 캔버스 터치 시작 허용됨');
+          }
+        }}
+        onTouchMove={(e) => {
+          if (isEditMode && isMobile) {
+            e.stopPropagation();
+          }
+        }}
+        onTouchEnd={(e) => {
+          if (isEditMode && isMobile) {
+            e.stopPropagation();
+            console.log('🎯 3D 캔버스 터치 종료 허용됨');
           }
         }}
       >
@@ -699,6 +792,14 @@ export default function Real3DRoom({
           far={4.5}
         />
 
+        {/* 모바일 터치 컨트롤 - Canvas 내부에 배치 */}
+        <EnhancedTouchControls
+          enabled={isMobile && isEditMode}
+          selectedItemId={selectedItemId}
+          onItemSelect={selectItem}
+          onItemUpdate={updateItem}
+        />
+
         {/* 편집 모드나 모바일에서는 AdaptiveDpr 비활성화하여 흐릿함 방지 */}
         {!isEditMode && !isMobile && (
           <AdaptiveDpr pixelated={false} />
@@ -711,52 +812,7 @@ export default function Real3DRoom({
         <div className="absolute inset-0 bg-blue-500 bg-opacity-20 pointer-events-none transition-opacity duration-1000" />
       )}
 
-      {/* 모바일 터치 컨트롤 - Canvas 외부에 배치 */}
-      <TouchControls
-        enabled={isMobile && isEditMode}
-        onPinch={(scale) => {
-          // 카메라 줌 컨트롤
-          if (cameraControlsRef.current) {
-            const currentDistance = cameraControlsRef.current.distance;
-            cameraControlsRef.current.distance = Math.max(1, Math.min(20, currentDistance / scale));
-          }
-        }}
-        onRotate={(angle) => {
-          // 선택된 객체 회전
-          if (selectedItemId) {
-            const item = placedItems.find(item => item.id === selectedItemId);
-            if (item) {
-              const newRotation = new Euler(
-                item.rotation.x,
-                item.rotation.y + angle, // Y축 회전
-                item.rotation.z,
-                item.rotation.order
-              );
-              updateItem(selectedItemId, { rotation: newRotation });
-            }
-          }
-        }}
-        onPan={(x, y) => {
-          // 카메라 이동 또는 객체 이동
-          if (selectedItemId && isEditMode) {
-            // 선택된 객체 이동
-            const item = placedItems.find(item => item.id === selectedItemId);
-            if (item) {
-              const newPosition = new Vector3(
-                item.position.x + (x - window.innerWidth / 2) * 0.01,
-                item.position.y,
-                item.position.z + (y - window.innerHeight / 2) * 0.01
-              );
-              updateItem(selectedItemId, { position: newPosition });
-            }
-          }
-        }}
-        onDoubleTap={(x, y) => {
-          // 더블 탭으로 객체 선택/해제
-          // 이 기능은 추후 구현
-          console.log('Double tap at:', x, y);
-        }}
-      />
+
 
       {/* 모두 삭제 버튼 - 편집 모드에서만 표시 */}
       {isEditMode && placedItems.length > 0 && (
@@ -781,7 +837,6 @@ export default function Real3DRoom({
             showFurnitureCatalog={showFurnitureCatalog}
             onToggleTemplateSelector={() => setShowTemplateSelector(!showTemplateSelector)}
             showTemplateSelector={showTemplateSelector}
-            onToggleRoomSizeSettings={() => setShowRoomSizeSettings(!showRoomSizeSettings)}
             isMobile={isMobile}
           />
         )}
@@ -890,6 +945,33 @@ export default function Real3DRoom({
         </div>
       )}
 
+      {/* 모바일 전용 편집/보기 토글 FAB (Portal로 body에 렌더링하여 클리핑/스택 이슈 회피) */}
+      {isMobile && typeof window !== 'undefined' && createPortal(
+        !isEditMode ? (
+          <button
+            type="button"
+            data-testid="mobile-edit-toggle"
+            onClick={handleEditModeToggle}
+            className="fixed right-4 px-5 py-3 rounded-full bg-blue-600 text-white shadow-xl border border-blue-700 z-[10001] flex items-center gap-2 active:scale-95"
+            style={{ bottom: `calc(env(safe-area-inset-bottom, 0px) + 80px)` }}
+          >
+            <span>✏️</span>
+            <span className="text-sm font-semibold">편집 모드</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            data-testid="mobile-view-toggle"
+            onClick={handleEditModeToggle}
+            className="fixed right-4 px-5 py-3 rounded-full bg-gray-800 text-white shadow-xl border border-gray-900 z-[10001] flex items-center gap-2 active:scale-95"
+            style={{ bottom: `calc(env(safe-area-inset-bottom, 0px) + 80px)` }}
+          >
+            <span>👁️</span>
+            <span className="text-sm font-semibold">보기 모드</span>
+          </button>
+        ),
+        document.body
+      )}
 
     </div>
   );

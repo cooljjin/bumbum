@@ -2,29 +2,36 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiMenu, FiX, FiZoomIn, FiRotateCw, FiMove, FiTrash2 } from 'react-icons/fi';
+import { FiMenu, FiX, FiMove, FiTrash2, FiTarget } from 'react-icons/fi';
+import MobileFurnitureControls from '../features/editor/MobileFurnitureControls';
+import MobileFurnitureSelector from '../features/editor/MobileFurnitureSelector';
+import { usePlacedItems } from '../../store/editorStore';
 
 interface MobileUIProps {
-  onShowSettings: () => void;
   selectedItemId: string | null;
   onDeleteSelected: () => void;
   onUndo: () => void;
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  onItemSelect?: (id: string | null) => void;
 }
 
 export const MobileUI: React.FC<MobileUIProps> = ({
-  onShowSettings,
   selectedItemId,
   onDeleteSelected,
   onUndo,
   onRedo,
   canUndo,
-  canRedo
+  canRedo,
+  onItemSelect
 }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [showToolPanel, setShowToolPanel] = useState(false);
+  const [showFurnitureControls, setShowFurnitureControls] = useState(false);
+  const [showFurnitureSelector, setShowFurnitureSelector] = useState(false);
+  
+  const placedItems = usePlacedItems();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -43,30 +50,30 @@ export const MobileUI: React.FC<MobileUIProps> = ({
 
   return (
     <>
-      {/* 모바일용 하단 툴바 - 기존 BottomNavigation과 겹치지 않도록 조정 */}
+      {/* 모바일용 하단 툴바 - 간소화된 버전 */}
       <motion.div
         className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200/50 shadow-lg z-40"
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
       >
-        <div className="flex items-center justify-between px-4 py-3">
-          {/* 왼쪽: 메뉴 버튼 */}
+        <div className="flex items-center justify-center px-4 py-3">
+          {/* 중앙: 편집 도구 토글 버튼 */}
           <motion.button
             onClick={() => setShowToolPanel(!showToolPanel)}
-            className="p-3 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+            className={`px-6 py-3 rounded-full transition-colors ${
+              showToolPanel 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
             whileTap={{ scale: 0.95 }}
           >
-            {showToolPanel ? <FiX size={20} /> : <FiMenu size={20} />}
-          </motion.button>
-
-          {/* 오른쪽: 설정 버튼 */}
-          <motion.button
-            onClick={onShowSettings}
-            className="p-3 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-            whileTap={{ scale: 0.95 }}
-          >
-            ⚙️
+            <div className="flex items-center gap-2">
+              {showToolPanel ? <FiX size={18} /> : <FiMenu size={18} />}
+              <span className="text-sm font-medium">
+                {showToolPanel ? '닫기' : '편집 도구'}
+              </span>
+            </div>
           </motion.button>
         </div>
       </motion.div>
@@ -131,48 +138,78 @@ export const MobileUI: React.FC<MobileUIProps> = ({
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
           >
             <div className="p-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">편집 도구</h3>
-              <div className="grid grid-cols-2 gap-3">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">편집 도구</h3>
+              
+              {/* 주요 도구들 - 3개만 표시 */}
+              <div className="flex justify-center gap-4 mb-4">
                 <motion.button
-                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors"
+                  onClick={() => setShowFurnitureSelector(true)}
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl bg-orange-50 hover:bg-orange-100 transition-colors"
                   whileTap={{ scale: 0.95 }}
                 >
-                  <FiMove size={24} className="text-blue-600" />
-                  <span className="text-sm font-medium text-blue-600">이동</span>
+                  <FiTarget size={20} className="text-orange-600" />
+                  <span className="text-xs font-medium text-orange-600">가구 선택</span>
                 </motion.button>
 
                 <motion.button
-                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-green-50 hover:bg-green-100 transition-colors"
-                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowFurnitureControls(true)}
+                  disabled={!selectedItemId}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${
+                    selectedItemId
+                      ? 'bg-blue-50 hover:bg-blue-100 text-blue-600'
+                      : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                  }`}
+                  whileTap={{ scale: selectedItemId ? 0.95 : 1 }}
                 >
-                  <FiRotateCw size={24} className="text-green-600" />
-                  <span className="text-sm font-medium text-green-600">회전</span>
-                </motion.button>
-
-                <motion.button
-                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors"
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <FiZoomIn size={24} className="text-purple-600" />
-                  <span className="text-sm font-medium text-purple-600">크기</span>
+                  <FiMove size={20} />
+                  <span className="text-xs font-medium">이동/회전</span>
                 </motion.button>
 
                 <motion.button
                   onClick={onDeleteSelected}
                   disabled={!selectedItemId}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-colors ${
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${
                     selectedItemId
                       ? 'bg-red-50 hover:bg-red-100 text-red-600'
                       : 'bg-gray-50 text-gray-400 cursor-not-allowed'
                   }`}
                   whileTap={{ scale: selectedItemId ? 0.95 : 1 }}
                 >
-                  <FiTrash2 size={24} />
-                  <span className="text-sm font-medium">삭제</span>
+                  <FiTrash2 size={20} />
+                  <span className="text-xs font-medium">삭제</span>
                 </motion.button>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-200">
+              {/* 히스토리 버튼들 */}
+              <div className="flex justify-center gap-3">
+                <motion.button
+                  onClick={onUndo}
+                  disabled={!canUndo}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    canUndo
+                      ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                  }`}
+                  whileTap={{ scale: canUndo ? 0.95 : 1 }}
+                >
+                  ↶ 되돌리기
+                </motion.button>
+
+                <motion.button
+                  onClick={onRedo}
+                  disabled={!canRedo}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    canRedo
+                      ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                  }`}
+                  whileTap={{ scale: canRedo ? 0.95 : 1 }}
+                >
+                  다시실행 ↷
+                </motion.button>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-gray-200">
                 <p className="text-xs text-gray-500 text-center">
                   💡 두 손가락으로 확대/축소 및 회전 가능
                 </p>
@@ -181,6 +218,30 @@ export const MobileUI: React.FC<MobileUIProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 모바일 가구 컨트롤 */}
+      <MobileFurnitureControls
+        selectedItemId={selectedItemId}
+        onClose={() => setShowFurnitureControls(false)}
+        isVisible={showFurnitureControls}
+      />
+
+      {/* 모바일 가구 선택기 */}
+      <MobileFurnitureSelector
+        isVisible={showFurnitureSelector}
+        onSelect={(id) => {
+          onItemSelect?.(id);
+          setShowFurnitureSelector(false);
+        }}
+        onClose={() => setShowFurnitureSelector(false)}
+        placedItems={placedItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          position: item.position,
+          isLocked: item.isLocked || false
+        }))}
+        selectedItemId={selectedItemId}
+      />
     </>
   );
 };

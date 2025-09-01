@@ -79,8 +79,7 @@ describe('useEditorStore Hooks', () => {
     it('returns placed items', () => {
       const { result } = renderHook(() => usePlacedItems());
       expect(result.current).toHaveLength(2);
-      expect(result.current[0].name).toBe('Chair');
-    });
+      expect(result.current?.[0]?.name).toBe('Chair');
   });
 
   describe('useSelectedItemId', () => {
@@ -172,7 +171,7 @@ describe('useEditorStore Hooks', () => {
     it('returns items by specific category', () => {
       const { result } = renderHook(() => useItemsByCategory('seating'));
       expect(result.current).toHaveLength(1);
-      expect(result.current[0].name).toBe('Chair');
+      expect(result.current?.[0]?.name).toBe('Chair');
     });
 
     it('returns all items when category is "all"', () => {
@@ -270,3 +269,5 @@ describe('useEditorStore Hooks', () => {
     });
   });
 });
+
+

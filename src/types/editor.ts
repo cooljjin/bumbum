@@ -108,6 +108,9 @@ export interface EditorState {
     enabled: boolean;
     delay: number; // 고정 지연 시간 (밀리초)
   };
+
+  // 스크롤 락 설정 (모바일 편집모드용)
+  scrollLockEnabled: boolean;
 }
 
 // 편집 액션 타입
@@ -189,6 +192,10 @@ export interface EditorActions {
   // 📊 저장소 관리
   getStorageUsage: () => { used: number; total: number; percentage: number };
   cleanupStorage: () => { removed: number; freed: number };
+
+  // 🔒 스크롤 락 관리 (모바일 편집모드용)
+  toggleScrollLock: () => void;
+  setScrollLockEnabled: (enabled: boolean) => void;
 }
 
 // 편집 스토어 타입

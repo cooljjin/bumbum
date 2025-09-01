@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('사용자 경험 개선 기능 테스트', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:3000');
+    await page.goto('http://localhost:3001');
     await page.waitForLoadState('networkidle');
   });
 
@@ -169,5 +169,61 @@ test.describe('사용자 경험 개선 기능 테스트', () => {
     // 보기 모드로 전환되었는지 확인
     const viewModeButton = page.locator('text=룸 편집');
     await expect(viewModeButton).toBeVisible();
+  });
+
+  test('모바일 편집모드 스크롤 락 기능 테스트', async ({ page }) => {
+    // 모바일 뷰포트 설정
+    await page.setViewportSize({ width: 375, height: 667 });
+
+    // 초기 스크롤 위치 저장
+    const initialScrollY = await page.evaluate(() => window.scrollY);
+
+    // 편집 모드 활성화
+    await page.click('text=룸 편집');
+    await page.waitForTimeout(2000); // 스크롤 락이 적용될 시간을 줌
+
+    // 터치 이벤트로 스크롤 시도
+    await page.evaluate(() => {
+      // 터치 이벤트 시뮬레이션
+      const touchStartEvent = new TouchEvent('touchstart', {
+        touches: [new Touch({ identifier: 0, target: document.body, clientX: 200, clientY: 300 })],
+        bubbles: true,
+        cancelable: true
+      });
+
+      const touchMoveEvent = new TouchEvent('touchmove', {
+        touches: [new Touch({ identifier: 0, target: document.body, clientX: 200, clientY: 400 })],
+        bubbles: true,
+        cancelable: true
+      });
+
+      document.body.dispatchEvent(touchStartEvent);
+      document.body.dispatchEvent(touchMoveEvent);
+    });
+
+    await page.waitForTimeout(500);
+
+    // 스크롤 위치가 변하지 않았는지 확인
+    const currentScrollY = await page.evaluate(() => window.scrollY);
+    expect(currentScrollY).toBe(initialScrollY);
+
+    // 콘솔에 스크롤 락 관련 로그가 있는지 확인
+    const logs = [];
+    page.on('console', msg => {
+      logs.push(msg.text());
+    });
+
+    // 편집 모드 종료
+    await page.click('text=편집 종료');
+    await page.waitForTimeout(1000);
+
+    // 스크롤 락이 해제되었는지 확인 (스크롤이 가능해야 함)
+    await page.evaluate(() => {
+      window.scrollTo(0, 100);
+    });
+
+    await page.waitForTimeout(500);
+    const afterExitScrollY = await page.evaluate(() => window.scrollY);
+    expect(afterExitScrollY).toBeGreaterThan(initialScrollY);
   });
 });

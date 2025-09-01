@@ -4,6 +4,8 @@ import React from 'react';
 import { AccessibilityProvider } from '../components/shared/AccessibilityProvider';
 import { AppLayout } from '../components/layout/AppLayout';
 import { AppHeader } from '../components/layout/AppHeader';
+import { MobileHeader } from '../components/layout/MobileHeader';
+import { MobileMenu } from '../components/layout/MobileMenu';
 import { MainContent } from '../components/layout/MainContent';
 import { BottomNavigation } from '../components/layout/BottomNavigation';
 import { SettingsSidebar } from '../components/layout/SettingsSidebar';
@@ -14,7 +16,7 @@ import UserPreferences from '../components/features/modals/UserPreferences';
 import AccessibilitySettings from '../components/shared/AccessibilitySettings';
 import ExportShareTools from '../components/features/modals/ExportShareTools';
 import AnalyticsDashboard from '../components/shared/AnalyticsDashboard';
-import { useSelectedItemId, removeItem, undo, redo, canUndo, canRedo } from '../store/editorStore';
+import { useSelectedItemId, removeItem, undo, redo, canUndo, canRedo, selectItem } from '../store/editorStore';
 import { useUIManager } from '../hooks/useUIManager';
 
 export default function HomePage() {
@@ -24,6 +26,9 @@ export default function HomePage() {
   // Zustand store에서 상태 가져오기
   const selectedItemId = useSelectedItemId();
 
+  // 모바일 메뉴 상태
+  const [showMobileMenu, setShowMobileMenu] = React.useState(false);
+
   return (
     <AccessibilityProvider>
       <div
@@ -32,6 +37,16 @@ export default function HomePage() {
         role="main"
         aria-label="3D 가구 라이브러리 및 룸 에디터"
       >
+        {/* 모바일 헤더 */}
+        <MobileHeader
+          isViewLocked={uiManager.isViewLocked}
+          onViewLockToggle={uiManager.toggleViewLock}
+          onShowSettings={uiManager.toggleShowSettings}
+          onShowMenu={() => setShowMobileMenu(true)}
+          isEditMode={uiManager.isEditMode}
+          onEditModeToggle={uiManager.toggleEditMode}
+        />
+
         <AppLayout
           header={
             <AppHeader
@@ -80,15 +95,25 @@ export default function HomePage() {
           <UndoRedoHistory position="top-left" />
         )}
 
+        {/* 모바일 메뉴 */}
+        <MobileMenu
+          isVisible={showMobileMenu}
+          onClose={() => setShowMobileMenu(false)}
+          onShowUserPreferences={() => uiManager.openModal('userPreferences')}
+          onShowExport={() => uiManager.openModal('export')}
+          onShowAnalytics={() => uiManager.openModal('analytics')}
+          onShowAccessibility={() => uiManager.openModal('accessibility')}
+        />
+
         {/* 모바일 UI */}
         <MobileUI
-          onShowSettings={uiManager.toggleShowSettings}
           selectedItemId={selectedItemId}
           onDeleteSelected={() => selectedItemId && removeItem(selectedItemId)}
           onUndo={undo}
           onRedo={redo}
           canUndo={canUndo()}
           canRedo={canRedo()}
+          onItemSelect={selectItem}
         />
 
         {/* 사용자 환경 설정 */}

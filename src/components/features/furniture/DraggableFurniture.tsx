@@ -45,6 +45,14 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = ({
   const { grid, setDragging } = useEditorStore();
   const { camera } = useThree();
 
+  // 안전한 preventDefault 래퍼 (r3f PointerEvent에는 preventDefault가 없을 수 있음)
+  const safePreventDefault = (ev: any) => {
+    try {
+      if (typeof ev?.preventDefault === 'function') ev.preventDefault();
+      else if (typeof ev?.nativeEvent?.preventDefault === 'function') ev.nativeEvent.preventDefault();
+    } catch {}
+  };
+
   // 3D 모델 메모리 정리 함수
   const disposeModel = useCallback((modelToDispose: Group | null) => {
     if (!modelToDispose) return;
@@ -88,7 +96,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = ({
     }
   }, [item.name]);
 
-  // 🖱️ 드래그 시작 핸들러
+  // 🖱️ 드래그 시작 핸들러 (마우스 및 터치 지원)
   const handleDragStart = useCallback((event: any) => {
     if (!isEditMode || item.isLocked) return;
 
@@ -100,26 +108,52 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = ({
     setIsDragging(true);
     setDragStartPosition(item.position.clone());
 
-    // 마우스 위치 저장
-    const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-    const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+    // 마우스 또는 터치 위치 저장
+    let clientX, clientY;
+    if (event.touches && event.touches.length > 0) {
+      // 터치 이벤트
+      clientX = event.touches[0].clientX;
+      clientY = event.touches[0].clientY;
+    } else {
+      // 마우스 이벤트
+      clientX = event.clientX;
+      clientY = event.clientY;
+    }
+
+    const mouseX = (clientX / window.innerWidth) * 2 - 1;
+    const mouseY = -(clientY / window.innerHeight) * 2 + 1;
     setDragStartMousePosition(new Vector2(mouseX, mouseY));
 
     // 전역 드래그 상태 업데이트
     setDragging(true);
 
-    console.log('🖱️ 드래그 시작:', item.name);
+    console.log('🖱️ 드래그 시작:', item.name, event.touches ? '(터치)' : '(마우스)');
   }, [isEditMode, item.isLocked, item.id, item.position, item.name, onSelect, setDragging]);
 
-  // 🔄 드래그 중 핸들러
+  // 🔄 드래그 중 핸들러 (마우스 및 터치 지원)
   const handleDrag = useCallback((event: any) => {
     if (!isDragging || !dragStartPosition || !dragStartMousePosition) return;
 
+    // r3f Pointer 이벤트는 passive일 수 있으므로 touch 이벤트에서만 default 차단
+    if (event?.touches || event?.type === 'touchmove' || event?.nativeEvent?.touches) {
+      safePreventDefault(event);
+    }
     event.stopPropagation();
 
-    // 마우스 위치 계산
-    const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-    const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+    // 마우스 또는 터치 위치 계산
+    let clientX, clientY;
+    if (event.touches && event.touches.length > 0) {
+      // 터치 이벤트
+      clientX = event.touches[0].clientX;
+      clientY = event.touches[0].clientY;
+    } else {
+      // 마우스 이벤트
+      clientX = event.clientX;
+      clientY = event.clientY;
+    }
+
+    const mouseX = (clientX / window.innerWidth) * 2 - 1;
+    const mouseY = -(clientY / window.innerHeight) * 2 + 1;
 
     // 레이캐스터로 3D 공간의 위치 계산
     raycaster.current.setFromCamera(new Vector2(mouseX, mouseY), camera);
@@ -143,7 +177,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = ({
     // 위치 업데이트
     onUpdate(item.id, { position: newPosition });
 
-    console.log('🔄 드래그 중:', newPosition);
+    console.log('🔄 드래그 중:', newPosition, event.touches ? '(터치)' : '(마우스)');
   }, [isDragging, dragStartPosition, dragStartMousePosition, camera, grid, item.id, onUpdate]);
 
   // ✅ 드래그 종료 핸들러
@@ -171,6 +205,9 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = ({
 
   const handleMouseMove = useCallback((event: any) => {
     if (isDragging) {
+      if (event?.touches || event?.type === 'touchmove' || event?.nativeEvent?.touches) {
+        safePreventDefault(event);
+      }
       handleDrag(event);
     }
   }, [isDragging, handleDrag]);
@@ -192,15 +229,22 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = ({
     setIsHovered(false);
   }, []);
 
-  // 전역 마우스 이벤트 리스너
+  // 전역 마우스 및 터치 이벤트 리스너
   useEffect((): (() => void) | void => {
     if (isDragging) {
+      // 마우스 이벤트
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
+      
+      // 터치 이벤트 (모바일 지원)
+      window.addEventListener('touchmove', handleMouseMove, { passive: false });
+      window.addEventListener('touchend', handleMouseUp, { passive: false });
 
       return () => {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('touchmove', handleMouseMove);
+        window.removeEventListener('touchend', handleMouseUp);
       };
     }
     return undefined;
@@ -211,6 +255,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = ({
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleMouseMove);
+      window.removeEventListener('touchend', handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
 
