@@ -6,6 +6,7 @@ import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
 import { createFallbackModel, createFurnitureModel } from '../../../utils/modelLoader';
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
+import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
 
 
 
@@ -294,7 +295,12 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         }
 
         console.info(`가구 모델 생성: ${furniture.nameKo} (${furniture.category})`);
-        const realModel = createFurnitureModel(furniture);
+        const realModel = createFurnitureModel(
+          furniture.footprint.width,
+          furniture.footprint.height,
+          furniture.footprint.depth,
+          0x8B4513
+        );
         setModel(realModel);
         setIsLoading(false);
       } catch (error) {
@@ -303,7 +309,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
         const furniture = getFurnitureFromPlacedItem(item);
         if (furniture) {
-          const fallbackModel = createFallbackModel(furniture);
+          const fallbackModel = createFallbackModel();
           setModel(fallbackModel);
         }
         setIsLoading(false);
@@ -372,9 +378,9 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     return (
       <group
         ref={meshRef}
-        position={[item.position.x, item.position.y, item.position.z]}
-        rotation={[item.rotation.x, item.rotation.y, item.rotation.z]}
-        scale={[item.scale.x, item.scale.y, item.scale.z]}
+        position={safePosition(item.position)}
+        rotation={safeRotation(item.rotation)}
+        scale={safeScale(item.scale)}
       >
         <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
           <meshBasicMaterial color="#cccccc" transparent opacity={0.5} />
@@ -388,9 +394,9 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     return (
       <group
         ref={meshRef}
-        position={[item.position.x, item.position.y, item.position.z]}
-        rotation={[item.rotation.x, item.rotation.y, item.rotation.z]}
-        scale={[item.scale.x, item.scale.y, item.scale.z]}
+        position={safePosition(item.position)}
+        rotation={safeRotation(item.rotation)}
+        scale={safeScale(item.scale)}
       >
         <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
           <meshBasicMaterial color="#ff0000" transparent opacity={0.5} />
@@ -404,9 +410,9 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       {/* 실제 오브젝트 그룹 - 드래그 앤 드롭 이벤트 활성화 */}
       <group
         ref={meshRef}
-        position={[item.position.x, item.position.y, item.position.z]}
-        rotation={[item.rotation.x, item.rotation.y, item.rotation.z]}
-        scale={[item.scale.x, item.scale.y, item.scale.z]}
+        position={safePosition(item.position)}
+        rotation={safeRotation(item.rotation)}
+        scale={safeScale(item.scale)}
         onClick={handleClick}
         onPointerDown={handleMouseDown}
         onPointerMove={handleMouseMove}

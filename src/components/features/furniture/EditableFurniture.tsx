@@ -6,6 +6,7 @@ import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
 import { createFallbackModel, createFurnitureModel } from '../../../utils/modelLoader';
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
+import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
 import MobileTouchHandler from '../../ui/MobileTouchHandler';
 
 interface EditableFurnitureProps {
@@ -120,7 +121,8 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
       const currentRot = meshRef.current.rotation;
       const currentScale = meshRef.current.scale;
 
-      const itemPosition = new Vector3(item.position.x, item.position.y, item.position.z);
+      const [x, y, z] = safePosition(item.position);
+      const itemPosition = new Vector3(x, y, z);
       const itemRotation = new Euler(item.rotation.x, item.rotation.y, item.rotation.z);
       const itemScale = new Vector3(item.scale.x, item.scale.y, item.scale.z);
 
@@ -248,7 +250,8 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
       }
 
       // 현재 값과 이전 값을 비교하여 실제 변경된 경우에만 업데이트
-      const itemPosition = new Vector3(item.position.x, item.position.y, item.position.z);
+      const [x, y, z] = safePosition(item.position);
+      const itemPosition = new Vector3(x, y, z);
       const itemRotation = new Euler(item.rotation.x, item.rotation.y, item.rotation.z);
       const itemScale = new Vector3(item.scale.x, item.scale.y, item.scale.z);
 
@@ -670,7 +673,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     return (
       <group
         ref={meshRef}
-        position={[item.position.x, item.position.y, item.position.z]}
+        position={safePosition(item.position)}
         rotation={[item.rotation.x, item.rotation.y, item.rotation.z]}
         scale={[item.scale.x, item.scale.y, item.scale.z]}
       >
@@ -686,7 +689,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     return (
       <group
         ref={meshRef}
-        position={[item.position.x, item.position.y, item.position.z]}
+        position={safePosition(item.position)}
         rotation={[item.rotation.x, item.rotation.y, item.rotation.z]}
         scale={[item.scale.x, item.scale.y, item.scale.z]}
       >

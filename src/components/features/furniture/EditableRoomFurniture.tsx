@@ -4,6 +4,7 @@ import { TransformControls, Box, Html } from '@react-three/drei';
 import { Vector3, Euler, Group } from 'three';
 import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
+import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
 
 interface EditableRoomFurnitureProps {
   item: PlacedItem;
@@ -167,9 +168,9 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
     <group
       ref={groupRef}
       onClick={handleClick}
-      position={[item.position.x, item.position.y, item.position.z]}
-      rotation={[item.rotation.x, item.rotation.y, item.rotation.z]}
-      scale={[item.scale.x, item.scale.y, item.scale.z]}
+      position={safePosition(item.position)}
+      rotation={safeRotation(item.rotation)}
+      scale={safeScale(item.scale)}
     >
       {/* 기존 가구의 3D 메시들 */}
       {children}
