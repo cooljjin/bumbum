@@ -20,7 +20,7 @@ export interface FurnitureItem {
   subcategory?: string;     // 서브 카테고리 (예: 'sofa', 'chair', 'table')
 
   // 3D 모델 정보
-  modelPath: string;        // GLTF/GLB 파일 경로
+  modelPath: string | null; // GLTF/GLB 파일 경로 (null이면 폴백 모델 사용)
   thumbnailPath?: string;   // 썸네일 이미지 경로
 
   // 물리적 속성

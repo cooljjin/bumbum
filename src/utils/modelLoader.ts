@@ -76,6 +76,22 @@ export async function loadModel(
   try {
     console.log(`🔄 모델 로딩 시작: ${resolvedUrl}`);
     
+    // 더미 파일 감지를 위한 사전 체크
+    try {
+      const response = await fetch(resolvedUrl, { method: 'HEAD' });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      // 파일 크기가 매우 작으면 더미 파일일 가능성
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && parseInt(contentLength) < 1000) {
+        console.warn(`⚠️ 파일 크기가 매우 작음 (${contentLength} bytes), 더미 파일일 가능성`);
+      }
+    } catch (fetchError) {
+      console.warn(`⚠️ 파일 사전 체크 실패:`, fetchError);
+    }
+    
     // 로딩 진행률 처리
     const progressHandler = onProgress ? 
       (event: ProgressEvent) => {
@@ -97,6 +113,12 @@ export async function loadModel(
     });
 
     const model = gltf.scene;
+    
+    // 더미 파일 감지 (모델이 비어있거나 매우 간단한 경우)
+    if (!model || model.children.length === 0) {
+      console.warn(`⚠️ 로드된 모델이 비어있음, 더미 파일일 가능성: ${resolvedUrl}`);
+      throw new Error('Empty model detected - likely dummy file');
+    }
     
     // 모델 최적화
     optimizeModel(model);
