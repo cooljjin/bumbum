@@ -40,7 +40,7 @@ export const themes: Record<string, Theme> = {
     colors: {
       background: '#f0f4f8',
       floor: '#e2e8f0',
-      walls: '#cbd5e1',
+      walls: '#ffffff',
       ceiling: '#f1f5f9',
       furniture: {
         bed: '#e0e7ff',
@@ -75,7 +75,7 @@ export const themes: Record<string, Theme> = {
     colors: {
       background: '#fef3c7',
       floor: '#fde68a',
-      walls: '#fbbf24',
+      walls: '#ffffff',
       ceiling: '#fef7cd',
       furniture: {
         bed: '#fecaca',
@@ -110,7 +110,7 @@ export const themes: Record<string, Theme> = {
     colors: {
       background: '#fce7f3',
       floor: '#f3e8ff',
-      walls: '#e0e7ff',
+      walls: '#ffffff',
       ceiling: '#fef7ff',
       furniture: {
         bed: '#c7d2fe',

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { shouldUsePlaceholderModels } from './placeholder';
 
 // 모델 로더 인스턴스 (싱글톤)
 let gltfLoader: GLTFLoader | null = null;
@@ -52,6 +53,15 @@ export async function loadModel(
 ): Promise<THREE.Group> {
   const { useCache = true, priority = 'normal', onProgress } = options;
 
+  // 개발/테스트 환경에서는 실제 GLTF 로딩을 생략하고 플레이스홀더 반환
+  if (shouldUsePlaceholderModels()) {
+    console.log('🧩 Placeholder 모델 사용(개발/테스트 모드):', url);
+    return createFallbackModel();
+  }
+
+  // 모델 URL 해석 (CDN/base URL 지원)
+  const resolvedUrl = resolveModelUrl(url);
+
   // 캐시에서 모델 확인
   if (useCache && modelCache.has(url)) {
     const cached = modelCache.get(url)!;
@@ -62,7 +72,7 @@ export async function loadModel(
   }
 
   try {
-    console.log(`🔄 모델 로딩 시작: ${url}`);
+    console.log(`🔄 모델 로딩 시작: ${resolvedUrl}`);
     
     // 로딩 진행률 처리
     const progressHandler = onProgress ? 
@@ -78,9 +88,9 @@ export async function loadModel(
       const loader = getGLTFLoader();
       
       if (progressHandler) {
-        loader.load(url, resolve, progressHandler, reject);
+        loader.load(resolvedUrl, resolve, progressHandler, reject);
       } else {
-        loader.load(url, resolve, undefined, reject);
+        loader.load(resolvedUrl, resolve, undefined, reject);
       }
     });
 
@@ -94,13 +104,27 @@ export async function loadModel(
       cacheModel(url, model);
     }
 
-    console.log(`✅ 모델 로딩 완료: ${url}`);
+    console.log(`✅ 모델 로딩 완료: ${resolvedUrl}`);
     return model;
 
   } catch (error) {
-    console.error(`❌ 모델 로딩 실패: ${url}`, error);
+    console.error(`❌ 모델 로딩 실패: ${resolvedUrl}`, error);
     throw error;
   }
+}
+
+/**
+ * 상대 경로 모델 URL을 환경변수 기반으로 해석합니다.
+ * - 절대 URL(http/https)인 경우 그대로 사용
+ * - `NEXT_PUBLIC_GLTF_BASE_URL`이 설정되면 해당 값을 접두사로 사용
+ */
+export function resolveModelUrl(url: string): string {
+  if (/^https?:\/\//i.test(url)) return url;
+  const base = process.env.NEXT_PUBLIC_GLTF_BASE_URL;
+  if (!base) return url; // 기본: 상대 경로 유지 (Next 정적 파일)
+  const trimmedBase = base.replace(/\/$/, '');
+  const trimmedPath = url.replace(/^\//, '');
+  return `${trimmedBase}/${trimmedPath}`;
 }
 
 /**
@@ -237,6 +261,14 @@ function optimizeTexture(texture: THREE.Texture): void {
   texture.minFilter = THREE.LinearMipmapLinearFilter;
   texture.magFilter = THREE.LinearFilter;
   
+  // 🔧 나무결 무늬 개선을 위한 Anisotropic Filtering 추가
+  // GPU가 지원하는 최대 anisotropy 값 사용 (일반적으로 16)
+  texture.anisotropy = 16; // 최대 품질로 설정
+  
+  // 🔧 나무결 텍스처를 위한 추가 설정
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  
   // 메모리 최적화
   texture.flipY = false; // GLTF는 flipY가 false여야 함
   
@@ -244,6 +276,8 @@ function optimizeTexture(texture: THREE.Texture): void {
   if (texture.image) {
     texture.needsUpdate = true;
   }
+  
+  console.log(`🎨 텍스처 최적화 완료: anisotropy=${texture.anisotropy}`);
 }
 
 /**
@@ -437,6 +471,47 @@ export function createFallbackModel(): THREE.Group {
   const material = new THREE.MeshBasicMaterial({ color: 0xcccccc });
   const mesh = new THREE.Mesh(geometry, material);
   group.add(mesh);
+  return group;
+}
+
+/**
+ * 시계 전용 폴백 모델을 생성합니다
+ */
+export function createClockFallbackModel(): THREE.Group {
+  const group = new THREE.Group();
+  
+  // 시계 본체 (원형) - 벽에 걸리는 형태로 세우기
+  const clockGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16);
+  const clockMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const clockMesh = new THREE.Mesh(clockGeometry, clockMaterial);
+  // 시계를 벽에 걸리는 형태로 회전 (Z축을 중심으로 90도 회전)
+  clockMesh.rotation.z = Math.PI / 2;
+  clockMesh.castShadow = true;
+  clockMesh.receiveShadow = true;
+  group.add(clockMesh);
+  
+  // 시계 바늘들
+  const hourHandGeometry = new THREE.BoxGeometry(0.15, 0.01, 0.01);
+  const minuteHandGeometry = new THREE.BoxGeometry(0.18, 0.008, 0.008);
+  const handMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+  
+  const hourHand = new THREE.Mesh(hourHandGeometry, handMaterial);
+  hourHand.position.y = 0.03;
+  hourHand.rotation.z = Math.PI / 4; // 3시 방향
+  group.add(hourHand);
+  
+  const minuteHand = new THREE.Mesh(minuteHandGeometry, handMaterial);
+  minuteHand.position.y = 0.03;
+  minuteHand.rotation.z = Math.PI / 2; // 12시 방향
+  group.add(minuteHand);
+  
+  // 시계 중심점
+  const centerGeometry = new THREE.SphereGeometry(0.01, 8, 8);
+  const centerMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+  const centerMesh = new THREE.Mesh(centerGeometry, centerMaterial);
+  centerMesh.position.y = 0.03;
+  group.add(centerMesh);
+  
   return group;
 }
 

@@ -13,7 +13,7 @@ interface GridSystemProps {
 export const GridSystem: React.FC<GridSystemProps> = ({
   size = 10,
   divisions = 10,
-  color = '#888888',
+  color = '#ffffff',
   showGrid = true
 }) => {
   const gridRef = useRef<any>(null);
@@ -83,91 +83,11 @@ export const GridSystem: React.FC<GridSystemProps> = ({
     );
   };
 
-  // 그리드 센터 라인 (더 진하게)
-  const renderCenterLines = () => {
-    if (!isGridVisible) return null;
+  // 그리드 센터 라인 제거됨 (불필요한 요소)
 
-    const centerColor = '#444444';
-    const lineWidth = 2;
+  // 그리드 경계 표시 제거됨 (불필요한 요소)
 
-    return (
-      <group>
-        {/* X축 중심선 */}
-        <mesh position={[0, 0.01, 0]}>
-          <boxGeometry args={[size * 2, 0.01, lineWidth]} />
-          <meshBasicMaterial color={centerColor} />
-        </mesh>
-
-        {/* Z축 중심선 */}
-        <mesh position={[0, 0.01, 0]}>
-          <boxGeometry args={[lineWidth, 0.01, size * 2]} />
-          <meshBasicMaterial color={centerColor} />
-        </mesh>
-      </group>
-    );
-  };
-
-  // 그리드 경계 표시
-  const renderGridBoundary = () => {
-    if (!isGridVisible) return null;
-
-    const boundaryColor = '#666666';
-    const boundaryWidth = 0.05;
-
-    return (
-      <group>
-        {/* 경계선들 */}
-        {[
-          // 위쪽 경계
-          { position: [0, 0.02, size / 2], size: [size, 0.01, boundaryWidth] },
-          // 아래쪽 경계
-          { position: [0, 0.02, -size / 2], size: [size, 0.01, boundaryWidth] },
-          // 왼쪽 경계
-          { position: [-size / 2, 0.02, 0], size: [boundaryWidth, 0.01, size] },
-          // 오른쪽 경계
-          { position: [size / 2, 0.02, 0], size: [boundaryWidth, 0.01, size] }
-        ].map((boundary, index) => (
-          <mesh key={index} position={boundary.position as [number, number, number]}>
-            <boxGeometry args={boundary.size as [number, number, number]} />
-            <meshBasicMaterial color={boundaryColor} />
-          </mesh>
-        ))}
-      </group>
-    );
-  };
-
-  // 스냅 포인트 표시 (개선된 시각적 피드백)
-  const renderSnapPoints = () => {
-    if (!isGridVisible || !storeShowGrid) return null;
-
-    const snapPoints: React.ReactElement[] = [];
-    const snapColor = '#4F46E5';
-    const snapSize = 0.1;
-
-    // 주요 스냅 포인트 생성 (중심, 모서리, 중간점)
-    const points = [
-      [0, 0.03, 0], // 중심
-      [size / 2, 0.03, size / 2], // 우상단 모서리
-      [-size / 2, 0.03, size / 2], // 좌상단 모서리
-      [size / 2, 0.03, -size / 2], // 우하단 모서리
-      [-size / 2, 0.03, -size / 2], // 좌하단 모서리
-      [size / 4, 0.03, 0], // 우측 중간점
-      [-size / 4, 0.03, 0], // 좌측 중간점
-      [0, 0.03, size / 4], // 상단 중간점
-      [0, 0.03, -size / 4] // 하단 중간점
-    ];
-
-    points.forEach((point, index) => {
-      snapPoints.push(
-        <mesh key={`snap-${index}`} position={point as [number, number, number]}>
-          <sphereGeometry args={[snapSize, 8, 6]} />
-          <meshBasicMaterial color={snapColor} transparent opacity={0.7} />
-        </mesh>
-      );
-    });
-
-    return <group>{snapPoints}</group>;
-  };
+  // 스냅 포인트 표시 제거됨 (불필요한 요소)
 
 
 
@@ -178,15 +98,6 @@ export const GridSystem: React.FC<GridSystemProps> = ({
 
       {/* 메인 그리드 */}
       {renderGridLines()}
-
-      {/* 중심선 */}
-      {renderCenterLines()}
-
-      {/* 경계선 */}
-      {renderGridBoundary()}
-
-      {/* 스냅 포인트 (개선된 시각적 피드백) */}
-      {renderSnapPoints()}
     </group>
   );
 };

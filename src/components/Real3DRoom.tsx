@@ -12,10 +12,10 @@ const CameraControls = dynamic(() => import('@react-three/drei').then(mod => ({ 
   ssr: false,
   loading: () => null
 });
-const ContactShadows = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.ContactShadows })), { 
-  ssr: false,
-  loading: () => null
-});
+// const ContactShadows = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.ContactShadows })), { 
+//   ssr: false,
+//   loading: () => null
+// });
 const AdaptiveDpr = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.AdaptiveDpr })), { 
   ssr: false,
   loading: () => null
@@ -34,10 +34,10 @@ const Room = dynamic(() => import('./features/room/Room'), {
   ssr: false,
   loading: () => null
 });
-const RoomBoundaryVisualizer = dynamic(() => import('./features/room/RoomBoundaryVisualizer'), { 
-  ssr: false,
-  loading: () => null
-});
+// const RoomBoundaryVisualizer = dynamic(() => import('./features/room/RoomBoundaryVisualizer'), { 
+//   ssr: false,
+//   loading: () => null
+// });
 const RoomSizeSettings = dynamic(() => import('./features/room/RoomSizeSettings'), { 
   ssr: false,
   loading: () => null
@@ -62,7 +62,11 @@ const RoomTemplateSelector = dynamic(() => import('./features/room/RoomTemplateS
   ssr: false,
   loading: () => null
 });
-const PerformanceMonitor = dynamic(() => import('./shared/PerformanceMonitor').then(mod => ({ default: mod.PerformanceMonitor })), { 
+// const PerformanceMonitor = dynamic(() => import('./shared/PerformanceMonitor').then(mod => ({ default: mod.PerformanceMonitor })), { 
+//   ssr: false,
+//   loading: () => null
+// });
+const OutlineEffect = dynamic(() => import('./shared/OutlineEffect'), { 
   ssr: false,
   loading: () => null
 });
@@ -71,13 +75,12 @@ const EnhancedTouchControls = dynamic(() => import('./features/editor/EnhancedTo
   loading: () => null
 });
 
-import { updateRoomDimensions, isFurnitureInRoom, constrainFurnitureToRoom } from '../utils/roomBoundary';
+import { updateRoomDimensions, isFurnitureInRoom, constrainFurnitureToRoom, getRoomBoundaries } from '../utils/roomBoundary';
 import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, selectItem, addItem, clearAllItems, useIsDragging } from '../store/editorStore';
 import { 
   enableScrollLock, 
   disableScrollLock, 
   preventTouchScroll, 
-  preventWheelScroll, 
   preventKeyScroll,
   // isIOSSafari,
   isMobile as isMobileDevice
@@ -91,6 +94,7 @@ interface Real3DRoomProps {
 }
 
 import { FurnitureItem } from '../types/furniture';
+import { PlacedItem } from '../types/editor';
 import { createPlacedItemFromFurniture, sampleFurniture } from '../data/furnitureCatalog';
 import { applyRoomTemplate, RoomTemplate } from '../data/roomTemplates';
 
@@ -112,15 +116,19 @@ const useClientSideReady = () => {
 // 카메라 컨트롤러 컴포넌트 - React.memo로 최적화
 const CameraController = React.memo(({
   isViewLocked,
-  controlsRef
+  isDragging,
+  controlsRef,
+  onTransitionLockChange,
 }: {
   isViewLocked: boolean;
+  isDragging: boolean;
   controlsRef: React.RefObject<import('camera-controls').default | null>;
+  onTransitionLockChange?: (locked: boolean) => void;
 }) => {
   const { camera } = useThree();
 
-  // 시점 고정 시 이동할 위치와 시점
-  const lockedPosition: [number, number, number] = [8.11, 5.38, 7.02];
+  // 시점 고정 시 이동할 위치와 시점 (10x10x5 방에 맞게 조정)
+  const lockedPosition: [number, number, number] = [5, 4, 6];
   const lockedLookAt: [number, number, number] = [0, 0, 0];
 
   // 카메라 위치 모니터링 (1초마다 콘솔에 출력)
@@ -133,6 +141,9 @@ const CameraController = React.memo(({
       // 이미 파라미터로 전달받은 controlsRef를 사용하므로
     }
   }, []);
+
+  // 속도 복원을 위한 이전 값 저장
+  const prevSpeedsRef = useRef<{ azimuthRotateSpeed?: number; polarRotateSpeed?: number; truckSpeed?: number }>({});
 
   useFrame(() => {
     // Y축 위치 제한 (너무 낮게 내려가지 않도록)
@@ -165,45 +176,82 @@ const CameraController = React.memo(({
   });
 
   useEffect(() => {
-    if (isViewLocked && controlsRef.current) {
-      // 시점 고정: 즉시 카메라 조작 비활성화
-      console.log('🔒 시점 고정 모드: 카메라 조작 즉시 비활성화');
+    if (!controlsRef.current) return;
+
+    // 드래그 중에는 카메라 완전 비활성화 (회전/이동/줌 모두 차단)
+    if (isDragging) {
       controlsRef.current.enabled = false;
+      return;
+    }
+
+    if (isViewLocked && controlsRef.current) {
+      // 시점 고정: 회전/이동은 잠그고, 줌은 허용
+      console.log('🔒 시점 고정 모드: 회전/이동 비활성화, 전환 중 입력 락');
+      controlsRef.current.enabled = true;
 
       // CameraControls 설정
       controlsRef.current.smoothTime = 1.0;        // 1초 동안 전환
       controlsRef.current.maxSpeed = 3;            // 과속 방지
+      // 회전/이동 속도를 0으로 설정하여 동작 비활성화
+      try {
+        // 일부 환경에서 존재하지 않을 수 있으므로 안전하게 시도
+        // 이전 값 저장
+        prevSpeedsRef.current.azimuthRotateSpeed = (controlsRef.current as any).azimuthRotateSpeed;
+        prevSpeedsRef.current.polarRotateSpeed = (controlsRef.current as any).polarRotateSpeed;
+        prevSpeedsRef.current.truckSpeed = (controlsRef.current as any).truckSpeed;
+
+        // 회전/이동 잠금
+        (controlsRef.current as any).azimuthRotateSpeed = 0;
+        (controlsRef.current as any).polarRotateSpeed = 0;
+        (controlsRef.current as any).truckSpeed = 0;
+      } catch (e) {
+        // no-op
+      }
 
       // 부드러운 전환으로 목표 위치로 이동
+      onTransitionLockChange?.(true);
       controlsRef.current.setLookAt(
         lockedPosition[0], lockedPosition[1], lockedPosition[2],
         lockedLookAt[0], lockedLookAt[1], lockedLookAt[2],
         true  // 부드러운 전이 활성화
-      ).then(() => {
-        console.log('✅ 시점 고정 완료: 목표 위치 도달 (카메라 조작 비활성화 상태 유지)');
+      ).finally(() => {
+        // 전환 완료: 입력 락 해제 (줌은 계속 가능)
+        onTransitionLockChange?.(false);
+        console.log('✅ 시점 고정 완료: 목표 위치 도달 (줌만 가능)');
       });
 
     } else if (!isViewLocked && controlsRef.current) {
       // 시점 해제: 사용자가 자유롭게 카메라 조작 가능
       console.log('🎯 시점 자유 모드: 카메라 조작 활성화');
-
-      // 카메라 조작 활성화
       controlsRef.current.enabled = true;
+      // 기본 속도로 복원
+      try {
+        (controlsRef.current as any).azimuthRotateSpeed = prevSpeedsRef.current.azimuthRotateSpeed ?? 1.0;
+        (controlsRef.current as any).polarRotateSpeed = prevSpeedsRef.current.polarRotateSpeed ?? 1.0;
+        (controlsRef.current as any).truckSpeed = prevSpeedsRef.current.truckSpeed ?? 2.0;
+      } catch (e) {
+        // no-op
+      }
     }
-  }, [isViewLocked]);
+  }, [isViewLocked, isDragging]);
 
   return (
     <CameraControls
       ref={controlsRef}
       makeDefault
-      // 카메라 제한 설정
+      // 카메라 제한 설정 (10x10x5 방에 맞게 조정)
       minDistance={1.0}
-      maxDistance={12}
+      maxDistance={15}
       maxPolarAngle={Math.PI * 0.85}
       minPolarAngle={Math.PI * 0.15}
-      // 부드러운 움직임 설정
-      smoothTime={0.08}
-      maxSpeed={3}
+      // 스크롤할 때만 움직이도록 설정 (부드러운 애니메이션 비활성화)
+      smoothTime={0}
+      // 줌 속도 제한하여 한번에 많이 스크롤해도 끝까지 가지 않도록
+      maxSpeed={1}
+      // 줌 민감도 조절 - 휠 한 번 돌릴 때의 확대/축소 정도를 줄임
+      dollySpeed={0.2}
+      // 무한 줌 방지
+      infinityDolly={false}
     />
   );
 });
@@ -228,7 +276,7 @@ const Real3DRoomComponent = React.memo(({
   const [isMobile, setIsMobile] = useState(false);
 
   // 성능 최적화 상태
-  const [performanceOptimizationEnabled] = useState(true);
+  // const [performanceOptimizationEnabled] = useState(true);
 
   // 메모리 관리 상태
   const cleanupRefs = useRef<Set<() => void>>(new Set());
@@ -247,6 +295,9 @@ const Real3DRoomComponent = React.memo(({
   const placedItems = usePlacedItems();
   const selectedItemId = useSelectedItemId();
   const isDragging = useIsDragging();
+
+  // 시점 고정 전환 중 입력 락 상태
+  const [isTransitionInputLocked, setIsTransitionInputLocked] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -269,7 +320,7 @@ const Real3DRoomComponent = React.memo(({
       document.addEventListener('touchmove', preventTouchScroll, { passive: false, capture: true });
       document.addEventListener('touchstart', preventTouchScroll, { passive: false, capture: true });
       document.addEventListener('touchend', preventTouchScroll, { passive: false, capture: true });
-      document.addEventListener('wheel', preventWheelScroll, { passive: false, capture: true });
+      // document.addEventListener('wheel', preventWheelScroll, { passive: false, capture: true });
       document.addEventListener('keydown', preventKeyScroll, { passive: false, capture: true });
 
       document.addEventListener('gesturestart', preventTouchScroll, { passive: false, capture: true });
@@ -282,7 +333,7 @@ const Real3DRoomComponent = React.memo(({
         document.removeEventListener('touchmove', preventTouchScroll, { capture: true });
         document.removeEventListener('touchstart', preventTouchScroll, { capture: true });
         document.removeEventListener('touchend', preventTouchScroll, { capture: true });
-        document.removeEventListener('wheel', preventWheelScroll, { capture: true });
+        // document.removeEventListener('wheel', preventWheelScroll, { capture: true });
         document.removeEventListener('keydown', preventKeyScroll, { capture: true });
         document.removeEventListener('gesturestart', preventTouchScroll, { capture: true });
         document.removeEventListener('gesturechange', preventTouchScroll, { capture: true });
@@ -294,8 +345,46 @@ const Real3DRoomComponent = React.memo(({
     } else {
       // 드래그가 아닌 상태에서 혹시 잠겨 있으면 해제
       disableScrollLock();
+      return undefined;
     }
   }, [isDragging, isMobile]);
+
+  // 시점 전환 중 전역 입력 락 (마우스/휠/터치 모두 차단)
+  useEffect(() => {
+    if (!isTransitionInputLocked) return undefined;
+
+    const prevent = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    enableScrollLock();
+    const opts = { passive: false, capture: true } as AddEventListenerOptions;
+    document.addEventListener('wheel', prevent, opts);
+    document.addEventListener('touchstart', prevent as any, opts);
+    document.addEventListener('touchmove', prevent as any, opts);
+    document.addEventListener('touchend', prevent as any, opts);
+    document.addEventListener('pointerdown', prevent as any, opts);
+    document.addEventListener('pointermove', prevent as any, opts);
+    document.addEventListener('pointerup', prevent as any, opts);
+    document.addEventListener('gesturestart', prevent as any, opts);
+    document.addEventListener('gesturechange', prevent as any, opts);
+    document.addEventListener('gestureend', prevent as any, opts);
+
+    return () => {
+      document.removeEventListener('wheel', prevent as any, { capture: true } as any);
+      document.removeEventListener('touchstart', prevent as any, { capture: true } as any);
+      document.removeEventListener('touchmove', prevent as any, { capture: true } as any);
+      document.removeEventListener('touchend', prevent as any, { capture: true } as any);
+      document.removeEventListener('pointerdown', prevent as any, { capture: true } as any);
+      document.removeEventListener('pointermove', prevent as any, { capture: true } as any);
+      document.removeEventListener('pointerup', prevent as any, { capture: true } as any);
+      document.removeEventListener('gesturestart', prevent as any, { capture: true } as any);
+      document.removeEventListener('gesturechange', prevent as any, { capture: true } as any);
+      document.removeEventListener('gestureend', prevent as any, { capture: true } as any);
+      disableScrollLock();
+    };
+  }, [isTransitionInputLocked]);
 
   // 카메라 컨트롤러 ref
   const cameraControlsRef = useRef<import('camera-controls').default>(null);
@@ -489,7 +578,12 @@ const Real3DRoomComponent = React.memo(({
       })));
 
       // 🏠 카테고리별 배치 전략
-      const getPlacementStrategy = (category: string) => {
+      const getPlacementStrategy = (category: string, subcategory?: string) => {
+        // 시계는 항상 벽면에 배치
+        if (subcategory === 'clock') {
+          return 'wall';
+        }
+        
         switch (category) {
           case 'sofa':
           case 'chair':
@@ -511,14 +605,22 @@ const Real3DRoomComponent = React.memo(({
         }
       };
 
-      const placementStrategy = getPlacementStrategy(item.category);
-      console.log(`🎯 ${item.nameKo} (${item.category}) 배치 전략: ${placementStrategy}`);
+      const placementStrategy = getPlacementStrategy(item.category, item.subcategory);
+      console.log(`🎯 ${item.nameKo} (${item.category}/${item.subcategory}) 배치 전략: ${placementStrategy}`);
 
       // 기존 가구들의 평균 위치 계산 (원본 객체 변경 방지)
       const avgPosition = existingItems.reduce((acc, item) => {
-        const itemPositionCopy = new Vector3().copy(item.position);
+        // NaN 값 검증 및 기본값 설정
+        const safePosition = {
+          x: isNaN(item.position.x) ? 0 : item.position.x,
+          y: isNaN(item.position.y) ? 0 : item.position.y,
+          z: isNaN(item.position.z) ? 0 : item.position.z
+        };
+        
+        const itemPositionCopy = new Vector3(safePosition.x, safePosition.y, safePosition.z);
         console.log(`📐 가구 ${item.id} 위치 복사:`, {
           원본: { x: item.position.x, y: item.position.y, z: item.position.z },
+          안전한위치: safePosition,
           복사본: { x: itemPositionCopy.x, y: itemPositionCopy.y, z: itemPositionCopy.z }
         });
         return acc.add(itemPositionCopy);
@@ -528,7 +630,7 @@ const Real3DRoomComponent = React.memo(({
 
       // 카테고리별 배치 전략에 따른 위치 계산
       if (placementStrategy === 'wall') {
-        // 벽면에 배치 - 가장 가까운 벽 선택
+        // 벽면에 배치 - 가장 가까운 벽 선택 (10x10 방에 맞게 조정)
         const wallPositions = [
           new Vector3(0, 0, -4.5), // 북쪽 벽
           new Vector3(4.5, 0, 0),  // 동쪽 벽
@@ -548,27 +650,40 @@ const Real3DRoomComponent = React.memo(({
           }
         });
 
-        // 벽에서 약간 안쪽에 배치
+        // 벽면에 완전히 붙도록 배치
         if (closestWall) {
-          const wallOffset = 0.5;
-          position = closestWall.clone().multiplyScalar(1 - wallOffset / 4.5);
+          // 벽면에 정확히 붙도록 위치 설정 (오프셋 없음)
+          position = closestWall.clone();
 
-          // 벽을 따라 랜덤하게 이동
+          // 벽을 따라 랜덤하게 이동 (벽면에서 벗어나지 않도록)
           if (Math.abs(closestWall.x) > Math.abs(closestWall.z)) {
-            // 동/서쪽 벽
-            position.z = (Math.random() - 0.5) * 6;
+            // 동/서쪽 벽 (x축 고정, z축만 변경)
+            position.z = (Math.random() - 0.5) * 8.8; // 벽면 끝까지 사용
           } else {
-            // 남/북쪽 벽
-            position.x = (Math.random() - 0.5) * 6;
+            // 남/북쪽 벽 (z축 고정, x축만 변경)
+            position.x = (Math.random() - 0.5) * 8.8; // 벽면 끝까지 사용
+          }
+
+          // 벽면 에셋의 경우 Y축을 적절한 높이로 설정
+          if (item.subcategory === 'clock' && item.placement.wallHeight) {
+            position.y = item.placement.wallHeight;
+            console.log(`🕐 시계 Y축 위치 설정: ${position.y}m (벽 높이)`);
+          } else if (item.placement.wallOnly) {
+            // 벽면 전용 에셋의 경우 기본 벽 높이 설정
+            position.y = item.placement.wallHeight || 1.5; // 기본 1.5m 높이
+            console.log(`🏠 벽면 에셋 Y축 위치 설정: ${position.y}m`);
+          } else {
+            // 일반 벽면 가구의 경우 바닥에 배치
+            position.y = 0;
           }
         }
       } else if (placementStrategy === 'corner') {
-        // 구석에 배치 - 가장 비어있는 구석 선택
+        // 구석에 배치 - 가장 비어있는 구석 선택 (10x10 방에 맞게 조정)
         const cornerPositions = [
-          new Vector3(3.5, 0, -3.5), // 북동
-          new Vector3(3.5, 0, 3.5),  // 남동
-          new Vector3(-3.5, 0, 3.5), // 남서
-          new Vector3(-3.5, 0, -3.5) // 북서
+          new Vector3(4, 0, -4), // 북동
+          new Vector3(4, 0, 4),  // 남동
+          new Vector3(-4, 0, 4), // 남서
+          new Vector3(-4, 0, -4) // 북서
         ];
 
         // 가장 비어있는 구석 찾기
@@ -576,9 +691,15 @@ const Real3DRoomComponent = React.memo(({
         let maxCornerDistance = 0;
 
         cornerPositions.forEach(corner => {
-          const minDistance = Math.min(...existingItems.map(item =>
-            corner.distanceTo(new Vector3(item.position.x, item.position.y, item.position.z))
-          ));
+          const minDistance = Math.min(...existingItems.map(item => {
+            // NaN 값 검증 및 기본값 설정
+            const safePosition = {
+              x: isNaN(item.position.x) ? 0 : item.position.x,
+              y: isNaN(item.position.y) ? 0 : item.position.y,
+              z: isNaN(item.position.z) ? 0 : item.position.z
+            };
+            return corner.distanceTo(new Vector3(safePosition.x, safePosition.y, safePosition.z));
+          }));
           if (minDistance > maxCornerDistance) {
             maxCornerDistance = minDistance;
             bestCorner = corner;
@@ -589,9 +710,9 @@ const Real3DRoomComponent = React.memo(({
           position = bestCorner.clone();
         }
       } else {
-        // 중앙 영역에 배치 (기본 로직)
+        // 중앙 영역에 배치 (기본 로직, 10x10 방에 맞게 조정)
         const angle = Math.random() * Math.PI * 2;
-        const distance = 2 + Math.random() * 3; // 2-5m 거리
+        const distance = 1.5 + Math.random() * 3; // 1.5-4.5m 거리
         position = new Vector3(
           avgPosition.x + Math.cos(angle) * distance,
           0, // 바닥에 배치
@@ -603,11 +724,56 @@ const Real3DRoomComponent = React.memo(({
       position = new Vector3(0, 0, 0);
     }
 
+    // NaN 값 검증 및 기본값 설정
+    const safePosition = {
+      x: isNaN(position.x) ? 0 : position.x,
+      y: isNaN(position.y) ? 0 : position.y,
+      z: isNaN(position.z) ? 0 : position.z
+    };
+    
+    const finalPosition = new Vector3(safePosition.x, safePosition.y, safePosition.z);
+    
+    // 시계의 경우 벽에 걸리는 형태로 회전값 설정 + 벽을 바라보도록 Y축 회전 적용
+    let initialRotation = new Euler(0, 0, 0);
+    const boundariesForYaw = getRoomBoundaries();
+    // 기본 Z축 회전(시계) 유지
+    if (item.subcategory === 'clock') {
+      initialRotation = new Euler(0, 0, Math.PI / 2);
+    }
+    // 벽 배치일 경우, 위치 기준으로 정면이 실내를 향하도록 Y축 회전
+    if (position) {
+      try {
+        // boundaries가 유효하면 경계 기준으로 더 명확히 판정
+        if (boundariesForYaw) {
+          const dxMin = Math.abs(position.x - boundariesForYaw.minX);
+          const dxMax = Math.abs(position.x - boundariesForYaw.maxX);
+          const dzMin = Math.abs(position.z - boundariesForYaw.minZ);
+          const dzMax = Math.abs(position.z - boundariesForYaw.maxZ);
+          const minXDist = Math.min(dxMin, dxMax);
+          const minZDist = Math.min(dzMin, dzMax);
+          if (minXDist <= minZDist) {
+            // 동/서쪽 벽
+            initialRotation.y = dxMin < dxMax ? Math.PI / 2 : -Math.PI / 2; // 서쪽(+X), 동쪽(-X)
+          } else {
+            // 남/북쪽 벽
+            initialRotation.y = dzMin < dzMax ? 0 : Math.PI; // 북쪽(+Z), 남쪽(-Z)
+          }
+        } else {
+          // 경계 정보가 없다면 좌표값 부호로 간단 판정
+          if (Math.abs(position.x) > Math.abs(position.z)) {
+            initialRotation.y = position.x < 0 ? Math.PI / 2 : -Math.PI / 2;
+          } else {
+            initialRotation.y = position.z < 0 ? 0 : Math.PI;
+          }
+        }
+      } catch {}
+    }
+
     // 편집 스토어에 가구 추가 (createPlacedItemFromFurniture 함수 사용으로 일관성 유지)
     const newPlacedItem = createPlacedItemFromFurniture(
       item,
-      position, // 계산된 적절한 위치
-      new Euler(0, 0, 0),   // 기본 회전
+      finalPosition, // 안전한 위치
+      initialRotation, // 시계는 벽에 걸리는 형태로 회전
       new Vector3(1, 1, 1)   // 기본 크기
     );
 
@@ -638,6 +804,12 @@ const Real3DRoomComponent = React.memo(({
   // 가구 삭제 핸들러
   const handleFurnitureDelete = (id: string) => {
     removeItem(id);
+  };
+
+  // 가구 복제 핸들러
+  const handleFurnitureDuplicate = (item: PlacedItem) => {
+    addItem(item);
+    console.log('가구 복제됨:', item.name);
   };
 
   // 가구 배치 완료 핸들러
@@ -718,6 +890,13 @@ const Real3DRoomComponent = React.memo(({
           gl.shadowMap.type = THREE.PCFSoftShadowMap;
           scene.background = new THREE.Color('#f8fafc');
 
+          // 🔧 텍스처 품질 개선을 위한 설정
+          const maxAnisotropy = gl.capabilities.getMaxAnisotropy();
+          console.log(`🎨 GPU 최대 Anisotropy 지원: ${maxAnisotropy}`);
+          
+          // 텍스처 품질 향상을 위한 추가 설정
+          gl.outputColorSpace = THREE.SRGBColorSpace;
+          
           // 추가 배경색 설정
           const context = gl.getContext();
           if (context) {
@@ -754,6 +933,19 @@ const Real3DRoomComponent = React.memo(({
             e.stopPropagation();
             console.log('🎯 3D 캔버스 터치 시작 허용됨');
           }
+          
+          // 편집 모드에서 가구가 아닌 빈 공간 터치 시 선택 해제
+          if (isEditMode && selectedItemId) {
+            // 터치된 객체가 가구인지 확인
+            const touchedObject = (e as any).object;
+            const isFurniture = touchedObject?.userData?.isFurniture === true;
+            
+            // 가구가 아닌 객체를 터치했거나 빈 공간을 터치한 경우
+            if (!isFurniture) {
+              console.log('🎯 가구가 아닌 공간 터치 - 가구 선택 해제');
+              selectItem(null);
+            }
+          }
         }}
         onTouchMove={(e) => {
           if (isEditMode && isMobile) {
@@ -770,7 +962,9 @@ const Real3DRoomComponent = React.memo(({
         {/* 카메라 컨트롤러 */}
         <CameraController
           isViewLocked={isViewLocked}
+          isDragging={isDragging}
           controlsRef={cameraControlsRef}
+          onTransitionLockChange={setIsTransitionInputLocked}
         />
 
         {/* 배경색 설정 */}
@@ -786,36 +980,62 @@ const Real3DRoomComponent = React.memo(({
           position={[5, 10, 5]}
           intensity={0.8}
           color="#ffffff"
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
         />
 
         {/* 3D 룸 */}
         <Room receiveShadow={shadowMode === 'realtime'} />
 
-        {/* 방 경계 시각화 - 편집 모드에서만 표시 */}
-        {isEditMode && (
+        {/* 방 경계 시각화 - 편집 모드에서 불필요한 요소 제거 */}
+        {/* {isEditMode && (
           <RoomBoundaryVisualizer 
             visible={true} 
             color="#ff6b6b" 
             lineWidth={2} 
           />
-        )}
+        )} */}
 
-        {/* 성능 모니터링 */}
-        <PerformanceMonitor
+        {/* 성능 모니터링 - 편집 모드에서 불필요한 요소 제거 */}
+        {/* <PerformanceMonitor
           enabled={performanceOptimizationEnabled}
           position={[0, 5, 0]}
           showDetails={false}
-        />
+        /> */}
 
         {/* 그리드 시스템 - 편집 모드에서만 표시 */}
-        {isEditMode && <GridSystem size={10} divisions={10} color="#888888" />}
+        {isEditMode && <GridSystem size={10} divisions={10} color="#ffffff" />}
 
 
 
-        {/* 배치된 가구들 - 편집 모드와 뷰 모드 모두에서 표시 */}
-        {placedItems.map((item) => (
+        {/* 윤곽선 효과 - 편집 모드에서만 활성화 */}
+        {isEditMode && (
+          <OutlineEffect
+            selectedObjects={selectedItemId ? [selectedItemId] : []}
+            edgeStrength={2.0}
+            pulseSpeed={0.0}
+            visibleEdgeColor={0x3b82f6}
+            hiddenEdgeColor={0x1e40af}
+            enabled={isEditMode && selectedItemId !== null}
+          >
+            {/* 배치된 가구들 - 편집 모드와 뷰 모드 모두에서 표시 */}
+            {placedItems.map((item) => (
+              <DraggableFurniture
+                key={item.id}
+                item={item}
+                isSelected={selectedItemId === item.id}
+                isEditMode={isEditMode}
+                onSelect={handleFurnitureSelectInScene}
+                onUpdate={handleFurnitureUpdate}
+                onDelete={handleFurnitureDelete}
+                onDuplicate={handleFurnitureDuplicate}
+              />
+            ))}
+          </OutlineEffect>
+        )}
+
+        {/* 편집 모드가 아닐 때는 윤곽선 없이 렌더링 */}
+        {!isEditMode && placedItems.map((item) => (
           <DraggableFurniture
             key={item.id}
             item={item}
@@ -824,16 +1044,17 @@ const Real3DRoomComponent = React.memo(({
             onSelect={handleFurnitureSelectInScene}
             onUpdate={handleFurnitureUpdate}
             onDelete={handleFurnitureDelete}
+            onDuplicate={handleFurnitureDuplicate}
           />
         ))}
 
-        {/* 그림자 */}
-        <ContactShadows
+        {/* 그림자 - rgb(79,93,108) 레이어 제거를 위해 주석 처리 */}
+        {/* <ContactShadows
           opacity={0.35}
           scale={10}
           blur={2.5}
           far={4.5}
-        />
+        /> */}
 
         {/* 모바일 터치 컨트롤 - Canvas 내부에 배치 */}
         <EnhancedTouchControls
@@ -849,6 +1070,21 @@ const Real3DRoomComponent = React.memo(({
         )}
         <AdaptiveEvents />
       </Canvas>
+
+      {/* 전환 중 입력 락 오버레이 */}
+      {isTransitionInputLocked && (
+        <div
+          className="absolute inset-0 z-[9999]"
+          style={{ cursor: 'wait' }}
+          onWheel={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onPointerMove={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onPointerUp={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onTouchMove={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        />
+      )}
 
       {/* 시점 전환 효과 */}
       {showTransitionEffect && (
