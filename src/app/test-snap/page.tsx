@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import BottomCategoryTabs from '../../components/layout/BottomCategoryTabs';
-import FurnitureCatalog from '../../components/features/furniture/FurnitureCatalog';
+import { FurnitureCatalog } from '../../components/features/furniture/FurnitureCatalog';
 import { FurnitureCategory } from '../../types/furniture';
 
 export default function TestSnapPage() {

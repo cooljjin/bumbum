@@ -1103,6 +1103,47 @@ export const sampleFurniture: FurnitureItem[] = [
     }
   },
 
+  // Weird Table 추가
+  {
+    id: 'weirdtable',
+    name: 'Weird Table',
+    nameKo: '위어드 테이블',
+    category: 'living',
+    subcategory: 'table',
+    modelPath: '/models/furniture/weirdtable.glb',
+    thumbnailPath: '/thumbnails/furniture/weirdtable.svg',
+    footprint: {
+      width: 1.6,
+      depth: 1.2,
+      height: 0.8
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0
+    },
+    metadata: {
+      brand: 'CustomFurniture',
+      model: 'CF-WT-001',
+      price: 180000,
+      description: '독특하고 특별한 디자인의 위어드 테이블',
+      tags: ['테이블', '위어드', '독특한', '특별한', '디자인'],
+      materials: ['나무', '메탈'],
+      colors: ['우드', '블랙', '실버']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 15,
+      collisionGroup: 'furniture'
+    }
+  },
+
   {
     id: 'simple-shelf-001',
     name: 'Simple Shelf',

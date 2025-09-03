@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 
 // Real3DRoom 컴포넌트를 동적으로 로드 (SSR 문제 방지)
-const Real3DRoom = dynamic(() => import('../../components/Real3DRoom'), {
+const Real3DRoom = dynamic(() => import('../../components/Real3DRoom').then(mod => ({ default: mod.default })), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-screen">

@@ -1,8 +1,13 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
 import * as THREE from 'three';
+import { performanceOptimizer, PerformanceMetrics } from '../../utils/performanceOptimizer';
+import { memoryLeakDetector, MemorySnapshot } from '../../utils/memoryLeakDetector';
+import PerformanceDashboard from './PerformanceDashboard';
+import PerformanceVisualization from './PerformanceVisualization';
 
-interface PerformanceMetrics {
+interface PerformanceMetricsExtended {
   fps: number;
   frameTime: number;
   memoryUsage: number;
@@ -10,34 +15,90 @@ interface PerformanceMetrics {
   triangles: number;
   points: number;
   lines: number;
+  timestamp: number;
 }
 
 interface PerformanceMonitorProps {
   enabled?: boolean;
   position?: [number, number, number];
   showDetails?: boolean;
+  showDashboard?: boolean;
+  showVisualization?: boolean;
+  dashboardPosition?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+  compact?: boolean;
+  autoOptimize?: boolean;
 }
 
 export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   enabled = true,
   position = [0, 0, 0],
-  showDetails = false
+  showDetails = false,
+  showDashboard = true,
+  showVisualization = false,
+  dashboardPosition = 'top-right',
+  compact = false,
+  autoOptimize = true
 }) => {
-  const { gl } = useThree();
-  const [metrics, setMetrics] = useState<PerformanceMetrics>({
+  const { gl, scene } = useThree();
+  const [metrics, setMetrics] = useState<PerformanceMetricsExtended>({
     fps: 0,
     frameTime: 0,
     memoryUsage: 0,
     renderCalls: 0,
     triangles: 0,
     points: 0,
-    lines: 0
+    lines: 0,
+    timestamp: Date.now()
   });
+
+  const [performanceData, setPerformanceData] = useState<PerformanceMetricsExtended[]>([]);
+  const [optimizationSuggestions, setOptimizationSuggestions] = useState<any[]>([]);
+  const [memorySnapshots, setMemorySnapshots] = useState<MemorySnapshot[]>([]);
 
   const frameCount = useRef(0);
   const lastTime = useRef(performance.now());
   const fpsHistory = useRef<number[]>([]);
   const maxHistorySize = 60; // 1초간의 FPS 기록 (60fps 기준)
+
+  // 초기화
+  useEffect(() => {
+    if (enabled) {
+      // 메모리 누수 감지기 초기화
+      memoryLeakDetector.registerScene(scene);
+      memoryLeakDetector.startMonitoring();
+
+      // 자동 최적화 이벤트 리스너
+      const handleAutoOptimize = (event: CustomEvent) => {
+        if (autoOptimize) {
+          console.log('🚀 자동 최적화 실행:', event.type);
+          performanceOptimizer.optimizeScene(scene);
+        }
+      };
+
+      // 메모리 누수 감지 이벤트 리스너
+      const handleMemoryLeak = (event: CustomEvent) => {
+        console.warn('🚨 메모리 누수 감지:', event.detail);
+        if (autoOptimize) {
+          memoryLeakDetector.performAutoCleanup();
+        }
+      };
+
+      // 이벤트 리스너 등록
+      window.addEventListener('auto-optimize-low-fps', handleAutoOptimize as EventListener);
+      window.addEventListener('auto-optimize-medium-fps', handleAutoOptimize as EventListener);
+      window.addEventListener('auto-cleanup-memory', handleAutoOptimize as EventListener);
+      window.addEventListener('memory-leak-detected', handleMemoryLeak as EventListener);
+
+      return () => {
+        // 정리
+        memoryLeakDetector.stopMonitoring();
+        window.removeEventListener('auto-optimize-low-fps', handleAutoOptimize as EventListener);
+        window.removeEventListener('auto-optimize-medium-fps', handleAutoOptimize as EventListener);
+        window.removeEventListener('auto-cleanup-memory', handleAutoOptimize as EventListener);
+        window.removeEventListener('memory-leak-detected', handleMemoryLeak as EventListener);
+      };
+    }
+  }, [enabled, autoOptimize, scene]);
 
   // FPS 계산 및 성능 메트릭 수집
   useFrame(() => {
@@ -73,15 +134,37 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
       const points = rendererInfo.render.points;
       const lines = rendererInfo.render.lines;
 
-      setMetrics({
+      const newMetrics: PerformanceMetricsExtended = {
         fps: avgFps,
         frameTime: Math.round(deltaTime / frameCount.current),
         memoryUsage,
         renderCalls,
         triangles,
         points,
-        lines
+        lines,
+        timestamp: currentTime
+      };
+
+      setMetrics(newMetrics);
+
+      // 성능 데이터 히스토리 업데이트
+      setPerformanceData(prev => {
+        const updated = [...prev, newMetrics];
+        return updated.slice(-100); // 최근 100개 데이터만 유지
       });
+
+      // 성능 최적화 제안 생성
+      const suggestions = performanceOptimizer.updateMetrics(newMetrics);
+      setOptimizationSuggestions(suggestions);
+
+      // 메모리 스냅샷 업데이트
+      const currentSnapshot = memoryLeakDetector.getCurrentSnapshot();
+      if (currentSnapshot) {
+        setMemorySnapshots(prev => {
+          const updated = [...prev, currentSnapshot];
+          return updated.slice(-50); // 최근 50개 스냅샷만 유지
+        });
+      }
 
       // 성능 경고 로그
       if (avgFps < 30) {
@@ -102,34 +185,77 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   if (!enabled) return null;
 
   return (
-    <group position={position}>
-      {/* 성능 모니터 UI */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[0.1, 0.1, 0.1]} />
-        <meshBasicMaterial 
-          color={metrics.fps >= 50 ? '#00ff00' : metrics.fps >= 30 ? '#ffff00' : '#ff0000'} 
-          transparent 
-          opacity={0.8} 
-        />
-      </mesh>
+    <>
+      {/* 3D 성능 모니터 UI */}
+      <group position={position}>
+        {/* 성능 모니터 UI */}
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[0.1, 0.1, 0.1]} />
+          <meshBasicMaterial 
+            color={metrics.fps >= 50 ? '#00ff00' : metrics.fps >= 30 ? '#ffff00' : '#ff0000'} 
+            transparent 
+            opacity={0.8} 
+          />
+        </mesh>
 
-      {/* 성능 정보 텍스트 (3D 공간에 표시) */}
-      {showDetails && (
-        <group position={[0, 0.2, 0]}>
-          {/* FPS 표시 */}
-          <mesh position={[0, 0, 0]}>
-            <boxGeometry args={[0.8, 0.05, 0.01]} />
-            <meshBasicMaterial color="#000000" transparent opacity={0.7} />
-          </mesh>
-          
-          {/* 메모리 사용량 표시 */}
-          <mesh position={[0, -0.1, 0]}>
-            <boxGeometry args={[0.8, 0.05, 0.01]} />
-            <meshBasicMaterial color="#000000" transparent opacity={0.7} />
-          </mesh>
-        </group>
+        {/* 성능 정보 텍스트 (3D 공간에 표시) */}
+        {showDetails && (
+          <group position={[0, 0.2, 0]}>
+            {/* FPS 표시 */}
+            <mesh position={[0, 0, 0]}>
+              <boxGeometry args={[0.8, 0.05, 0.01]} />
+              <meshBasicMaterial color="#000000" transparent opacity={0.7} />
+            </mesh>
+            
+            {/* 메모리 사용량 표시 */}
+            <mesh position={[0, -0.1, 0]}>
+              <boxGeometry args={[0.8, 0.05, 0.01]} />
+              <meshBasicMaterial color="#000000" transparent opacity={0.7} />
+            </mesh>
+          </group>
+        )}
+      </group>
+
+      {/* 2D 대시보드 UI - Html 컴포넌트로 감싸기 */}
+      {showDashboard && (
+        <Html position={[0, 0, 0]} style={{ pointerEvents: 'none' }}>
+          <div style={{ pointerEvents: 'auto' }}>
+            <PerformanceDashboard
+              enabled={enabled}
+              position={dashboardPosition}
+              compact={compact}
+              showHistory={true}
+              onOptimizationSuggestion={(suggestion) => {
+                console.log('최적화 제안:', suggestion);
+                if (autoOptimize && suggestion.autoFixable && suggestion.fixFunction) {
+                  suggestion.fixFunction();
+                }
+              }}
+            />
+          </div>
+        </Html>
       )}
-    </group>
+
+      {/* 성능 시각화 - Html 컴포넌트로 감싸기 */}
+      {showVisualization && performanceData.length > 0 && (
+        <Html position={[0, 0, 0]} style={{ pointerEvents: 'none' }}>
+          <div style={{ pointerEvents: 'auto' }}>
+            <PerformanceVisualization
+              data={performanceData}
+              width={400}
+              height={200}
+              showFPS={true}
+              showMemory={true}
+              showFrameTime={true}
+              showRenderStats={true}
+              timeRange={60000}
+              autoScale={true}
+              theme="dark"
+            />
+          </div>
+        </Html>
+      )}
+    </>
   );
 };
 

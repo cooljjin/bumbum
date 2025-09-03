@@ -17,7 +17,7 @@ interface FurnitureCatalogProps {
   isPlacing?: boolean;
 }
 
-export const FurnitureCatalog: React.FC<FurnitureCatalogProps> = ({
+export const FurnitureCatalog: React.FC<FurnitureCatalogProps> = React.memo(({
   onFurnitureSelect,
   selectedCategory = 'all',
   className = '',
@@ -351,6 +351,4 @@ export const FurnitureCatalog: React.FC<FurnitureCatalogProps> = ({
       )}
     </AnimatePresence>
   );
-};
-
-export default FurnitureCatalog;
+});

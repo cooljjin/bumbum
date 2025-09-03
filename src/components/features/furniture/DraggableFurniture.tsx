@@ -18,7 +18,7 @@ interface DraggableFurnitureProps {
   onDelete: (id: string) => void;
 }
 
-export const DraggableFurniture: React.FC<DraggableFurnitureProps> = ({
+export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(({
   item,
   isSelected,
   isEditMode,
@@ -458,6 +458,4 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = ({
       </group>
     </>
   );
-};
-
-export default DraggableFurniture;
+});

@@ -1,201 +1,203 @@
 {
   "tasks": [
     {
-      "id": "346b3cde-c8c7-4f6a-a7a1-51767dbdeb46",
-      "name": "현재 설정 백업 및 의존성 분석",
-      "description": "현재 Tailwind CSS v4 설정과 의존성을 분석하고, 백업을 생성하여 안전한 마이그레이션을 준비합니다. package.json, postcss.config.js, tailwind.config.js 등의 설정 파일들을 백업하고, 현재 설치된 패키지들의 버전과 의존성을 정확히 파악합니다.",
-      "notes": "백업은 .backup 확장자로 생성하여 원본 파일과 구분합니다. 의존성 분석 결과는 마이그레이션 계획 수립에 활용됩니다.",
+      "id": "d7f01559-b96d-4618-90a6-8f6718fc9d2c",
+      "name": "Jest 커버리지 데이터 파싱 및 표시 시스템 구현",
+      "description": "Jest 커버리지 JSON 파일을 자동으로 파싱하여 테스트 대시보드에 표시하는 기능을 구현합니다. coverage/coverage-final.json 파일을 읽어서 statements, branches, functions, lines 커버리지를 계산하고 시각화합니다.",
+      "notes": "기존 Jest 설정에서 이미 JSON 형식으로 커버리지가 출력되고 있으므로 추가 설정 불필요",
       "status": "completed",
       "dependencies": [],
-      "createdAt": "2025-08-31T09:38:20.661Z",
-      "updatedAt": "2025-08-31T13:19:19.643Z",
+      "createdAt": "2025-09-02T09:02:10.203Z",
+      "updatedAt": "2025-09-02T09:04:21.983Z",
       "relatedFiles": [
         {
-          "path": "package.json",
-          "type": "REFERENCE",
-          "description": "현재 의존성 분석 대상"
+          "path": "scripts/parse-coverage.js",
+          "type": "CREATE",
+          "description": "Jest 커버리지 데이터 파싱 스크립트"
         },
         {
-          "path": "postcss.config.js",
-          "type": "REFERENCE",
-          "description": "PostCSS 설정 분석 대상"
+          "path": "tests/test-dashboard.html",
+          "type": "TO_MODIFY",
+          "description": "커버리지 데이터 표시 부분 수정",
+          "lineStart": 280,
+          "lineEnd": 320
         },
         {
-          "path": "tailwind.config.js",
+          "path": "coverage/coverage-final.json",
           "type": "REFERENCE",
-          "description": "Tailwind 설정 분석 대상"
-        },
-        {
-          "path": "babel.config.js",
-          "type": "REFERENCE",
-          "description": "Babel 설정 분석 대상"
+          "description": "Jest 커버리지 데이터 소스"
         }
       ],
-      "implementationGuide": "1. 현재 설정 파일들 백업 생성\\n2. package.json의 devDependencies 분석\\n3. 현재 Tailwind CSS 관련 패키지 버전 확인\\n4. PostCSS 설정 분석\\n5. 백업 파일 생성 완료 확인",
-      "verificationCriteria": "백업 파일들이 성공적으로 생성되었고, 현재 의존성 상태가 정확히 파악되었습니다.",
-      "analysisResult": "Tailwind CSS v4에서 v3로 안전하게 다운그레이드하여 CSS 우선순위 문제와 설정 충돌을 해결하는 작업입니다. 현재 v4 플러그인과 v3 설정이 혼재되어 있어 CSS 클래스가 제대로 적용되지 않는 문제가 발생하고 있습니다. v3로 되돌려서 안정적인 Tailwind CSS 환경을 구축하고, 기존 코드의 호환성을 유지하면서 CSS 우선순위 문제를 해결하는 것이 목표입니다.",
-      "summary": "1단계 작업 완료: 현재 Tailwind CSS v4 설정과 의존성을 성공적으로 분석하고 백업을 생성했습니다. package.json, postcss.config.js, tailwind.config.js, babel.config.js 파일들을 backup/tailwind-migration/ 디렉토리에 백업했으며, 의존성 분석 결과를 dependency-analysis.md 파일로 정리했습니다. 현재 v4.1.12 버전의 Tailwind CSS와 @tailwindcss/postcss 플러그인이 설치되어 있고, PostCSS v8.5.6과 호환성 문제가 있을 수 있음을 파악했습니다.",
-      "completedAt": "2025-08-31T13:19:19.279Z"
+      "implementationGuide": "1. Node.js 스크립트 생성: scripts/parse-coverage.js\\n2. Jest 커버리지 JSON 파싱 로직 구현\\n3. 커버리지 통계 계산 (전체 평균, 개별 항목별)\\n4. HTML 대시보드에 실제 데이터 연동\\n5. 커버리지 데이터 자동 새로고침 기능",
+      "verificationCriteria": "Jest 커버리지 데이터가 대시보드에 정확히 표시되고, 자동 새로고침 시 최신 데이터가 반영되는지 확인",
+      "analysisResult": "테스트 대시보드 실제 데이터 연동 및 자동화 구현을 통해 Jest 테스트 결과, Playwright E2E 테스트 결과, 커버리지 데이터를 자동으로 연동하고 실시간 모니터링 기능을 제공합니다. 기존 PerformanceMonitor 컴포넌트와 통합하여 일관된 아키텍처를 유지하며, 모바일 환경을 지원하는 반응형 디자인을 구현합니다.",
+      "summary": "Jest 커버리지 데이터 파싱 및 표시 시스템이 성공적으로 구현되었습니다. coverage/coverage-final.json 파일을 자동으로 파싱하여 statements, branches, functions, lines 커버리지를 계산하고, HTML 대시보드에 실제 데이터를 연동했습니다. 커버리지 수준에 따른 시각적 표시(색상 변경)도 구현되었으며, 자동 새로고침 시 최신 데이터가 반영됩니다.",
+      "completedAt": "2025-09-02T09:04:21.982Z"
     },
     {
-      "id": "54a63728-d729-4615-8fce-d7d30fe2b8cc",
-      "name": "Tailwind CSS v4 플러그인 제거",
-      "description": "Tailwind CSS v4 관련 패키지들을 안전하게 제거합니다. @tailwindcss/postcss v4와 tailwindcss v4를 제거하고, 관련 설정을 정리합니다. 이 과정에서 기존 코드의 동작에 영향을 주지 않도록 주의합니다.",
-      "notes": "패키지 제거 후 npm install을 실행하여 의존성 트리를 정리합니다. 이 과정에서 기존 Tailwind 클래스들이 일시적으로 작동하지 않을 수 있습니다.",
+      "id": "f1f49aca-d3f7-4846-ab21-2158defa4d18",
+      "name": "Playwright 테스트 결과 연동 및 상태 표시",
+      "description": "Playwright E2E 테스트 결과 JSON 파일을 파싱하여 테스트 상태, 통과/실패 수, 실행 시간 등을 테스트 대시보드에 표시하는 기능을 구현합니다.",
+      "notes": "playwright.config.ts에서 이미 JSON 형식으로 결과가 출력되도록 설정되어 있음",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-09-02T09:02:10.203Z",
+      "updatedAt": "2025-09-02T09:09:19.354Z",
+      "relatedFiles": [
+        {
+          "path": "scripts/parse-playwright-results.js",
+          "type": "CREATE",
+          "description": "Playwright 테스트 결과 파싱 스크립트"
+        },
+        {
+          "path": "tests/test-dashboard.html",
+          "type": "TO_MODIFY",
+          "description": "테스트 결과 테이블 및 통계 표시 부분 수정",
+          "lineStart": 240,
+          "lineEnd": 280
+        },
+        {
+          "path": "test-results/results.json",
+          "type": "REFERENCE",
+          "description": "Playwright 테스트 결과 데이터 소스"
+        }
+      ],
+      "implementationGuide": "1. Playwright 테스트 결과 JSON 파싱 로직 구현\\n2. 테스트 통계 계산 (전체, 통과, 실패, 실행 시간)\\n3. 테스트 결과 테이블에 실제 데이터 표시\\n4. 테스트 상태별 시각적 표시 (통과/실패/스킵)\\n5. 브라우저별 테스트 결과 구분",
+      "verificationCriteria": "Playwright 테스트 결과가 대시보드에 정확히 표시되고, 테스트 상태별로 올바른 시각적 표시가 되는지 확인",
+      "analysisResult": "테스트 대시보드 실제 데이터 연동 및 자동화 구현을 통해 Jest 테스트 결과, Playwright E2E 테스트 결과, 커버리지 데이터를 자동으로 연동하고 실시간 모니터링 기능을 제공합니다. 기존 PerformanceMonitor 컴포넌트와 통합하여 일관된 아키텍처를 유지하며, 모바일 환경을 지원하는 반응형 디자인을 구현합니다.",
+      "summary": "Playwright 테스트 결과 연동 및 상태 표시 기능이 성공적으로 구현되었습니다. test-results/results.json 파일을 자동으로 파싱하여 테스트 상태, 통과/실패 수, 실행 시간 등을 테스트 대시보드에 표시하고, 브라우저별 테스트 결과를 구분하여 표시합니다. 테스트 상태별로 올바른 시각적 표시(통과/실패/스킵)가 되며, 상대적 시간 표시와 한국어 상태 텍스트 변환도 구현되었습니다.",
+      "completedAt": "2025-09-02T09:09:19.354Z"
+    },
+    {
+      "id": "94d2ffa9-a69e-46a9-aa0f-b1f2cb481554",
+      "name": "성능 메트릭 자동 수집 및 시각화",
+      "description": "기존 PerformanceMonitor 컴포넌트의 메트릭 수집 로직을 활용하여 페이지 로드 시간, 렌더링 성능, 메모리 사용량 등을 자동으로 수집하고 테스트 대시보드에 표시하는 기능을 구현합니다.",
+      "notes": "기존 PerformanceMonitor.tsx와 PerformanceDashboard.tsx 컴포넌트를 재사용하여 중복 개발 방지",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-09-02T09:02:10.203Z",
+      "updatedAt": "2025-09-02T09:15:09.531Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/shared/PerformanceMonitor.tsx",
+          "type": "REFERENCE",
+          "description": "기존 성능 모니터링 컴포넌트"
+        },
+        {
+          "path": "src/components/shared/PerformanceDashboard.tsx",
+          "type": "REFERENCE",
+          "description": "기존 성능 대시보드 컴포넌트"
+        },
+        {
+          "path": "tests/test-dashboard.html",
+          "type": "TO_MODIFY",
+          "description": "성능 메트릭 표시 부분 수정",
+          "lineStart": 320,
+          "lineEnd": 360
+        }
+      ],
+      "implementationGuide": "1. 기존 PerformanceMonitor 컴포넌트와 통합\\n2. 성능 메트릭 자동 수집 로직 구현\\n3. 성능 데이터 시각화 (차트 형태)\\n4. 성능 임계값 설정 및 알림 시스템\\n5. 실시간 성능 모니터링",
+      "verificationCriteria": "성능 메트릭이 자동으로 수집되고 대시보드에 실시간으로 표시되며, 성능 임계값 초과 시 알림이 표시되는지 확인",
+      "analysisResult": "테스트 대시보드 실제 데이터 연동 및 자동화 구현을 통해 Jest 테스트 결과, Playwright E2E 테스트 결과, 커버리지 데이터를 자동으로 연동하고 실시간 모니터링 기능을 제공합니다. 기존 PerformanceMonitor 컴포넌트와 통합하여 일관된 아키텍처를 유지하며, 모바일 환경을 지원하는 반응형 디자인을 구현합니다.",
+      "summary": "성능 메트릭 자동 수집 및 시각화 기능이 성공적으로 구현되었습니다. Puppeteer를 사용하여 웹 페이지의 성능 메트릭을 자동으로 수집하고, 네비게이션 타이밍, 메모리 사용량, 성능 점수를 계산하여 테스트 대시보드에 표시합니다. 기존 PerformanceMonitor 컴포넌트의 메트릭 수집 로직을 활용하여 중복 개발을 방지했으며, 성능 점수에 따른 시각적 표시와 임계값 알림 시스템도 구현되었습니다.",
+      "completedAt": "2025-09-02T09:15:09.530Z"
+    },
+    {
+      "id": "696b9dc0-05d2-4ae9-a644-00edd2fc1b5f",
+      "name": "실시간 업데이트 및 자동 새로고침 시스템",
+      "description": "테스트 결과와 커버리지 데이터를 실시간으로 업데이트하고, 30초마다 자동으로 새로고침하는 기능을 구현합니다. 또한 테스트 실행 상태를 실시간으로 모니터링합니다.",
+      "notes": "기존 HTML에 이미 30초 자동 새로고침 로직이 구현되어 있으므로 실제 데이터 연동만 추가",
       "status": "completed",
       "dependencies": [
         {
-          "taskId": "346b3cde-c8c7-4f6a-a7a1-51767dbdeb46"
-        }
-      ],
-      "createdAt": "2025-08-31T09:38:20.661Z",
-      "updatedAt": "2025-08-31T13:20:08.462Z",
-      "relatedFiles": [
-        {
-          "path": "package.json",
-          "type": "TO_MODIFY",
-          "description": "v4 관련 의존성 제거"
+          "taskId": "d7f01559-b96d-4618-90a6-8f6718fc9d2c"
         },
         {
-          "path": "postcss.config.js",
-          "type": "TO_MODIFY",
-          "description": "v4 플러그인 설정 제거"
+          "taskId": "f1f49aca-d3f7-4846-ab21-2158defa4d18"
         }
       ],
-      "implementationGuide": "1. @tailwindcss/postcss v4 패키지 제거\\n2. tailwindcss v4 패키지 제거\\n3. package.json에서 관련 의존성 제거 확인\\n4. node_modules 정리 (npm install 실행)",
-      "verificationCriteria": "v4 관련 패키지들이 성공적으로 제거되었고, package.json에서 관련 의존성이 사라졌습니다.",
-      "analysisResult": "Tailwind CSS v4에서 v3로 안전하게 다운그레이드하여 CSS 우선순위 문제와 설정 충돌을 해결하는 작업입니다. 현재 v4 플러그인과 v3 설정이 혼재되어 있어 CSS 클래스가 제대로 적용되지 않는 문제가 발생하고 있습니다. v3로 되돌려서 안정적인 Tailwind CSS 환경을 구축하고, 기존 코드의 호환성을 유지하면서 CSS 우선순위 문제를 해결하는 것이 목표입니다.",
-      "summary": "2단계 작업 완료: Tailwind CSS v4 관련 패키지들을 성공적으로 제거했습니다. @tailwindcss/postcss v4.1.12와 tailwindcss v4.1.12 패키지가 완전히 제거되었고, postcss.config.js에서 v4 플러그인 설정도 제거했습니다. npm install을 실행하여 의존성 트리를 정리했으며, 현재 시스템에서 v4 관련 패키지들이 더 이상 존재하지 않음을 확인했습니다.",
-      "completedAt": "2025-08-31T13:20:08.460Z"
+      "createdAt": "2025-09-02T09:02:10.203Z",
+      "updatedAt": "2025-09-02T09:20:15.060Z",
+      "relatedFiles": [
+        {
+          "path": "tests/test-dashboard.html",
+          "type": "TO_MODIFY",
+          "description": "자동 새로고침 및 실시간 업데이트 로직 수정",
+          "lineStart": 450,
+          "lineEnd": 488
+        },
+        {
+          "path": "scripts/dashboard-updater.js",
+          "type": "CREATE",
+          "description": "대시보드 자동 업데이트 스크립트"
+        }
+      ],
+      "implementationGuide": "1. 자동 새로고침 타이머 구현\\n2. 데이터 변경 감지 및 업데이트 로직\\n3. 실시간 테스트 상태 모니터링\\n4. 업데이트 시간 표시 및 로그 기록\\n5. 에러 처리 및 재시도 로직",
+      "verificationCriteria": "30초마다 자동으로 데이터가 새로고침되고, 실시간으로 테스트 상태가 업데이트되는지 확인",
+      "analysisResult": "테스트 대시보드 실제 데이터 연동 및 자동화 구현을 통해 Jest 테스트 결과, Playwright E2E 테스트 결과, 커버리지 데이터를 자동으로 연동하고 실시간 모니터링 기능을 제공합니다. 기존 PerformanceMonitor 컴포넌트와 통합하여 일관된 아키텍처를 유지하며, 모바일 환경을 지원하는 반응형 디자인을 구현합니다.",
+      "summary": "실시간 업데이트 및 자동 새로고침 시스템이 성공적으로 구현되었습니다. 30초마다 자동으로 데이터가 새로고침되고, 파일 변경 감지, 실시간 테스트 상태 모니터링, 업데이트 시간 표시 및 로그 기록 기능이 모두 구현되었습니다. 사용자는 업데이트 간격을 조정할 수 있고, 자동 업데이트를 일시정지/재시작할 수 있으며, 수동 새로고침도 가능합니다. 업데이트 상태를 시각적으로 표시하고 에러 처리 및 재시도 로직도 포함되어 있습니다.",
+      "completedAt": "2025-09-02T09:20:15.058Z"
     },
     {
-      "id": "ce098058-a6e6-4782-92ec-36afc62767a6",
-      "name": "Tailwind CSS v3 설치 및 설정",
-      "description": "Tailwind CSS v3를 설치하고 올바른 설정을 구성합니다. tailwindcss v3, postcss, autoprefixer를 설치하고, v3 호환 설정 파일들을 생성합니다. 이 과정에서 기존 tailwind.config.js의 설정을 v3 스타일로 조정합니다.",
-      "notes": "v3 설치 시 기존 설정과의 호환성을 확인하고, 필요한 경우 설정을 조정합니다. 특히 content 경로와 theme 설정을 점검합니다.",
+      "id": "8a208a1d-8bb3-4941-99a3-5fa68bacb069",
+      "name": "테스트 실패 알림 및 로그 시스템",
+      "description": "테스트 실패 시 시각적 알림을 표시하고, 상세한 로그 정보를 제공하는 기능을 구현합니다. 실패한 테스트의 원인과 해결 방안을 제시합니다.",
+      "notes": "기존 HTML에 이미 테스트 상태 표시가 있으므로 알림 시스템만 추가",
       "status": "completed",
       "dependencies": [
         {
-          "taskId": "54a63728-d729-4615-8fce-d7d30fe2b8cc"
+          "taskId": "f1f49aca-d3f7-4846-ab21-2158defa4d18"
         }
       ],
-      "createdAt": "2025-08-31T09:38:20.661Z",
-      "updatedAt": "2025-08-31T13:21:23.609Z",
+      "createdAt": "2025-09-02T09:02:10.203Z",
+      "updatedAt": "2025-09-02T09:25:59.331Z",
       "relatedFiles": [
         {
-          "path": "package.json",
+          "path": "tests/test-dashboard.html",
           "type": "TO_MODIFY",
-          "description": "v3 관련 의존성 추가"
+          "description": "테스트 실패 알림 및 로그 표시 부분 추가",
+          "lineStart": 360,
+          "lineEnd": 400
         },
         {
-          "path": "postcss.config.js",
-          "type": "TO_MODIFY",
-          "description": "v3 호환 PostCSS 설정으로 변경"
-        },
-        {
-          "path": "tailwind.config.js",
-          "type": "TO_MODIFY",
-          "description": "v3 호환 Tailwind 설정으로 조정"
+          "path": "scripts/test-failure-analyzer.js",
+          "type": "CREATE",
+          "description": "테스트 실패 분석 및 알림 스크립트"
         }
       ],
-      "implementationGuide": "1. tailwindcss v3 설치 (npm install -D tailwindcss@^3.4.0)\\n2. postcss, autoprefixer 설치 (npm install -D postcss autoprefixer)\\n3. postcss.config.js를 v3 스타일로 수정\\n4. tailwind.config.js v3 호환성 확인 및 조정\\n5. 설치 완료 확인",
-      "verificationCriteria": "Tailwind CSS v3가 성공적으로 설치되었고, 설정 파일들이 v3 호환으로 수정되었습니다.",
-      "analysisResult": "Tailwind CSS v4에서 v3로 안전하게 다운그레이드하여 CSS 우선순위 문제와 설정 충돌을 해결하는 작업입니다. 현재 v4 플러그인과 v3 설정이 혼재되어 있어 CSS 클래스가 제대로 적용되지 않는 문제가 발생하고 있습니다. v3로 되돌려서 안정적인 Tailwind CSS 환경을 구축하고, 기존 코드의 호환성을 유지하면서 CSS 우선순위 문제를 해결하는 것이 목표입니다.",
-      "summary": "3단계 작업 완료: Tailwind CSS v3를 성공적으로 설치하고 설정했습니다. tailwindcss v3.4.17, postcss v8.5.6, autoprefixer v10.4.21이 설치되었고, postcss.config.js를 v3 호환 스타일로 수정했습니다. 기존 tailwind.config.js는 이미 v3 호환으로 설정되어 있어 추가 수정이 필요하지 않았습니다. 모든 패키지가 올바르게 설치되었고 설정 파일들이 v3 환경에 맞게 구성되었습니다.",
-      "completedAt": "2025-08-31T13:21:23.607Z"
+      "implementationGuide": "1. 테스트 실패 감지 로직 구현\\n2. 시각적 알림 시스템 (토스트, 모달)\\n3. 상세 로그 표시 및 필터링\\n4. 실패 원인 분석 및 해결 방안 제시\\n5. 알림 설정 및 사용자 선호도 관리",
+      "verificationCriteria": "테스트 실패 시 시각적 알림이 표시되고, 상세한 로그 정보와 해결 방안이 제공되는지 확인",
+      "analysisResult": "테스트 대시보드 실제 데이터 연동 및 자동화 구현을 통해 Jest 테스트 결과, Playwright E2E 테스트 결과, 커버리지 데이터를 자동으로 연동하고 실시간 모니터링 기능을 제공합니다. 기존 PerformanceMonitor 컴포넌트와 통합하여 일관된 아키텍처를 유지하며, 모바일 환경을 지원하는 반응형 디자인을 구현합니다.",
+      "summary": "테스트 실패 알림 및 로그 시스템이 성공적으로 구현되었습니다. 테스트 실패 시 시각적 알림을 표시하고, 상세한 로그 정보와 해결 방안을 제공하는 기능이 모두 구현되었습니다. Playwright 테스트 결과와 Jest 커버리지 데이터를 분석하여 실패 원인을 자동으로 분류하고, 심각도별로 구분하여 표시합니다. 사용자는 실패 상세 정보를 모달로 확인할 수 있고, 해결 방안을 제시받을 수 있으며, 로그를 JSON 형태로 내보낼 수 있습니다. 현재 58개의 커버리지 문제가 발견되어 알림 시스템이 정상적으로 작동하고 있습니다.",
+      "completedAt": "2025-09-02T09:25:59.323Z"
     },
     {
-      "id": "970d86c9-7ebc-4c70-a516-4f64f1d76fce",
-      "name": "Babel 설정 제거 및 SWC 활성화",
-      "description": "babel.config.js 파일을 제거하고 Next.js의 기본 SWC 컴파일러를 활성화합니다. 이 과정에서 Jest 테스트 설정도 SWC 호환으로 조정합니다. SWC 활성화로 빌드 속도가 향상되고 Next.js 최적화 기능을 활용할 수 있습니다.",
-      "notes": "Babel 제거 시 Jest 테스트가 실패할 수 있으므로, SWC 호환 설정으로 조정하거나 Jest 설정을 업데이트합니다.",
+      "id": "f9d13a91-f0ae-4dd2-b78c-af24179c6fa5",
+      "name": "모바일 반응형 디자인 및 사용성 개선",
+      "description": "테스트 대시보드를 모바일 환경에서도 사용할 수 있도록 반응형 디자인을 개선하고, 터치 인터페이스에 최적화된 사용성을 제공합니다.",
+      "notes": "기존 HTML에 이미 기본적인 반응형 CSS가 구현되어 있으므로 모바일 최적화만 추가",
       "status": "completed",
       "dependencies": [
         {
-          "taskId": "ce098058-a6e6-4782-92ec-36afc62767a6"
+          "taskId": "696b9dc0-05d2-4ae9-a644-00edd2fc1b5f"
         }
       ],
-      "createdAt": "2025-08-31T09:38:20.661Z",
-      "updatedAt": "2025-08-31T13:24:54.845Z",
+      "createdAt": "2025-09-02T09:02:10.203Z",
+      "updatedAt": "2025-09-02T09:31:25.281Z",
       "relatedFiles": [
         {
-          "path": "babel.config.js",
+          "path": "tests/test-dashboard.html",
           "type": "TO_MODIFY",
-          "description": "파일 제거"
-        },
-        {
-          "path": "package.json",
-          "type": "TO_MODIFY",
-          "description": "Babel 관련 의존성 제거"
-        },
-        {
-          "path": "jest.config.js",
-          "type": "TO_MODIFY",
-          "description": "SWC 호환 설정으로 조정 (필요시)"
+          "description": "모바일 반응형 CSS 및 터치 인터페이스 개선",
+          "lineStart": 220,
+          "lineEnd": 240
         }
       ],
-      "implementationGuide": "1. babel.config.js 파일 제거\\n2. package.json에서 Babel 관련 devDependencies 제거\\n3. Jest 설정을 SWC 호환으로 조정 (필요시)\\n4. Next.js SWC 활성화 확인\\n5. 개발 서버 재시작 및 빌드 테스트",
-      "verificationCriteria": "babel.config.js가 제거되었고, Next.js SWC가 활성화되어 빌드 경고가 사라졌습니다.",
-      "analysisResult": "Tailwind CSS v4에서 v3로 안전하게 다운그레이드하여 CSS 우선순위 문제와 설정 충돌을 해결하는 작업입니다. 현재 v4 플러그인과 v3 설정이 혼재되어 있어 CSS 클래스가 제대로 적용되지 않는 문제가 발생하고 있습니다. v3로 되돌려서 안정적인 Tailwind CSS 환경을 구축하고, 기존 코드의 호환성을 유지하면서 CSS 우선순위 문제를 해결하는 것이 목표입니다.",
-      "summary": "4단계 작업 완료: Babel 설정을 성공적으로 제거하고 Next.js SWC를 활성화했습니다. babel.config.js 파일을 삭제했고, package.json에서 모든 Babel 관련 devDependencies를 제거했습니다. Jest 설정을 SWC 호환으로 조정하여 transform 설정을 제거하고 @babel 관련 패키지들을 transformIgnorePatterns에서 제외했습니다. Next.js 빌드가 성공적으로 컴파일되었고, Babel 관련 패키지들이 완전히 제거되었습니다.",
-      "completedAt": "2025-08-31T13:24:54.840Z"
-    },
-    {
-      "id": "77892bbe-030b-44e2-9522-b1cbcdd90605",
-      "name": "코드 정리 및 Tailwind 클래스 복원",
-      "description": "이전에 인라인 스타일로 변경했던 버튼들을 Tailwind CSS 클래스로 되돌립니다. Real3DRoom.tsx의 편집 버튼과 편집 완료 버튼에서 인라인 스타일을 제거하고 Tailwind 클래스를 사용하도록 수정합니다. 이 과정에서 CSS 우선순위 문제가 해결되었는지 확인합니다.",
-      "notes": "Tailwind v3로 복원 후 CSS 우선순위 문제가 해결되었는지 확인합니다. 버튼들이 의도한 위치에 정확히 배치되어야 합니다.",
-      "status": "completed",
-      "dependencies": [
-        {
-          "taskId": "970d86c9-7ebc-4c70-a516-4f64f1d76fce"
-        }
-      ],
-      "createdAt": "2025-08-31T09:38:20.661Z",
-      "updatedAt": "2025-08-31T13:38:03.095Z",
-      "relatedFiles": [
-        {
-          "path": "src/components/Real3DRoom.tsx",
-          "type": "TO_MODIFY",
-          "description": "인라인 스타일을 Tailwind 클래스로 복원"
-        }
-      ],
-      "implementationGuide": "1. Real3DRoom.tsx의 편집 버튼 인라인 스타일 제거\\n2. 편집 완료 버튼 인라인 스타일 제거\\n3. Tailwind 클래스로 위치 지정 (right-4, top-4 등)\\n4. 스타일 적용 확인\\n5. 버튼 위치 정상 작동 확인",
-      "verificationCriteria": "인라인 스타일이 제거되고 Tailwind 클래스로 버튼 위치가 정상 작동합니다.",
-      "analysisResult": "Tailwind CSS v4에서 v3로 안전하게 다운그레이드하여 CSS 우선순위 문제와 설정 충돌을 해결하는 작업입니다. 현재 v4 플러그인과 v3 설정이 혼재되어 있어 CSS 클래스가 제대로 적용되지 않는 문제가 발생하고 있습니다. v3로 되돌려서 안정적인 Tailwind CSS 환경을 구축하고, 기존 코드의 호환성을 유지하면서 CSS 우선순위 문제를 해결하는 것이 목표입니다.",
-      "summary": "5단계 작업 완료: Real3DRoom.tsx에서 인라인 스타일을 성공적으로 Tailwind CSS 클래스로 복원했습니다. 주요 변경사항: 1) 메인 컨테이너의 zIndex 인라인 스타일을 z-10 클래스로 변경, 2) Canvas의 width, height, display, position, top, left 인라인 스타일을 Tailwind 클래스로 변경, 3) 모든 객체 삭제 버튼의 zIndex 인라인 스타일 제거, 4) 가구 카탈로그 패널의 height, zIndex, bottom, position 인라인 스타일을 Tailwind 클래스로 변경, 5) 가구 배치 완료 버튼의 zIndex 인라인 스타일 제거. Next.js 빌드가 성공적으로 컴파일되었고, CSS 우선순위 문제가 해결되었습니다.",
-      "completedAt": "2025-08-31T13:38:03.094Z"
-    },
-    {
-      "id": "4c67cfd1-9464-40f1-bd65-1cbe0b2e769c",
-      "name": "빌드 및 기능 테스트",
-      "description": "마이그레이션 완료 후 전체 시스템의 정상 작동을 확인합니다. 개발 서버 실행, 빌드 성공, Tailwind CSS 클래스 정상 작동, 기존 기능들의 동작을 종합적으로 테스트합니다. 문제가 발견되면 즉시 수정하고 최종 검증을 완료합니다.",
-      "notes": "모든 단계에서 문제가 없는지 확인하고, 최종적으로 CSS 우선순위 문제가 해결되었는지 검증합니다.",
-      "status": "completed",
-      "dependencies": [
-        {
-          "taskId": "77892bbe-030b-44e2-9522-b1cbcdd90605"
-        }
-      ],
-      "createdAt": "2025-08-31T09:38:20.661Z",
-      "updatedAt": "2025-08-31T13:49:36.992Z",
-      "relatedFiles": [
-        {
-          "path": "src/components/Real3DRoom.tsx",
-          "type": "REFERENCE",
-          "description": "기능 테스트 대상"
-        },
-        {
-          "path": "src/app/page.tsx",
-          "type": "REFERENCE",
-          "description": "전체 시스템 테스트 대상"
-        }
-      ],
-      "implementationGuide": "1. 개발 서버 실행 및 정상 작동 확인\\n2. 프로덕션 빌드 성공 확인\\n3. Tailwind CSS 클래스 정상 작동 확인\\n4. 기존 기능들 동작 확인 (편집 모드, 가구 배치 등)\\n5. CSS 우선순위 문제 해결 확인\\n6. 최종 검증 완료",
-      "verificationCriteria": "개발 서버가 정상 작동하고, 빌드가 성공하며, Tailwind CSS 클래스가 정상 작동하고, 기존 기능들이 모두 정상 동작합니다.",
-      "analysisResult": "Tailwind CSS v4에서 v3로 안전하게 다운그레이드하여 CSS 우선순위 문제와 설정 충돌을 해결하는 작업입니다. 현재 v4 플러그인과 v3 설정이 혼재되어 있어 CSS 클래스가 제대로 적용되지 않는 문제가 발생하고 있습니다. v3로 되돌려서 안정적인 Tailwind CSS 환경을 구축하고, 기존 코드의 호환성을 유지하면서 CSS 우선순위 문제를 해결하는 것이 목표입니다.",
-      "summary": "6단계 작업 완료: Tailwind CSS v4에서 v3로의 마이그레이션을 성공적으로 완료했습니다. 주요 성과: 1) 개발 서버 실행 및 빌드 성공 확인 (Compiled successfully), 2) Tailwind CSS v3.4.17 설치 및 설정 완료, 3) PostCSS 설정을 v3 호환으로 변경, 4) 인라인 스타일을 Tailwind 클래스로 복원하여 CSS 우선순위 문제 해결, 5) Babel 제거 및 Next.js SWC 활성화 완료. 일부 TypeScript 오류가 있지만 이는 Tailwind CSS 마이그레이션과는 무관한 기존 코드 문제입니다.",
-      "completedAt": "2025-08-31T13:49:36.985Z"
+      "implementationGuide": "1. 모바일 화면 크기에 맞는 반응형 레이아웃 구현\\n2. 터치 인터페이스 최적화 (스와이프, 탭 제스처)\\n3. 모바일에서의 데이터 표시 최적화\\n4. 터치 친화적인 버튼 및 컨트롤 디자인\\n5. 모바일 성능 최적화 (애니메이션, 렌더링)",
+      "verificationCriteria": "모바일 환경에서 테스트 대시보드가 올바르게 표시되고, 터치 인터페이스가 자연스럽게 작동하는지 확인",
+      "analysisResult": "테스트 대시보드 실제 데이터 연동 및 자동화 구현을 통해 Jest 테스트 결과, Playwright E2E 테스트 결과, 커버리지 데이터를 자동으로 연동하고 실시간 모니터링 기능을 제공합니다. 기존 PerformanceMonitor 컴포넌트와 통합하여 일관된 아키텍처를 유지하며, 모바일 환경을 지원하는 반응형 디자인을 구현합니다.",
+      "summary": "모바일 반응형 디자인 및 사용성 개선 작업이 성공적으로 완료되었습니다. 테스트 대시보드를 모바일 환경에서도 사용할 수 있도록 반응형 디자인을 개선하고, 터치 인터페이스에 최적화된 사용성을 제공합니다. 주요 개선사항으로는 768px 및 480px 이하 화면 크기에 대한 반응형 레이아웃, 터치 최적화 스타일 (44px 최소 터치 영역), 스와이프 제스처 지원, 더블 탭 줌 방지, 스크롤 성능 최적화, 모바일 환경 감지 및 자동 최적화 설정 등이 구현되었습니다. 모든 버튼과 인터랙티브 요소에 터치 피드백 클래스가 적용되어 모바일에서 자연스러운 사용 경험을 제공합니다.",
+      "completedAt": "2025-09-02T09:31:25.280Z"
     }
   ]
 }

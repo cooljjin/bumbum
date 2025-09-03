@@ -1,0 +1,230 @@
+name: 성능 테스트 자동화
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'playwright.config.ts'
+      - 'jest.config.js'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'playwright.config.ts'
+      - 'jest.config.js'
+  schedule:
+    # 매일 오전 2시에 성능 테스트 실행
+    - cron: '0 2 * * *'
+
+jobs:
+  performance-test:
+    name: 성능 테스트 실행
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        browser: [chromium, firefox, webkit]
+    
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+        
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          
+      - name: 의존성 설치
+        run: npm ci
+        
+      - name: Playwright 브라우저 설치
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+        
+      - name: 빌드
+        run: npm run build
+        
+      - name: Jest 단위 테스트 실행
+        run: npm test -- --coverage --watchAll=false
+        
+      - name: 성능 테스트 실행
+        run: |
+          npm run test:e2e -- --project=performance
+          npm run test:e2e -- --project=accessibility
+          
+      - name: 성능 테스트 결과 수집
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-test-results-${{ matrix.browser }}-${{ matrix.node-version }}
+          path: |
+            test-results/
+            playwright-report/
+            coverage/
+            
+      - name: 성능 리포트 생성
+        if: always()
+        run: |
+          echo "## 성능 테스트 결과" >> $GITHUB_STEP_SUMMARY
+          echo "### 브라우저: ${{ matrix.browser }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Node.js 버전: ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "test-results/results.json" ]; then
+            echo "### 테스트 통계" >> $GITHUB_STEP_SUMMARY
+            cat test-results/results.json | jq -r '.stats | "**통과:** \(.passed) | **실패:** \(.failed) | **건너뜀:** \(.skipped)"' >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f "coverage/coverage-summary.json" ]; then
+            echo "### 테스트 커버리지" >> $GITHUB_STEP_SUMMARY
+            cat coverage/coverage-summary.json | jq -r '.total | "**라인:** \(.lines.pct)% | **함수:** \(.functions.pct)% | **분기:** \(.branches.pct)%"' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  performance-benchmark:
+    name: 성능 벤치마크
+    runs-on: ubuntu-latest
+    needs: performance-test
+    
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+        
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: 의존성 설치
+        run: npm ci
+        
+      - name: 성능 벤치마크 실행
+        run: |
+          npm run test:performance
+          
+      - name: 벤치마크 결과 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-benchmark-results
+          path: test-results/performance/
+          
+      - name: 성능 임계값 검증
+        run: |
+          # 성능 임계값 확인
+          FPS_THRESHOLD=30
+          MEMORY_THRESHOLD=100
+          FRAME_TIME_THRESHOLD=33
+          
+          echo "## 성능 벤치마크 결과" >> $GITHUB_STEP_SUMMARY
+          echo "### 성능 임계값 검증" >> $GITHUB_STEP_SUMMARY
+          
+          # FPS 검증
+          if [ -f "test-results/performance/fps.json" ]; then
+            AVG_FPS=$(cat test-results/performance/fps.json | jq -r '.average')
+            if (( $(echo "$AVG_FPS >= $FPS_THRESHOLD" | bc -l) )); then
+              echo "✅ **FPS:** $AVG_FPS (임계값: $FPS_THRESHOLD)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **FPS:** $AVG_FPS (임계값: $FPS_THRESHOLD) - 성능 저하 감지!" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+          fi
+          
+          # 메모리 사용량 검증
+          if [ -f "test-results/performance/memory.json" ]; then
+            AVG_MEMORY=$(cat test-results/performance/memory.json | jq -r '.average')
+            if (( $(echo "$AVG_MEMORY <= $MEMORY_THRESHOLD" | bc -l) )); then
+              echo "✅ **메모리:** $AVG_MEMORY MB (임계값: $MEMORY_THRESHOLD MB)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **메모리:** $AVG_MEMORY MB (임계값: $MEMORY_THRESHOLD MB) - 메모리 사용량 초과!" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+          fi
+          
+          # 프레임 타임 검증
+          if [ -f "test-results/performance/frame-time.json" ]; then
+            AVG_FRAME_TIME=$(cat test-results/performance/frame-time.json | jq -r '.average')
+            if (( $(echo "$AVG_FRAME_TIME <= $FRAME_TIME_THRESHOLD" | bc -l) )); then
+              echo "✅ **프레임 타임:** $AVG_FRAME_TIME ms (임계값: $FRAME_TIME_THRESHOLD ms)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **프레임 타임:** $AVG_FRAME_TIME ms (임계값: $FRAME_TIME_THRESHOLD ms) - 렌더링 지연 감지!" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+          fi
+
+  performance-report:
+    name: 성능 리포트 생성
+    runs-on: ubuntu-latest
+    needs: [performance-test, performance-benchmark]
+    if: always()
+    
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+        
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: 의존성 설치
+        run: npm ci
+        
+      - name: 성능 리포트 생성
+        run: |
+          npm run generate:performance-report
+          
+      - name: 리포트 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report
+          path: |
+            performance-report/
+            test-results/
+            
+      - name: 성능 리포트 요약
+        run: |
+          echo "## 📊 성능 테스트 완료" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔍 테스트 커버리지" >> $GITHUB_STEP_SUMMARY
+          if [ -f "coverage/coverage-summary.json" ]; then
+            cat coverage/coverage-summary.json | jq -r '.total | "**전체 커버리지:** \(.lines.pct)%"' >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚡ 성능 벤치마크" >> $GITHUB_STEP_SUMMARY
+          echo "**FPS:** 30+ (권장: 60+)" >> $GITHUB_STEP_SUMMARY
+          echo "**메모리:** 100MB 이하" >> $GITHUB_STEP_SUMMARY
+          echo "**프레임 타임:** 33ms 이하" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📁 아티팩트" >> $GITHUB_STEP_SUMMARY
+          echo "- 성능 테스트 결과" >> $GITHUB_STEP_SUMMARY
+          echo "- 벤치마크 데이터" >> $GITHUB_STEP_SUMMARY
+          echo "- 상세 리포트" >> $GITHUB_STEP_SUMMARY
+
+  performance-alert:
+    name: 성능 알림
+    runs-on: ubuntu-latest
+    needs: [performance-test, performance-benchmark]
+    if: failure()
+    
+    steps:
+      - name: 성능 저하 알림
+        run: |
+          echo "## 🚨 성능 저하 감지!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📉 성능 문제" >> $GITHUB_STEP_SUMMARY
+          echo "- 테스트 실패 또는 성능 임계값 미달" >> $GITHUB_STEP_SUMMARY
+          echo "- 즉시 검토가 필요합니다" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔧 권장 조치" >> $GITHUB_STEP_SUMMARY
+          echo "1. 성능 테스트 결과 검토" >> $GITHUB_STEP_SUMMARY
+          echo "2. 성능 병목 지점 분석" >> $GITHUB_STEP_SUMMARY
+          echo "3. 최적화 작업 수행" >> $GITHUB_STEP_SUMMARY
+          echo "4. 재테스트 실행" >> $GITHUB_STEP_SUMMARY

@@ -4,27 +4,72 @@ import React, { useRef, useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 // 클라이언트 사이드에서만 실행되는 컴포넌트들
-const Canvas = dynamic(() => import('@react-three/fiber').then(mod => ({ default: mod.Canvas })), { ssr: false });
-const CameraControls = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.CameraControls })), { ssr: false });
-const ContactShadows = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.ContactShadows })), { ssr: false });
-const AdaptiveDpr = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.AdaptiveDpr })), { ssr: false });
-const AdaptiveEvents = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.AdaptiveEvents })), { ssr: false });
+const Canvas = dynamic(() => import('@react-three/fiber').then(mod => ({ default: mod.Canvas })), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-gray-100 flex items-center justify-center">3D 렌더러 로딩 중...</div>
+});
+const CameraControls = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.CameraControls })), { 
+  ssr: false,
+  loading: () => null
+});
+const ContactShadows = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.ContactShadows })), { 
+  ssr: false,
+  loading: () => null
+});
+const AdaptiveDpr = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.AdaptiveDpr })), { 
+  ssr: false,
+  loading: () => null
+});
+const AdaptiveEvents = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.AdaptiveEvents })), { 
+  ssr: false,
+  loading: () => null
+});
 import { useThree, useFrame } from '@react-three/fiber';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { Vector3, Euler } from 'three';
 // 클라이언트 사이드에서만 실행되는 컴포넌트들
-const Room = dynamic(() => import('./features/room/Room'), { ssr: false });
-const RoomBoundaryVisualizer = dynamic(() => import('./features/room/RoomBoundaryVisualizer'), { ssr: false });
-const RoomSizeSettings = dynamic(() => import('./features/room/RoomSizeSettings'), { ssr: false });
-const EnhancedFurnitureCatalog = dynamic(() => import('./features/furniture/EnhancedFurnitureCatalog'), { ssr: false });
-const GridSystem = dynamic(() => import('./features/editor/GridSystem'), { ssr: false });
-const DraggableFurniture = dynamic(() => import('./features/furniture/DraggableFurniture'), { ssr: false });
-const EditToolbar = dynamic(() => import('./layout/EditToolbar'), { ssr: false });
-const RoomTemplateSelector = dynamic(() => import('./features/room/RoomTemplateSelector'), { ssr: false });
-const PerformanceMonitor = dynamic(() => import('./shared/PerformanceMonitor').then(mod => ({ default: mod.PerformanceMonitor })), { ssr: false });
-const EnhancedTouchControls = dynamic(() => import('./features/editor/EnhancedTouchControls'), { ssr: false });
+const Room = dynamic(() => import('./features/room/Room'), { 
+  ssr: false,
+  loading: () => null
+});
+const RoomBoundaryVisualizer = dynamic(() => import('./features/room/RoomBoundaryVisualizer'), { 
+  ssr: false,
+  loading: () => null
+});
+const RoomSizeSettings = dynamic(() => import('./features/room/RoomSizeSettings'), { 
+  ssr: false,
+  loading: () => null
+});
+const EnhancedFurnitureCatalog = dynamic(() => import('./features/furniture/EnhancedFurnitureCatalog'), { 
+  ssr: false,
+  loading: () => null
+});
+const GridSystem = dynamic(() => import('./features/editor/GridSystem'), { 
+  ssr: false,
+  loading: () => null
+});
+const DraggableFurniture = dynamic(() => import('./features/furniture/DraggableFurniture').then(mod => ({ default: mod.DraggableFurniture })), { 
+  ssr: false,
+  loading: () => null
+});
+const EditToolbar = dynamic(() => import('./layout/EditToolbar'), { 
+  ssr: false,
+  loading: () => null
+});
+const RoomTemplateSelector = dynamic(() => import('./features/room/RoomTemplateSelector'), { 
+  ssr: false,
+  loading: () => null
+});
+const PerformanceMonitor = dynamic(() => import('./shared/PerformanceMonitor').then(mod => ({ default: mod.PerformanceMonitor })), { 
+  ssr: false,
+  loading: () => null
+});
+const EnhancedTouchControls = dynamic(() => import('./features/editor/EnhancedTouchControls'), { 
+  ssr: false,
+  loading: () => null
+});
 
 import { updateRoomDimensions, isFurnitureInRoom, constrainFurnitureToRoom } from '../utils/roomBoundary';
 import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, selectItem, addItem, clearAllItems, useIsDragging } from '../store/editorStore';
@@ -64,14 +109,14 @@ const useClientSideReady = () => {
 };
 
 
-// 카메라 컨트롤러 컴포넌트
-function CameraController({
+// 카메라 컨트롤러 컴포넌트 - React.memo로 최적화
+const CameraController = React.memo(({
   isViewLocked,
   controlsRef
 }: {
   isViewLocked: boolean;
   controlsRef: React.RefObject<import('camera-controls').default | null>;
-}) {
+}) => {
   const { camera } = useThree();
 
   // 시점 고정 시 이동할 위치와 시점
@@ -161,14 +206,14 @@ function CameraController({
       maxSpeed={3}
     />
   );
-}
+});
 
-export default function Real3DRoom({
+const Real3DRoomComponent = React.memo(({
   shadowMode,
   isViewLocked,
   isEditMode: externalEditMode,
   onEditModeChange
-}: Real3DRoomProps) {
+}: Real3DRoomProps) => {
   // 클라이언트 사이드 준비 상태
   const isClientReady = useClientSideReady();
 
@@ -184,8 +229,6 @@ export default function Real3DRoom({
 
   // 성능 최적화 상태
   const [performanceOptimizationEnabled] = useState(true);
-
-
 
   // 메모리 관리 상태
   const cleanupRefs = useRef<Set<() => void>>(new Set());
@@ -975,4 +1018,7 @@ export default function Real3DRoom({
 
     </div>
   );
-}
+});
+
+// Next.js 15 호환성을 위한 export
+export default Real3DRoomComponent;

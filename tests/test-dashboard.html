@@ -135,12 +135,21 @@
             border-collapse: collapse;
             margin-top: 20px;
         }
+        
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: white;
+        }
 
         .test-table th,
         .test-table td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #eee;
+            white-space: nowrap;
         }
 
         .test-table th {
@@ -211,6 +220,296 @@
         .refresh-button:hover {
             background: #5a6fd8;
         }
+        
+        .update-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .update-indicator {
+            font-size: 1.2rem;
+            animation: pulse 2s infinite;
+        }
+        
+        .update-indicator.updating {
+            color: #f59e0b;
+            animation: spin 1s linear infinite;
+        }
+        
+        .update-indicator.success {
+            color: #10b981;
+        }
+        
+        .update-indicator.error {
+            color: #ef4444;
+        }
+        
+        .update-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .refresh-btn, .auto-update-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover, .auto-update-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+        
+        .auto-update-btn.paused {
+            background: #f59e0b;
+        }
+        
+        .update-interval {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .update-interval label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .update-interval select {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 테스트 실패 알림 스타일 */
+        .failure-notifications {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            margin: 20px 0;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .failure-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .failure-header h3 {
+            margin: 0;
+            color: #dc2626;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #666;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            background: #f3f4f6;
+            color: #333;
+        }
+        
+        .failure-summary {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #dc2626;
+        }
+        
+        .failure-details {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .failure-item {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #f59e0b;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .failure-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .failure-item.critical {
+            border-left-color: #dc2626;
+        }
+        
+        .failure-item.low {
+            border-left-color: #10b981;
+        }
+        
+        .failure-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .failure-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .failure-suggestions {
+            background: #f0f9ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 8px;
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .failure-suggestions h4 {
+            margin: 0 0 8px 0;
+            color: #1e40af;
+            font-size: 0.9rem;
+        }
+        
+        .failure-suggestions ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #1e40af;
+        }
+        
+        /* 모달 스타일 */
+        .failure-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .modal-footer {
+            background: #f8f9fa;
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .btn-primary, .btn-secondary {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        /* 알림 배지 */
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
 
         .last-updated {
             text-align: center;
@@ -223,15 +522,222 @@
         @media (max-width: 768px) {
             .stats-grid {
                 grid-template-columns: 1fr;
+                gap: 15px;
             }
 
             .coverage-grid {
                 grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
             }
 
             .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            .stat-card {
+                padding: 20px 15px;
+            }
+            
+            .stat-value {
                 font-size: 2rem;
             }
+            
+            .test-table {
+                font-size: 0.9rem;
+            }
+            
+            .test-table th,
+            .test-table td {
+                padding: 8px 5px;
+            }
+            
+            .update-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .failure-notifications {
+                margin: 15px 0;
+                padding: 15px;
+            }
+            
+            .failure-item {
+                padding: 12px;
+            }
+            
+            .modal-content {
+                width: 95%;
+                max-height: 90vh;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .header p {
+                font-size: 0.9rem;
+            }
+            
+            .coverage-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-card {
+                padding: 15px 10px;
+            }
+            
+            .stat-value {
+                font-size: 1.8rem;
+            }
+            
+            .test-table {
+                font-size: 0.8rem;
+            }
+            
+            .test-table th,
+            .test-table td {
+                padding: 6px 3px;
+            }
+            
+            .failure-notifications {
+                padding: 10px;
+            }
+            
+            .failure-item {
+                padding: 10px;
+            }
+        }
+        
+        /* 터치 최적화 스타일 */
+        @media (hover: none) and (pointer: coarse) {
+            .stat-card,
+            .coverage-item,
+            .failure-item,
+            .refresh-btn,
+            .auto-update-btn,
+            .btn-primary,
+            .btn-secondary {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            .stat-card:hover,
+            .coverage-item:hover,
+            .failure-item:hover {
+                transform: none;
+            }
+            
+            .refresh-btn:hover,
+            .auto-update-btn:hover,
+            .btn-primary:hover,
+            .btn-secondary:hover {
+                transform: none;
+            }
+            
+            .close-btn {
+                min-height: 44px;
+                min-width: 44px;
+                padding: 10px;
+            }
+        }
+        
+        /* 스와이프 제스처 지원 */
+        .swipeable {
+            touch-action: pan-y;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+        
+        /* 모바일 터치 피드백 */
+        .touch-feedback {
+            transition: all 0.1s ease;
+        }
+        
+        .touch-feedback:active {
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+        
+        /* 모바일 최적화 클래스 */
+        .mobile-optimized .touch-feedback {
+            transition: all 0.15s ease;
+        }
+        
+        .mobile-optimized .touch-feedback:active {
+            transform: scale(0.95);
+            opacity: 0.7;
+        }
+        
+        /* 모바일에서 숨길 요소들 */
+        .mobile-hidden {
+            display: none !important;
+        }
+        
+        /* 모바일 터치 영역 최적화 */
+        .mobile-optimized button,
+        .mobile-optimized .stat-card,
+        .mobile-optimized .coverage-item,
+        .mobile-optimized .failure-item {
+            min-height: 48px;
+            min-width: 48px;
+        }
+        
+        /* 모바일에서 테이블 스크롤 최적화 */
+        .mobile-optimized .test-table {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .mobile-optimized .test-table table {
+            min-width: 600px;
+        }
+        
+        /* 모바일에서 모달 최적화 */
+        .mobile-optimized .modal-content {
+            width: 98%;
+            max-height: 95vh;
+            margin: 10px;
+        }
+        
+        /* 모바일에서 성능 차트 최적화 */
+        .mobile-optimized .metric-chart {
+            font-size: 0.9rem;
+        }
+        
+        .mobile-optimized .metric-chart > div > div {
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        
+        /* 모바일에서 업데이트 상태 표시 최적화 */
+        .mobile-optimized .update-status {
+            flex-direction: column;
+            gap: 5px;
+            text-align: center;
+        }
+        
+        /* 모바일에서 실패 알림 최적화 */
+        .mobile-optimized .failure-summary > div {
+            flex-direction: column;
+            gap: 10px;
+            text-align: center;
+        }
+        
+        .mobile-optimized .failure-summary button {
+            width: 100%;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -242,28 +748,28 @@
             <p>3D 룸 에디터 테스트 결과 및 성능 모니터링</p>
         </div>
 
-        <button class="refresh-button" onclick="refreshDashboard()">🔄 대시보드 새로고침</button>
+        <button class="refresh-button touch-feedback" onclick="refreshDashboard()">🔄 대시보드 새로고침</button>
 
         <div class="stats-grid">
-            <div class="stat-card">
+            <div class="stat-card touch-feedback swipeable">
                 <h3>전체 테스트</h3>
                 <div class="stat-value" id="total-tests">0</div>
                 <div class="stat-description">실행된 테스트 수</div>
             </div>
 
-            <div class="stat-card">
+            <div class="stat-card touch-feedback swipeable">
                 <h3>통과한 테스트</h3>
                 <div class="stat-value" id="passed-tests">0</div>
                 <div class="stat-description">성공한 테스트 수</div>
             </div>
 
-            <div class="stat-card">
+            <div class="stat-card touch-feedback swipeable">
                 <h3>실패한 테스트</h3>
                 <div class="stat-value" id="failed-tests">0</div>
                 <div class="stat-description">실패한 테스트 수</div>
             </div>
 
-            <div class="stat-card">
+            <div class="stat-card touch-feedback swipeable">
                 <h3>테스트 커버리지</h3>
                 <div class="stat-value" id="test-coverage">0%</div>
                 <div class="stat-description">전체 코드 커버리지</div>
@@ -273,19 +779,19 @@
         <div class="coverage-section">
             <h2>📊 상세 커버리지</h2>
             <div class="coverage-grid">
-                <div class="coverage-item">
+                <div class="coverage-item touch-feedback swipeable">
                     <div class="coverage-percentage" id="statements-coverage">0%</div>
                     <div class="coverage-label">Statements</div>
                 </div>
-                <div class="coverage-item">
+                <div class="coverage-item touch-feedback swipeable">
                     <div class="coverage-percentage" id="branches-coverage">0%</div>
                     <div class="coverage-label">Branches</div>
                 </div>
-                <div class="coverage-item">
+                <div class="coverage-item touch-feedback swipeable">
                     <div class="coverage-percentage" id="functions-coverage">0%</div>
                     <div class="coverage-label">Functions</div>
                 </div>
-                <div class="coverage-item">
+                <div class="coverage-item touch-feedback swipeable">
                     <div class="coverage-percentage" id="lines-coverage">0%</div>
                     <div class="coverage-label">Lines</div>
                 </div>
@@ -294,20 +800,22 @@
 
         <div class="test-results">
             <h2>📋 최근 테스트 결과</h2>
-            <table class="test-table">
-                <thead>
-                    <tr>
-                        <th>테스트 이름</th>
-                        <th>상태</th>
-                        <th>실행 시간</th>
-                        <th>브라우저</th>
-                        <th>마지막 실행</th>
-                    </tr>
-                </thead>
-                <tbody id="test-results-body">
-                    <!-- 테스트 결과가 여기에 동적으로 추가됩니다 -->
-                </tbody>
-            </table>
+            <div class="table-wrapper">
+                <table class="test-table">
+                    <thead>
+                        <tr>
+                            <th>테스트 이름</th>
+                            <th>상태</th>
+                            <th>실행 시간</th>
+                            <th>브라우저</th>
+                            <th>마지막 실행</th>
+                        </tr>
+                    </thead>
+                    <tbody id="test-results-body">
+                        <!-- 테스트 결과가 여기에 동적으로 추가됩니다 -->
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div class="performance-metrics">
@@ -319,6 +827,49 @@
 
         <div class="last-updated">
             마지막 업데이트: <span id="last-updated-time">-</span>
+            <div class="update-status">
+                <span id="update-indicator" class="update-indicator">●</span>
+                <span id="update-status-text">대기 중</span>
+            </div>
+        </div>
+        
+        <div class="update-controls">
+            <button onclick="manualRefresh()" class="refresh-btn touch-feedback">🔄 수동 새로고침</button>
+            <button onclick="toggleAutoUpdate()" id="auto-update-btn" class="auto-update-btn touch-feedback">⏸️ 자동 업데이트 일시정지</button>
+            <div class="update-interval">
+                <label for="update-interval-input">업데이트 간격:</label>
+                <select id="update-interval-input" onchange="changeUpdateInterval()" class="touch-feedback">
+                    <option value="10000">10초</option>
+                    <option value="30000" selected>30초</option>
+                    <option value="60000">1분</option>
+                    <option value="300000">5분</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- 테스트 실패 알림 섹션 -->
+        <div class="failure-notifications" id="failure-notifications" style="display: none;">
+            <div class="failure-header">
+                <h3>🚨 테스트 실패 알림</h3>
+                <button onclick="closeFailureNotifications()" class="close-btn touch-feedback">✕</button>
+            </div>
+            <div class="failure-summary" id="failure-summary"></div>
+            <div class="failure-details" id="failure-details"></div>
+        </div>
+        
+        <!-- 실패 로그 모달 -->
+        <div class="failure-modal" id="failure-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>📋 상세 실패 로그</h3>
+                    <button onclick="closeFailureModal()" class="close-btn touch-feedback">✕</button>
+                </div>
+                <div class="modal-body" id="modal-body"></div>
+                <div class="modal-footer">
+                    <button onclick="closeFailureModal()" class="btn-secondary touch-feedback">닫기</button>
+                    <button onclick="exportFailureLog()" class="btn-primary touch-feedback">📥 로그 내보내기</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -345,6 +896,29 @@
             },
             lastUpdated: new Date()
         };
+        
+        // 자동 업데이트 설정
+        let autoUpdateConfig = {
+            enabled: true,
+            interval: 30000, // 30초
+            timer: null,
+            isUpdating: false
+        };
+        
+        // 테스트 실패 알림 데이터
+        let failureNotifications = {
+            totalFailures: 0,
+            criticalFailures: 0,
+            failures: [],
+            lastChecked: null
+        };
+        
+        // 모바일 터치 제스처 관련 변수
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        let isSwiping = false;
 
         // 대시보드 초기화
         function initDashboard() {
@@ -355,9 +929,35 @@
         }
 
         // 테스트 결과 로드
-        function loadTestResults() {
-            // 실제 구현에서는 API나 파일에서 데이터를 가져옵니다
-            // 여기서는 샘플 데이터를 사용합니다
+        async function loadTestResults() {
+            try {
+                // Playwright 테스트 결과 데이터 파일에서 실제 데이터를 가져옵니다
+                const response = await fetch('../test-results/dashboard-data.json');
+                if (response.ok) {
+                    const testData = await response.json();
+                    updateTestResultsTable(testData.testSuites);
+                    updateTestStats(testData.summary);
+                    
+                    // 테스트 통계 업데이트
+                    document.getElementById('total-tests').textContent = testData.summary.total;
+                    document.getElementById('passed-tests').textContent = testData.summary.passed;
+                    document.getElementById('failed-tests').textContent = testData.summary.failed;
+                    document.getElementById('test-success-rate').textContent = testData.summary.successRate + '%';
+                    
+                    // 성공률에 따른 시각적 표시
+                    updateTestSuccessRateVisual(testData.summary.successRate);
+                } else {
+                    console.warn('테스트 결과 데이터를 로드할 수 없습니다. 샘플 데이터를 사용합니다.');
+                    loadSampleTestResults();
+                }
+            } catch (error) {
+                console.error('테스트 결과 로드 중 오류 발생:', error);
+                loadSampleTestResults();
+            }
+        }
+        
+        // 샘플 테스트 결과 로드 (폴백)
+        function loadSampleTestResults() {
             const sampleResults = [
                 { name: 'EditableFurniture.test.tsx', status: 'passed', duration: '1.2s', browser: 'Chrome', lastRun: '2분 전' },
                 { name: 'Real3DRoom.test.tsx', status: 'passed', duration: '2.1s', browser: 'Chrome', lastRun: '2분 전' },
@@ -367,12 +967,36 @@
             ];
 
             updateTestResultsTable(sampleResults);
-            updateTestStats(sampleResults);
+            updateTestStats({ total: 0, passed: 0, failed: 0, skipped: 0 });
         }
 
         // 커버리지 데이터 로드
-        function loadCoverageData() {
-            // 실제 구현에서는 coverage 파일에서 데이터를 가져옵니다
+        async function loadCoverageData() {
+            try {
+                // Jest 커버리지 데이터 파일에서 실제 데이터를 가져옵니다
+                const response = await fetch('../coverage/dashboard-data.json');
+                if (response.ok) {
+                    const coverageData = await response.json();
+                    updateCoverageDisplay(coverageData);
+                    
+                    // 전체 커버리지 업데이트
+                    const overall = coverageData.overall || Math.round((coverageData.statements + coverageData.branches + coverageData.functions + coverageData.lines) / 4);
+                    document.getElementById('test-coverage').textContent = overall + '%';
+                    
+                    // 커버리지 수준에 따른 시각적 표시
+                    updateCoverageVisuals(coverageData);
+                } else {
+                    console.warn('커버리지 데이터를 로드할 수 없습니다. 샘플 데이터를 사용합니다.');
+                    loadSampleCoverageData();
+                }
+            } catch (error) {
+                console.warn('커버리지 데이터 로드 중 오류 발생:', error);
+                loadSampleCoverageData();
+            }
+        }
+        
+        // 샘플 커버리지 데이터 로드 (폴백)
+        function loadSampleCoverageData() {
             const coverageData = {
                 statements: 92,
                 branches: 88,
@@ -384,13 +1008,34 @@
         }
 
         // 성능 데이터 로드
-        function loadPerformanceData() {
-            // 실제 구현에서는 성능 테스트 결과에서 데이터를 가져옵니다
+        async function loadPerformanceData() {
+            try {
+                // 성능 메트릭 데이터 파일에서 실제 데이터를 가져옵니다
+                const response = await fetch('../test-results/performance-metrics.json');
+                if (response.ok) {
+                    const performanceData = await response.json();
+                    updatePerformanceDisplay(performanceData);
+                    
+                    // 성능 점수 시각적 표시
+                    updatePerformanceScoreVisual(performanceData.performanceScore);
+                } else {
+                    console.warn('성능 메트릭 데이터를 로드할 수 없습니다. 샘플 데이터를 사용합니다.');
+                    loadSamplePerformanceData();
+                }
+            } catch (error) {
+                console.error('성능 데이터 로드 중 오류 발생:', error);
+                loadSamplePerformanceData();
+            }
+        }
+        
+        // 샘플 성능 데이터 로드 (폴백)
+        function loadSamplePerformanceData() {
             const performanceData = {
                 pageLoad: 1200,
                 renderTime: 3500,
                 fps: 58,
-                memoryUsage: 45
+                memoryUsage: 45,
+                performanceScore: 85
             };
 
             updatePerformanceDisplay(performanceData);
@@ -401,28 +1046,79 @@
             const tbody = document.getElementById('test-results-body');
             tbody.innerHTML = '';
 
+            if (!results || results.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #666;">테스트 결과가 없습니다.</td></tr>';
+                return;
+            }
+
             results.forEach(result => {
                 const row = document.createElement('tr');
+                
+                // Playwright 테스트 결과 형식에 맞게 처리
+                const testName = result.spec || result.name || 'Unknown Test';
+                const status = result.status || 'unknown';
+                const duration = result.duration ? `${Math.round(result.duration / 1000)}s` : 'N/A';
+                const browser = result.browser || 'Unknown';
+                const lastRun = result.startTime ? formatRelativeTime(new Date(result.startTime)) : 'N/A';
+                
                 row.innerHTML = `
-                    <td>${result.name}</td>
-                    <td><span class="test-status status-${result.status}">${result.status}</span></td>
-                    <td>${result.duration}</td>
-                    <td>${result.browser}</td>
-                    <td>${result.lastRun}</td>
+                    <td>${testName}</td>
+                    <td><span class="test-status status-${status}">${getStatusText(status)}</span></td>
+                    <td>${duration}</td>
+                    <td>${browser}</td>
+                    <td>${lastRun}</td>
                 `;
                 tbody.appendChild(row);
             });
         }
+        
+        // 상태 텍스트 변환
+        function getStatusText(status) {
+            const statusMap = {
+                'passed': '통과',
+                'failed': '실패',
+                'skipped': '스킵',
+                'timedOut': '시간 초과',
+                'interrupted': '중단됨'
+            };
+            return statusMap[status] || status;
+        }
+        
+        // 상대적 시간 표시
+        function formatRelativeTime(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 1) return '방금 전';
+            if (diffMins < 60) return `${diffMins}분 전`;
+            if (diffHours < 24) return `${diffHours}시간 전`;
+            if (diffDays < 7) return `${diffDays}일 전`;
+            return date.toLocaleDateString('ko-KR');
+        }
 
         // 테스트 통계 업데이트
-        function updateTestStats(results) {
-            const total = results.length;
-            const passed = results.filter(r => r.status === 'passed').length;
-            const failed = results.filter(r => r.status === 'failed').length;
+        function updateTestStats(summary) {
+            if (summary && typeof summary === 'object') {
+                document.getElementById('total-tests').textContent = summary.total || 0;
+                document.getElementById('passed-tests').textContent = summary.passed || 0;
+                document.getElementById('failed-tests').textContent = summary.failed || 0;
+                document.getElementById('skipped-tests').textContent = summary.skipped || 0;
+            } else {
+                // 기존 형식 지원 (배열)
+                const results = summary || [];
+                const total = results.length;
+                const passed = results.filter(r => r.status === 'passed').length;
+                const failed = results.filter(r => r.status === 'failed').length;
+                const skipped = results.filter(r => r.status === 'skipped').length;
 
-            document.getElementById('total-tests').textContent = total;
-            document.getElementById('passed-tests').textContent = passed;
-            document.getElementById('failed-tests').textContent = failed;
+                document.getElementById('total-tests').textContent = total;
+                document.getElementById('passed-tests').textContent = passed;
+                document.getElementById('failed-tests').textContent = failed;
+                document.getElementById('skipped-tests').textContent = skipped;
+            }
         }
 
         // 커버리지 표시 업데이트
@@ -433,33 +1129,132 @@
             document.getElementById('lines-coverage').textContent = coverage.lines + '%';
 
             // 전체 커버리지 계산
-            const overall = Math.round((coverage.statements + coverage.branches + coverage.functions + coverage.lines) / 4);
+            const overall = coverage.overall || Math.round((coverage.statements + coverage.branches + coverage.functions + coverage.lines) / 4);
             document.getElementById('test-coverage').textContent = overall + '%';
+        }
+        
+        // 커버리지 수준에 따른 시각적 표시 업데이트
+        function updateCoverageVisuals(coverage) {
+            const overall = coverage.overall || Math.round((coverage.statements + coverage.branches + coverage.functions + coverage.lines) / 4);
+            
+            // 커버리지 수준에 따른 색상 변경
+            const coverageElement = document.getElementById('test-coverage');
+            if (coverageElement) {
+                coverageElement.className = 'stat-value';
+                if (overall >= 90) {
+                    coverageElement.style.color = '#10b981'; // green
+                } else if (overall >= 80) {
+                    coverageElement.style.color = '#3b82f6'; // blue
+                } else if (overall >= 70) {
+                    coverageElement.style.color = '#f59e0b'; // yellow
+                } else if (overall >= 60) {
+                    coverageElement.style.color = '#f97316'; // orange
+                } else {
+                    coverageElement.style.color = '#ef4444'; // red
+                }
+            }
+            
+            // 개별 커버리지 항목에도 색상 적용
+            updateCoverageItemColor('statements-coverage', coverage.statements);
+            updateCoverageItemColor('branches-coverage', coverage.branches);
+            updateCoverageItemColor('functions-coverage', coverage.functions);
+            updateCoverageItemColor('lines-coverage', coverage.lines);
+        }
+        
+        // 개별 커버리지 항목 색상 업데이트
+        function updateCoverageItemColor(elementId, percentage) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                if (percentage >= 90) {
+                    element.style.color = '#10b981';
+                } else if (percentage >= 80) {
+                    element.style.color = '#3b82f6';
+                } else if (percentage >= 70) {
+                    element.style.color = '#f59e0b';
+                } else if (percentage >= 60) {
+                    element.style.color = '#f97316';
+                } else {
+                    element.style.color = '#ef4444';
+                }
+            }
+        }
+        
+        // 테스트 성공률 시각적 표시 업데이트
+        function updateTestSuccessRateVisual(successRate) {
+            const successRateElement = document.getElementById('test-success-rate');
+            if (successRateElement) {
+                if (successRate >= 90) {
+                    successRateElement.style.color = '#10b981'; // green
+                } else if (successRate >= 80) {
+                    successRateElement.style.color = '#3b82f6'; // blue
+                } else if (successRate >= 70) {
+                    successRateElement.style.color = '#f59e0b'; // yellow
+                } else if (successRate >= 60) {
+                    successRateElement.style.color = '#f97316'; // orange
+                } else {
+                    successRateElement.style.color = '#ef4444'; // red
+                }
+            }
+        }
+        
+        // 성능 점수 시각적 표시 업데이트
+        function updatePerformanceScoreVisual(performanceScore) {
+            const performanceScoreElement = document.getElementById('performance-score');
+            if (performanceScoreElement) {
+                if (performanceScore >= 90) {
+                    performanceScoreElement.style.color = '#10b981'; // green
+                } else if (performanceScore >= 80) {
+                    performanceScoreElement.style.color = '#3b82f6'; // blue
+                } else if (performanceScore >= 70) {
+                    performanceScoreElement.style.color = '#f59e0b'; // yellow
+                } else if (performanceScore >= 60) {
+                    performanceScoreElement.style.color = '#f97316'; // orange
+                } else {
+                    performanceScoreElement.style.color = '#ef4444'; // red
+                }
+            }
         }
 
         // 성능 표시 업데이트
         function updatePerformanceDisplay(performance) {
             const chart = document.getElementById('performance-chart');
+            
+            // 실제 성능 메트릭이 있는 경우 해당 데이터 사용, 없으면 샘플 데이터 사용
+            const metrics = {
+                pageLoad: performance.navigationTiming?.totalTime || performance.pageLoad || 0,
+                domContentLoaded: performance.navigationTiming?.domContentLoaded || 0,
+                domInteractive: performance.navigationTiming?.domInteractive || 0,
+                memoryUsage: performance.performanceMetrics?.memoryUsage || performance.memoryUsage || 0,
+                memoryLimit: performance.performanceMetrics?.memoryLimit || 0,
+                performanceScore: performance.performanceScore || 0
+            };
+            
             chart.innerHTML = `
                 <div style="text-align: center; width: 100%;">
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; height: 100%; align-items: center;">
                         <div>
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${performance.pageLoad}ms</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${Math.round(metrics.pageLoad)}ms</div>
                             <div style="font-size: 0.9rem; color: #666;">페이지 로드</div>
                         </div>
                         <div>
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${performance.fps} FPS</div>
-                            <div style="font-size: 0.9rem; color: #666;">렌더링 성능</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${Math.round(metrics.domContentLoaded)}ms</div>
+                            <div style="font-size: 0.9rem; color: #666;">DOM 로드</div>
                         </div>
                         <div>
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${performance.renderTime}ms</div>
-                            <div style="font-size: 0.9rem; color: #666;">3D 렌더링</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${Math.round(metrics.domInteractive)}ms</div>
+                            <div style="font-size: 0.9rem; color: #666;">인터랙티브</div>
                         </div>
                         <div>
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${performance.memoryUsage}MB</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${metrics.memoryUsage}MB</div>
                             <div style="font-size: 0.9rem; color: #666;">메모리 사용량</div>
                         </div>
                     </div>
+                    ${metrics.performanceScore > 0 ? `
+                    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #333;">성능 점수</div>
+                        <div style="font-size: 2rem; font-weight: bold; color: #667eea;" id="performance-score">${metrics.performanceScore}/100</div>
+                    </div>
+                    ` : ''}
                 </div>
             `;
         }
@@ -470,17 +1265,482 @@
             const timeString = now.toLocaleString('ko-KR');
             document.getElementById('last-updated-time').textContent = timeString;
         }
+        
+        // 업데이트 상태 표시
+        function updateUpdateStatus(status, message) {
+            const indicator = document.getElementById('update-indicator');
+            const statusText = document.getElementById('update-status-text');
+            
+            if (indicator && statusText) {
+                indicator.className = `update-indicator ${status}`;
+                statusText.textContent = message;
+                
+                // 상태별 메시지
+                const statusMessages = {
+                    'updating': '업데이트 중...',
+                    'success': '업데이트 완료',
+                    'error': '업데이트 실패',
+                    'waiting': '대기 중'
+                };
+                
+                statusText.textContent = statusMessages[status] || message;
+            }
+        }
+        
+        // 자동 업데이트 시작
+        function startAutoUpdate() {
+            if (autoUpdateConfig.timer) {
+                clearInterval(autoUpdateConfig.timer);
+            }
+            
+            autoUpdateConfig.timer = setInterval(async () => {
+                if (autoUpdateConfig.enabled && !autoUpdateConfig.isUpdating) {
+                    await performUpdate();
+                }
+            }, autoUpdateConfig.interval);
+            
+            console.log(`자동 업데이트 시작 (${autoUpdateConfig.interval / 1000}초 간격)`);
+        }
+        
+        // 자동 업데이트 중지
+        function stopAutoUpdate() {
+            if (autoUpdateConfig.timer) {
+                clearInterval(autoUpdateConfig.timer);
+                autoUpdateConfig.timer = null;
+            }
+            console.log('자동 업데이트 중지');
+        }
+        
+        // 업데이트 실행
+        async function performUpdate() {
+            if (autoUpdateConfig.isUpdating) return;
+            
+            autoUpdateConfig.isUpdating = true;
+            updateUpdateStatus('updating', '업데이트 중...');
+            
+            try {
+                // 각 데이터 소스 업데이트
+                await Promise.all([
+                    loadTestResults(),
+                    loadCoverageData(),
+                    loadPerformanceData()
+                ]);
+                
+                // 테스트 실패 알림 확인
+                await checkFailureNotifications();
+                
+                updateLastUpdated();
+                updateUpdateStatus('success', '업데이트 완료');
+                
+                // 성공 상태를 잠시 표시 후 대기 상태로 변경
+                setTimeout(() => {
+                    updateUpdateStatus('waiting', '대기 중');
+                }, 2000);
+                
+            } catch (error) {
+                console.error('업데이트 중 오류:', error);
+                updateUpdateStatus('error', '업데이트 실패');
+                
+                // 에러 상태를 잠시 표시 후 대기 상태로 변경
+                setTimeout(() => {
+                    updateUpdateStatus('waiting', '대기 중');
+                }, 3000);
+            } finally {
+                autoUpdateConfig.isUpdating = false;
+            }
+        }
+        
+        // 수동 새로고침
+        async function manualRefresh() {
+            updateUpdateStatus('updating', '수동 새로고침 중...');
+            await performUpdate();
+        }
+        
+        // 자동 업데이트 토글
+        function toggleAutoUpdate() {
+            const btn = document.getElementById('auto-update-btn');
+            
+            if (autoUpdateConfig.enabled) {
+                autoUpdateConfig.enabled = false;
+                stopAutoUpdate();
+                btn.textContent = '▶️ 자동 업데이트 시작';
+                btn.className = 'auto-update-btn paused';
+                updateUpdateStatus('waiting', '자동 업데이트 일시정지됨');
+            } else {
+                autoUpdateConfig.enabled = true;
+                startAutoUpdate();
+                btn.textContent = '⏸️ 자동 업데이트 일시정지';
+                btn.className = 'auto-update-btn';
+                updateUpdateStatus('waiting', '자동 업데이트 시작됨');
+            }
+        }
+        
+        // 업데이트 간격 변경
+        function changeUpdateInterval() {
+            const select = document.getElementById('update-interval-input');
+            const newInterval = parseInt(select.value);
+            
+            autoUpdateConfig.interval = newInterval;
+            
+            if (autoUpdateConfig.enabled) {
+                stopAutoUpdate();
+                startAutoUpdate();
+            }
+            
+            console.log(`업데이트 간격을 ${newInterval / 1000}초로 변경`);
+        }
 
-        // 대시보드 새로고침
+        // 대시보드 새로고침 (기존 함수 유지)
         function refreshDashboard() {
-            initDashboard();
+            performUpdate();
+        }
+        
+        // 테스트 실패 알림 확인
+        async function checkFailureNotifications() {
+            try {
+                const response = await fetch('../test-results/failure-notifications.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    failureNotifications = data;
+                    
+                    if (data.totalFailures > 0) {
+                        showFailureNotifications(data);
+                    } else {
+                        hideFailureNotifications();
+                    }
+                }
+            } catch (error) {
+                console.log('실패 알림 데이터를 불러올 수 없습니다:', error.message);
+            }
+        }
+        
+        // 테스트 실패 알림 표시
+        function showFailureNotifications(data) {
+            const container = document.getElementById('failure-notifications');
+            const summary = document.getElementById('failure-summary');
+            const details = document.getElementById('failure-details');
+            
+            if (!container || !summary || !details) return;
+            
+            // 요약 정보 표시
+            summary.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>총 ${data.totalFailures}개의 문제가 발견되었습니다.</strong>
+                        ${data.criticalFailures > 0 ? `<span style="color: #dc2626;">(심각: ${data.criticalFailures}개)</span>` : ''}
+                    </div>
+                    <button onclick="showFailureModal()" class="btn-primary">📋 상세 보기</button>
+                </div>
+            `;
+            
+            // 상세 정보 표시
+            details.innerHTML = '';
+            data.recentFailures.forEach(failure => {
+                const failureItem = document.createElement('div');
+                failureItem.className = `failure-item ${failure.analysis.severity}`;
+                failureItem.onclick = () => showFailureDetails(failure);
+                
+                const severityColor = {
+                    'high': '#dc2626',
+                    'medium': '#f59e0b',
+                    'low': '#10b981'
+                };
+                
+                const severityText = {
+                    'high': '심각',
+                    'medium': '보통',
+                    'low': '낮음'
+                };
+                
+                failureItem.innerHTML = `
+                    <div class="failure-title">${failure.suite || failure.file || failure.test || 'Unknown'}</div>
+                    <div class="failure-meta">
+                        <span>타입: ${failure.analysis.failureType}</span>
+                        <span>심각도: <span style="color: ${severityColor[failure.analysis.severity]}">${severityText[failure.analysis.severity]}</span></span>
+                        <span>신뢰도: ${failure.analysis.confidence}%</span>
+                    </div>
+                    ${failure.analysis.suggestions && failure.analysis.suggestions.length > 0 ? `
+                        <div class="failure-suggestions">
+                            <h4>💡 해결 방안</h4>
+                            <ul>
+                                ${failure.analysis.suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                `;
+                
+                details.appendChild(failureItem);
+            });
+            
+            container.style.display = 'block';
+        }
+        
+        // 테스트 실패 알림 숨기기
+        function hideFailureNotifications() {
+            const container = document.getElementById('failure-notifications');
+            if (container) {
+                container.style.display = 'none';
+            }
+        }
+        
+        // 실패 알림 닫기
+        function closeFailureNotifications() {
+            hideFailureNotifications();
+        }
+        
+        // 실패 상세 모달 표시
+        function showFailureModal() {
+            const modal = document.getElementById('failure-modal');
+            const modalBody = document.getElementById('modal-body');
+            
+            if (!modal || !modalBody) return;
+            
+            modalBody.innerHTML = '';
+            
+            failureNotifications.failures.forEach(failure => {
+                const failureSection = document.createElement('div');
+                failureSection.style.marginBottom = '30px';
+                failureSection.style.padding = '20px';
+                failureSection.style.border = '1px solid #e5e7eb';
+                failureSection.style.borderRadius = '8px';
+                
+                failureSection.innerHTML = `
+                    <h4 style="margin: 0 0 15px 0; color: #333;">${failure.suite || failure.file || failure.test || 'Unknown'}</h4>
+                    <div style="margin-bottom: 15px;">
+                        <strong>브라우저:</strong> ${failure.browser || 'N/A'}<br>
+                        <strong>타입:</strong> ${failure.analysis.failureType}<br>
+                        <strong>심각도:</strong> ${failure.analysis.severity}<br>
+                        <strong>신뢰도:</strong> ${failure.analysis.confidence}%<br>
+                        <strong>시간:</strong> ${new Date(failure.timestamp).toLocaleString('ko-KR')}
+                    </div>
+                    ${failure.analysis.errorDetails && failure.analysis.errorDetails.message ? `
+                        <div style="margin-bottom: 15px;">
+                            <strong>에러 메시지:</strong><br>
+                            <code style="background: #f3f4f6; padding: 10px; border-radius: 5px; display: block; margin-top: 5px;">${failure.analysis.errorDetails.message}</code>
+                        </div>
+                    ` : ''}
+                    ${failure.analysis.suggestions && failure.analysis.suggestions.length > 0 ? `
+                        <div style="background: #f0f9ff; padding: 15px; border-radius: 5px; border-left: 3px solid #3b82f6;">
+                            <h5 style="margin: 0 0 10px 0; color: #1e40af;">💡 해결 방안</h5>
+                            <ul style="margin: 0; padding-left: 20px; color: #1e40af;">
+                                ${failure.analysis.suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                `;
+                
+                modalBody.appendChild(failureSection);
+            });
+            
+            modal.style.display = 'flex';
+        }
+        
+        // 실패 상세 모달 닫기
+        function closeFailureModal() {
+            const modal = document.getElementById('failure-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // 실패 상세 정보 표시
+        function showFailureDetails(failure) {
+            const modal = document.getElementById('failure-modal');
+            const modalBody = document.getElementById('modal-body');
+            
+            if (!modal || !modalBody) return;
+            
+            modalBody.innerHTML = `
+                <div style="padding: 20px;">
+                    <h4 style="margin: 0 0 20px 0; color: #333;">${failure.suite || failure.file || failure.test || 'Unknown'}</h4>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h5 style="margin: 0 0 10px 0; color: #666;">테스트 정보</h5>
+                        <div style="background: #f9fafb; padding: 15px; border-radius: 5px;">
+                            <strong>브라우저:</strong> ${failure.browser || 'N/A'}<br>
+                            <strong>타입:</strong> ${failure.analysis.failureType}<br>
+                            <strong>심각도:</strong> ${failure.analysis.severity}<br>
+                            <strong>신뢰도:</strong> ${failure.analysis.confidence}%<br>
+                            <strong>시간:</strong> ${new Date(failure.timestamp).toLocaleString('ko-KR')}
+                        </div>
+                    </div>
+                    
+                    ${failure.analysis.errorDetails && failure.analysis.errorDetails.message ? `
+                        <div style="margin-bottom: 20px;">
+                            <h5 style="margin: 0 0 10px 0; color: #666;">에러 상세 정보</h5>
+                            <div style="background: #fef2f2; padding: 15px; border-radius: 5px; border-left: 3px solid #dc2626;">
+                                <strong>메시지:</strong><br>
+                                <code style="background: #fee2e2; padding: 10px; border-radius: 5px; display: block; margin-top: 5px; white-space: pre-wrap;">${failure.analysis.errorDetails.message}</code>
+                                ${failure.analysis.errorDetails.stack ? `
+                                    <br><br><strong>스택 트레이스:</strong><br>
+                                    <code style="background: #fee2e2; padding: 10px; border-radius: 5px; display: block; margin-top: 5px; white-space: pre-wrap; font-size: 0.8rem;">${failure.analysis.errorDetails.stack}</code>
+                                ` : ''}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${failure.analysis.suggestions && failure.analysis.suggestions.length > 0 ? `
+                        <div style="margin-bottom: 20px;">
+                            <h5 style="margin: 0 0 10px 0; color: #666;">해결 방안</h5>
+                            <div style="background: #f0f9ff; padding: 15px; border-radius: 5px; border-left: 3px solid #3b82f6;">
+                                <ul style="margin: 0; padding-left: 20px; color: #1e40af;">
+                                    ${failure.analysis.suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+        
+        // 실패 로그 내보내기
+        function exportFailureLog() {
+            const dataStr = JSON.stringify(failureNotifications, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `test-failures-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // 모바일 터치 제스처 초기화
+        function initTouchGestures() {
+            // 스와이프 제스처 감지
+            document.addEventListener('touchstart', handleTouchStart, false);
+            document.addEventListener('touchmove', handleTouchMove, false);
+            document.addEventListener('touchend', handleTouchEnd, false);
+            
+            // 모바일에서 더블 탭 줌 방지
+            document.addEventListener('touchstart', preventDoubleTapZoom, { passive: false });
+            
+            // 모바일에서 스크롤 성능 최적화
+            document.addEventListener('scroll', throttleScroll, { passive: true });
+        }
+        
+        // 터치 시작 처리
+        function handleTouchStart(event) {
+            touchStartX = event.touches[0].clientX;
+            touchStartY = event.touches[0].clientY;
+            isSwiping = false;
+        }
+        
+        // 터치 이동 처리
+        function handleTouchMove(event) {
+            if (!isSwiping) {
+                const currentX = event.touches[0].clientX;
+                const currentY = event.touches[0].clientY;
+                
+                const diffX = Math.abs(currentX - touchStartX);
+                const diffY = Math.abs(currentY - touchStartY);
+                
+                // 수평 스와이프 감지 (수직보다 수평이 더 큰 경우)
+                if (diffX > diffY && diffX > 10) {
+                    isSwiping = true;
+                    event.preventDefault();
+                }
+            }
+        }
+        
+        // 터치 종료 처리
+        function handleTouchEnd(event) {
+            if (isSwiping) {
+                touchEndX = event.changedTouches[0].clientX;
+                touchEndY = event.changedTouches[0].clientY;
+                
+                const diffX = touchEndX - touchStartX;
+                const diffY = touchEndY - touchStartY;
+                
+                // 스와이프 방향 및 거리 계산
+                if (Math.abs(diffX) > 50) { // 최소 50px 스와이프
+                    if (diffX > 0) {
+                        handleSwipeRight();
+                    } else {
+                        handleSwipeLeft();
+                    }
+                }
+                
+                isSwiping = false;
+            }
+        }
+        
+        // 오른쪽 스와이프 처리 (이전 페이지/섹션)
+        function handleSwipeRight() {
+            console.log('오른쪽 스와이프 감지');
+            // 필요시 이전 섹션으로 이동하는 로직 추가
+        }
+        
+        // 왼쪽 스와이프 처리 (다음 페이지/섹션)
+        function handleSwipeLeft() {
+            console.log('왼쪽 스와이프 감지');
+            // 필요시 다음 섹션으로 이동하는 로직 추가
+        }
+        
+        // 더블 탭 줌 방지
+        function preventDoubleTapZoom(event) {
+            let lastTouchEnd = 0;
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }
+        
+        // 스크롤 성능 최적화 (쓰로틀링)
+        function throttleScroll(event) {
+            if (!window.requestAnimationFrame) {
+                return;
+            }
+            
+            if (!window.scrollThrottle) {
+                window.scrollThrottle = true;
+                requestAnimationFrame(() => {
+                    // 스크롤 이벤트 처리
+                    window.scrollThrottle = false;
+                });
+            }
+        }
+        
+        // 모바일 환경 감지
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                   (window.innerWidth <= 768);
+        }
+        
+        // 모바일 최적화 설정 적용
+        function applyMobileOptimizations() {
+            if (isMobileDevice()) {
+                // 모바일에서 애니메이션 최적화
+                document.body.style.setProperty('--animation-duration', '0.2s');
+                
+                // 터치 피드백 활성화
+                document.body.classList.add('mobile-optimized');
+                
+                // 모바일에서 불필요한 요소 숨기기
+                const mobileHiddenElements = document.querySelectorAll('.mobile-hidden');
+                mobileHiddenElements.forEach(el => el.style.display = 'none');
+            }
         }
 
         // 페이지 로드 시 대시보드 초기화
-        document.addEventListener('DOMContentLoaded', initDashboard);
-
-        // 30초마다 자동 새로고침
-        setInterval(refreshDashboard, 30000);
+        document.addEventListener('DOMContentLoaded', () => {
+            initDashboard();
+            
+            // 초기 업데이트 상태 설정
+            updateUpdateStatus('waiting', '대기 중');
+            
+            // 자동 업데이트 시작
+            startAutoUpdate();
+            
+            // 모바일 터치 제스처 초기화
+            initTouchGestures();
+            
+            // 모바일 최적화 설정 적용
+            applyMobileOptimizations();
+        });
     </script>
 </body>
 </html>

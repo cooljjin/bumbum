@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Vector3, Raycaster, Vector2, Plane } from 'three';
 import { useEditorStore } from '../../../store/editorStore';
+import { useTouchControls, TouchCallbacks } from '../../../hooks/useTouchControls';
 
 interface EnhancedTouchControlsProps {
   enabled?: boolean;
@@ -22,32 +23,11 @@ export const EnhancedTouchControls: React.FC<EnhancedTouchControlsProps> = ({
   const { camera } = useThree();
   const { placedItems, setDragging } = useEditorStore();
   
-  // 터치 상태 관리
-  const [touchState, setTouchState] = useState({
-    isDragging: false,
-    isPinching: false,
-    startPosition: null as Vector2 | null,
-    startDistance: 0,
-    startAngle: 0,
-    lastTapTime: 0,
-    dragStartPosition: null as Vector3 | null
-  });
-
-  // 모바일 환경 감지
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
-      setIsMobile(mobileRegex.test(navigator.userAgent) || window.innerWidth <= 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-
+  // 3D 환경 전용 터치 상태
+  const [dragStartPosition, setDragStartPosition] = useState<Vector3 | null>(null);
+  
+  // Canvas 크기 가져오기
+  const { size } = useThree();
 
   // 화면 좌표를 3D 좌표로 변환 (Canvas 크기 기준)
   const screenToWorld = useCallback((clientX: number, clientY: number, canvasWidth: number, canvasHeight: number): Vector3 | null => {
@@ -93,98 +73,67 @@ export const EnhancedTouchControls: React.FC<EnhancedTouchControlsProps> = ({
     return closestItem;
   }, [camera, placedItems]);
 
-  // Canvas 크기 가져오기
-  const { size } = useThree();
-
-  // 터치 시작 핸들러 (Pointer 이벤트용)
-  const handlePointerDown = useCallback((e: any) => {
-    if (!enabled || !isMobile) return;
-
-    // preventDefault는 호출하지 않음 (passive 경고 방지)
-    e.stopPropagation();
-
-    // Pointer 이벤트에서 터치 좌표 가져오기
-    const clientX = e.clientX || (e.touches && e.touches[0]?.clientX) || 0;
-    const clientY = e.clientY || (e.touches && e.touches[0]?.clientY) || 0;
-    
-    const worldPos = screenToWorld(clientX, clientY, size.width, size.height);
-    
-    if (worldPos) {
-      const selectedItem = selectFurnitureAtPosition(clientX, clientY, size.width, size.height);
-      
-      if (selectedItem && 'id' in selectedItem) {
-        onItemSelect((selectedItem as any).id);
-        setTouchState(prev => ({
-          ...prev,
-          isDragging: true,
-          startPosition: new Vector2(clientX, clientY),
-          dragStartPosition: new Vector3((selectedItem as any).position.x, (selectedItem as any).position.y, (selectedItem as any).position.z)
-        }));
-        // 전역 드래그 상태 on (스크롤락 트리거)
-        setDragging(true);
-      } else {
-        onItemSelect(null);
-      }
-    }
-  }, [enabled, isMobile, screenToWorld, selectFurnitureAtPosition, onItemSelect, size.width, size.height]);
-
-  // 터치 이동 핸들러 (Pointer 이벤트용)
-  const handlePointerMove = useCallback((e: any) => {
-    if (!enabled || !isMobile) return;
-
-    // preventDefault는 호출하지 않음 (passive 경고 방지)
-    e.stopPropagation();
-
-    if (touchState.isDragging && selectedItemId && touchState.dragStartPosition) {
-      // 단일 터치 드래그 - 가구 이동
-      const clientX = e.clientX || (e.touches && e.touches[0]?.clientX) || 0;
-      const clientY = e.clientY || (e.touches && e.touches[0]?.clientY) || 0;
+  // 3D 환경 전용 터치 콜백 정의
+  const touchCallbacks: TouchCallbacks = {
+    onTap: useCallback((clientX: number, clientY: number) => {
       const worldPos = screenToWorld(clientX, clientY, size.width, size.height);
-      
       if (worldPos) {
+        const selectedItem = selectFurnitureAtPosition(clientX, clientY, size.width, size.height);
+        if (selectedItem && 'id' in selectedItem) {
+          onItemSelect((selectedItem as any).id);
+        } else {
+          onItemSelect(null);
+        }
+      }
+    }, [screenToWorld, selectFurnitureAtPosition, onItemSelect, size.width, size.height]),
+
+    onDoubleTap: useCallback((clientX: number, clientY: number) => {
+      // 더블 탭으로 가구 선택 해제
+      onItemSelect(null);
+    }, [onItemSelect]),
+
+    onDragStart: useCallback((clientX: number, clientY: number) => {
+      const worldPos = screenToWorld(clientX, clientY, size.width, size.height);
+      if (worldPos) {
+        const selectedItem = selectFurnitureAtPosition(clientX, clientY, size.width, size.height);
+        if (selectedItem && 'id' in selectedItem) {
+          onItemSelect((selectedItem as any).id);
+          setDragStartPosition(new Vector3(
+            (selectedItem as any).position.x,
+            (selectedItem as any).position.y,
+            (selectedItem as any).position.z
+          ));
+          setDragging(true);
+        }
+      }
+    }, [screenToWorld, selectFurnitureAtPosition, onItemSelect, size.width, size.height, setDragging]),
+
+    onDragMove: useCallback((deltaX: number, deltaY: number) => {
+      if (selectedItemId && dragStartPosition) {
+        // 3D 공간에서의 드래그 이동 처리
         const newPosition = new Vector3(
-          worldPos.x,
-          touchState.dragStartPosition.y, // Y축은 유지
-          worldPos.z
+          dragStartPosition.x + deltaX * 0.01, // 스케일 조정
+          dragStartPosition.y,
+          dragStartPosition.z + deltaY * 0.01
         );
         
         onItemUpdate(selectedItemId, { position: newPosition });
       }
-    }
-  }, [enabled, isMobile, touchState, selectedItemId, screenToWorld, onItemUpdate, size.width, size.height]);
+    }, [selectedItemId, dragStartPosition, onItemUpdate]),
 
-  // 터치 종료 핸들러 (Pointer 이벤트용)
-  const handlePointerUp = useCallback((e: any) => {
-    if (!enabled || !isMobile) return;
+    onDragEnd: useCallback(() => {
+      setDragStartPosition(null);
+      setDragging(false);
+    }, [setDragging])
+  };
 
-    // preventDefault는 호출하지 않음 (passive 경고 방지)
-    e.stopPropagation();
+  // useTouchControls 훅을 사용하여 터치 로직 처리
+  const { touchState, isMobile, touchHandlers } = useTouchControls({
+    enabled,
+    callbacks: touchCallbacks
+  });
 
-    // 모든 터치 종료
-    setTouchState(prev => ({
-      ...prev,
-      isDragging: false,
-      isPinching: false,
-      startPosition: null,
-      startDistance: 0,
-      startAngle: 0,
-      dragStartPosition: null
-    }));
-    // 전역 드래그 상태 off (스크롤락 해제)
-    setDragging(false);
-
-    // 탭 감지 (더블 탭으로 가구 선택 해제)
-    const currentTime = Date.now();
-    
-    if (currentTime - touchState.lastTapTime < 300) {
-      // 더블 탭
-      onItemSelect(null);
-      setTouchState(prev => ({ ...prev, lastTapTime: 0 }));
-    } else {
-      setTouchState(prev => ({ ...prev, lastTapTime: currentTime }));
-    }
-  }, [enabled, isMobile, touchState.lastTapTime, onItemSelect]);
-
+  // 모바일이 아니거나 비활성화된 경우 렌더링하지 않음
   if (!enabled || !isMobile) {
     return null;
   }
@@ -195,10 +144,37 @@ export const EnhancedTouchControls: React.FC<EnhancedTouchControlsProps> = ({
       position={[0, 0.01, 0]} // 바닥보다 약간 위에 배치
       rotation={[-Math.PI / 2, 0, 0]} // 바닥과 평행하게
       scale={[20, 20, 1]} // 충분히 큰 크기로 설정
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerDown={(e) => {
+        // Pointer 이벤트를 터치 이벤트로 변환하여 훅에서 처리
+        const touchEvent = {
+          touches: [{ clientX: e.clientX, clientY: e.clientY }],
+          changedTouches: [],
+          preventDefault: () => {},
+          stopPropagation: () => e.stopPropagation()
+        } as any;
+        
+        touchCallbacks.onDragStart?.(e.clientX, e.clientY);
+      }}
+      onPointerMove={(e) => {
+        if (touchState.isDragging && selectedItemId && dragStartPosition) {
+          const worldPos = screenToWorld(e.clientX, e.clientY, size.width, size.height);
+          if (worldPos) {
+            const newPosition = new Vector3(
+              worldPos.x,
+              dragStartPosition.y, // Y축은 유지
+              worldPos.z
+            );
+            
+            onItemUpdate(selectedItemId, { position: newPosition });
+          }
+        }
+      }}
+      onPointerUp={(e) => {
+        touchCallbacks.onDragEnd?.();
+      }}
+      onPointerCancel={(e) => {
+        touchCallbacks.onDragEnd?.();
+      }}
     >
       <planeGeometry args={[1, 1]} />
       <meshBasicMaterial transparent opacity={0} />
@@ -207,5 +183,3 @@ export const EnhancedTouchControls: React.FC<EnhancedTouchControlsProps> = ({
 };
 
 export default EnhancedTouchControls;
-  // 주의: r3f Pointer 이벤트는 브라우저가 passive로 처리될 수 있음 → preventDefault 경고 발생 가능.
-  // 이 컴포넌트에서는 포인터 핸들러에서 preventDefault를 호출하지 않습니다.
