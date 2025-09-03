@@ -4,7 +4,7 @@ import { Box } from '@react-three/drei';
 import { Vector3, Euler, Group, Raycaster, Plane, Vector2 } from 'three';
 import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
-import { createFallbackModel, createFurnitureModel } from '../../../utils/modelLoader';
+import { createFallbackModel, createFurnitureModel, loadModel } from '../../../utils/modelLoader';
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
 
@@ -281,7 +281,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
   // 모델 로딩
   useEffect(() => {
-    const loadModel = async () => {
+    const loadFurnitureModel = async () => {
       try {
         setIsLoading(true);
         setLoadError(null);
@@ -294,17 +294,44 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
           return;
         }
 
-        console.info(`가구 모델 생성: ${furniture.nameKo} (${furniture.category})`);
-        const realModel = createFurnitureModel(
+        console.info(`🎯 가구 모델 로딩 시작: ${furniture.nameKo} (${furniture.category})`);
+        console.info(`📁 모델 경로: ${furniture.modelPath}`);
+        console.info(`🆔 가구 ID: ${furniture.id}`);
+        console.info(`📏 크기: ${furniture.footprint.width}x${furniture.footprint.height}x${furniture.footprint.depth}`);
+
+        // 실제 GLTF 모델 로드 시도
+        if (furniture.modelPath) {
+          try {
+            const gltfModel = await loadModel(furniture.modelPath, {
+              useCache: true,
+              priority: 'normal'
+            });
+            
+            if (gltfModel) {
+              console.info(`✅ GLTF 모델 로드 성공: ${furniture.nameKo}`);
+              setModel(gltfModel);
+              setIsLoading(false);
+              return;
+            }
+          } catch (gltfError) {
+            console.warn(`⚠️ GLTF 모델 로드 실패, 폴백 모델 사용: ${furniture.nameKo}`);
+            console.warn(`❌ 오류 상세:`, gltfError);
+            console.warn(`📁 시도한 경로: ${furniture.modelPath}`);
+          }
+        }
+
+        // GLTF 로드 실패 시 폴백 모델 생성
+        console.info(`폴백 모델 생성: ${furniture.nameKo}`);
+        const fallbackModel = createFurnitureModel(
           furniture.footprint.width,
           furniture.footprint.height,
           furniture.footprint.depth,
           0x8B4513
         );
-        setModel(realModel);
+        setModel(fallbackModel);
         setIsLoading(false);
       } catch (error) {
-        console.error('Failed to create furniture model:', error);
+        console.error('Failed to load furniture model:', error);
         setLoadError(error instanceof Error ? error.message : 'Unknown error');
 
         const furniture = getFurnitureFromPlacedItem(item);
@@ -316,7 +343,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       }
     };
 
-    loadModel();
+    loadFurnitureModel();
 
     // 컴포넌트 언마운트 시 모델 정리
     return () => {

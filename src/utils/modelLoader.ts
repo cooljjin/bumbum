@@ -59,6 +59,8 @@ export async function loadModel(
     return createFallbackModel();
   }
 
+  console.log('🎯 실제 GLTF 모델 로딩 시도:', url);
+
   // 모델 URL 해석 (CDN/base URL 지원)
   const resolvedUrl = resolveModelUrl(url);
 
