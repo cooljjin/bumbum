@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { IconButton } from '../ui/IconButton';
+import { FiLock, FiUnlock, FiSettings, FiSave, FiHelpCircle, FiShare2, FiBarChart2, FiEdit3, FiCheck } from 'react-icons/fi';
 
 interface AppHeaderProps {
   isViewLocked: boolean;
@@ -11,6 +12,8 @@ interface AppHeaderProps {
   onShowAccessibility: () => void;
   onShowExport: () => void;
   onShowAnalytics: () => void;
+  isEditMode?: boolean;
+  onEditModeToggle?: () => void;
 }
 
 export function AppHeader({
@@ -20,7 +23,9 @@ export function AppHeader({
   onShowUserPreferences,
   onShowAccessibility,
   onShowExport,
-  onShowAnalytics
+  onShowAnalytics,
+  isEditMode = false,
+  onEditModeToggle
 }: AppHeaderProps) {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -46,23 +51,36 @@ export function AppHeader({
             🏠 미니룸
           </h1>
 
-                    <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            {/* 편집 모드 토글 버튼 */}
+            {onEditModeToggle && (
+              <IconButton
+                icon={isEditMode ? <FiCheck size={18} /> : <FiEdit3 size={18} />}
+                onClick={onEditModeToggle}
+                title={isEditMode ? '편집 모드 종료' : '편집 모드 시작'}
+                ariaLabel={isEditMode ? '편집 모드 종료' : '편집 모드 시작'}
+                variant={isEditMode ? 'primary' : 'default'}
+              />
+            )}
+
             <IconButton
-              icon={isViewLocked ? '🔒' : '🔓'}
+              icon={isViewLocked ? <FiLock size={18} /> : <FiUnlock size={18} />}
               onClick={onViewLockToggle}
               title={isViewLocked ? '시점 고정 해제' : '시점 고정'}
+              ariaLabel={isViewLocked ? '시점 고정 해제' : '시점 고정'}
               variant={isViewLocked ? 'danger' : 'default'}
             />
 
             <IconButton
-              icon="⚙️"
+              icon={<FiSettings size={18} />}
               onClick={onShowSettings}
               title="설정"
+              ariaLabel="설정"
               variant="default"
             />
 
             <IconButton
-              icon="💾"
+              icon={<FiSave size={18} />}
               onClick={onShowUserPreferences}
               title="내 디자인"
               ariaLabel="사용자 디자인 관리"
@@ -70,7 +88,7 @@ export function AppHeader({
             />
 
             <IconButton
-              icon="♿"
+              icon={<FiHelpCircle size={18} />}
               onClick={onShowAccessibility}
               title="접근성 설정"
               ariaLabel="접근성 설정 열기"
@@ -78,7 +96,7 @@ export function AppHeader({
             />
 
             <IconButton
-              icon="📤"
+              icon={<FiShare2 size={18} />}
               onClick={onShowExport}
               title="내보내기 및 공유"
               ariaLabel="디자인 내보내기 및 공유"
@@ -86,7 +104,7 @@ export function AppHeader({
             />
 
             <IconButton
-              icon="📊"
+              icon={<FiBarChart2 size={18} />}
               onClick={onShowAnalytics}
               title="사용 분석"
               ariaLabel="사용 분석 대시보드"

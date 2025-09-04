@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { shouldUsePlaceholderModels } from './placeholder';
 
 // 모델 로더 인스턴스 (싱글톤)
@@ -102,7 +103,7 @@ export async function loadModel(
       } : undefined;
 
     // 모델 로드
-    const gltf = await new Promise<THREE.GLTF>((resolve, reject) => {
+    const gltf = await new Promise<GLTF>((resolve, reject) => {
       const loader = getGLTFLoader();
       
       if (progressHandler) {
@@ -119,6 +120,16 @@ export async function loadModel(
       console.warn(`⚠️ 로드된 모델이 비어있음, 더미 파일일 가능성: ${resolvedUrl}`);
       throw new Error('Empty model detected - likely dummy file');
     }
+    
+    // 모델 크기 분석 및 로깅
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    
+    console.log(`📊 모델 크기 분석: ${resolvedUrl}`);
+    console.log(`   📐 크기: ${size.x.toFixed(3)}m × ${size.y.toFixed(3)}m × ${size.z.toFixed(3)}m`);
+    console.log(`   🎯 중심점: (${center.x.toFixed(3)}, ${center.y.toFixed(3)}, ${center.z.toFixed(3)})`);
+    console.log(`   📦 바운딩 박스: min(${box.min.x.toFixed(3)}, ${box.min.y.toFixed(3)}, ${box.min.z.toFixed(3)}) ~ max(${box.max.x.toFixed(3)}, ${box.max.y.toFixed(3)}, ${box.max.z.toFixed(3)})`);
     
     // 모델 최적화
     optimizeModel(model);
@@ -144,7 +155,7 @@ export async function loadModel(
  */
 export function resolveModelUrl(url: string): string {
   if (/^https?:\/\//i.test(url)) return url;
-  const base = process.env.NEXT_PUBLIC_GLTF_BASE_URL;
+  const base = process.env['NEXT_PUBLIC_GLTF_BASE_URL'];
   if (!base) return url; // 기본: 상대 경로 유지 (Next 정적 파일)
   const trimmedBase = base.replace(/\/$/, '');
   const trimmedPath = url.replace(/^\//, '');
@@ -540,6 +551,48 @@ export function createClockFallbackModel(): THREE.Group {
 }
 
 /**
+ * 모델 크기와 footprint 크기를 비교하는 함수
+ */
+export function compareModelWithFootprint(
+  model: THREE.Group,
+  footprint: { width: number; height: number; depth: number },
+  modelName: string
+): void {
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  
+  console.log(`\n🔍 크기 비교 분석: ${modelName}`);
+  console.log(`   📏 Footprint: ${footprint.width}m × ${footprint.height}m × ${footprint.depth}m`);
+  console.log(`   📐 실제 모델: ${size.x.toFixed(3)}m × ${size.y.toFixed(3)}m × ${size.z.toFixed(3)}m`);
+  
+  // 스케일 비율 계산
+  const scaleX = footprint.width / size.x;
+  const scaleY = footprint.height / size.y;
+  const scaleZ = footprint.depth / size.z;
+  
+  console.log(`   🔧 필요한 스케일: X=${scaleX.toFixed(3)}, Y=${scaleY.toFixed(3)}, Z=${scaleZ.toFixed(3)}`);
+  
+  // 크기 차이 분석
+  const diffX = Math.abs(size.x - footprint.width);
+  const diffY = Math.abs(size.y - footprint.height);
+  const diffZ = Math.abs(size.z - footprint.depth);
+  
+  console.log(`   📊 크기 차이: X=${diffX.toFixed(3)}m, Y=${diffY.toFixed(3)}m, Z=${diffZ.toFixed(3)}m`);
+  
+  // 매칭 상태 평가
+  const tolerance = 0.01; // 1cm 허용 오차
+  const isMatched = diffX < tolerance && diffY < tolerance && diffZ < tolerance;
+  
+  if (isMatched) {
+    console.log(`   ✅ 크기 매칭: 완벽하게 일치`);
+  } else {
+    console.log(`   ⚠️ 크기 불일치: 조정 필요`);
+  }
+  
+  console.log(`\n`);
+}
+
+/**
  * 가구 모델을 생성합니다 (기본 형태)
  */
 export function createFurnitureModel(
@@ -549,14 +602,50 @@ export function createFurnitureModel(
   color: number = 0x8B4513
 ): THREE.Group {
   const group = new THREE.Group();
-  const geometry = new THREE.BoxGeometry(width, height, depth);
-  const material = new THREE.MeshLambertMaterial({ color });
-  const mesh = new THREE.Mesh(geometry, material);
   
-  // 그림자 설정
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
+  // 메인 바디
+  const bodyGeometry = new THREE.BoxGeometry(width, height, depth);
+  const bodyMaterial = new THREE.MeshLambertMaterial({ color });
+  const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+  bodyMesh.castShadow = true;
+  bodyMesh.receiveShadow = true;
+  group.add(bodyMesh);
   
-  group.add(mesh);
+  // 테이블의 경우 다리 추가
+  if (height > 0.5) { // 높이가 0.5m 이상이면 테이블로 간주
+    const legHeight = height * 0.8;
+    const legThickness = Math.min(width, depth) * 0.1;
+    const legGeometry = new THREE.BoxGeometry(legThickness, legHeight, legThickness);
+    const legMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+    
+    // 4개의 다리
+    const legPositions = [
+      { x: width * 0.3, z: depth * 0.3 },
+      { x: -width * 0.3, z: depth * 0.3 },
+      { x: width * 0.3, z: -depth * 0.3 },
+      { x: -width * 0.3, z: -depth * 0.3 }
+    ];
+    
+    legPositions.forEach(pos => {
+      const leg = new THREE.Mesh(legGeometry, legMaterial);
+      leg.position.set(pos.x, -height * 0.4, pos.z);
+      leg.castShadow = true;
+      leg.receiveShadow = true;
+      group.add(leg);
+    });
+  }
+  
+  // 소파의 경우 등받이 추가
+  if (width > 1.5 && height > 0.6) { // 소파로 간주
+    const backHeight = height * 0.6;
+    const backGeometry = new THREE.BoxGeometry(width, backHeight, depth * 0.1);
+    const backMaterial = new THREE.MeshLambertMaterial({ color: color * 0.9 });
+    const backMesh = new THREE.Mesh(backGeometry, backMaterial);
+    backMesh.position.set(0, height * 0.2, -depth * 0.45);
+    backMesh.castShadow = true;
+    backMesh.receiveShadow = true;
+    group.add(backMesh);
+  }
+  
   return group;
 }

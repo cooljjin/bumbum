@@ -3,7 +3,7 @@
 import React from 'react';
 
 interface IconButtonProps {
-  icon: string;
+  icon: React.ReactNode;
   onClick: () => void;
   title?: string;
   ariaLabel?: string;

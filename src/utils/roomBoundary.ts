@@ -38,18 +38,23 @@ export const getRoomBoundaries = () => {
   };
 };
 
-// 가구의 경계 상자 계산 (간단한 구면 근사)
-export const getFurnitureBounds = (item: PlacedItem, safetyMargin: number = 0.3) => {
-  // 가구의 크기를 추정 (실제로는 3D 모델의 바운딩 박스를 사용해야 함)
-  const estimatedSize = 1.0; // 기본 추정 크기
+// 가구의 경계 상자 계산 (실제 footprint 크기 사용)
+export const getFurnitureBounds = (item: PlacedItem, safetyMargin: number = 0.1) => {
+  // 실제 footprint 크기 사용 (스케일 적용)
+  const halfWidth = (item.footprint.width * item.scale.x) / 2;
+  const halfDepth = (item.footprint.depth * item.scale.z) / 2;
+  const height = item.footprint.height * item.scale.y;
+  
+  console.log(`📏 가구 경계 계산: ${item.name} - 크기: ${item.footprint.width}x${item.footprint.height}x${item.footprint.depth}, 스케일: ${item.scale.x}x${item.scale.y}x${item.scale.z}`);
+  console.log(`📐 실제 크기: ${(halfWidth * 2).toFixed(2)} x ${height.toFixed(2)} x ${(halfDepth * 2).toFixed(2)}`);
   
   return {
-    minX: item.position.x - estimatedSize - safetyMargin,
-    maxX: item.position.x + estimatedSize + safetyMargin,
-    minZ: item.position.z - estimatedSize - safetyMargin,
-    maxZ: item.position.z + estimatedSize + safetyMargin,
+    minX: item.position.x - halfWidth - safetyMargin,
+    maxX: item.position.x + halfWidth + safetyMargin,
+    minZ: item.position.z - halfDepth - safetyMargin,
+    maxZ: item.position.z + halfDepth + safetyMargin,
     minY: item.position.y,
-    maxY: item.position.y + estimatedSize + safetyMargin
+    maxY: item.position.y + height + safetyMargin
   };
 };
 
@@ -80,32 +85,38 @@ export const isFurnitureInRoom = (item: PlacedItem): boolean => {
 export const constrainFurnitureToRoom = (item: PlacedItem): PlacedItem => {
   const boundaries = getRoomBoundaries();
   const furnitureBounds = getFurnitureBounds(item);
-  const estimatedSize = 1.0;
+  
+  // 실제 footprint 크기 사용
+  const halfWidth = (item.footprint.width * item.scale.x) / 2;
+  const halfDepth = (item.footprint.depth * item.scale.z) / 2;
+  const height = item.footprint.height * item.scale.y;
   
   let newX = item.position.x;
   let newZ = item.position.z;
   let newY = item.position.y;
   
-  // X축 제한
+  // X축 제한 (실제 크기 고려)
   if (furnitureBounds.minX < boundaries.minX) {
-    newX = boundaries.minX + estimatedSize;
+    newX = boundaries.minX + halfWidth;
   } else if (furnitureBounds.maxX > boundaries.maxX) {
-    newX = boundaries.maxX - estimatedSize;
+    newX = boundaries.maxX - halfWidth;
   }
   
-  // Z축 제한
+  // Z축 제한 (실제 크기 고려)
   if (furnitureBounds.minZ < boundaries.minZ) {
-    newZ = boundaries.minZ + estimatedSize;
+    newZ = boundaries.minZ + halfDepth;
   } else if (furnitureBounds.maxZ > boundaries.maxZ) {
-    newZ = boundaries.maxZ - estimatedSize;
+    newZ = boundaries.maxZ - halfDepth;
   }
   
-  // Y축 제한
+  // Y축 제한 (실제 높이 고려)
   if (furnitureBounds.minY < boundaries.minY) {
     newY = boundaries.minY;
   } else if (furnitureBounds.maxY > boundaries.maxY) {
-    newY = boundaries.maxY - estimatedSize;
+    newY = boundaries.maxY - height;
   }
+  
+  console.log(`🔧 가구 위치 제한: ${item.name} - 원래: (${item.position.x.toFixed(2)}, ${item.position.y.toFixed(2)}, ${item.position.z.toFixed(2)}) -> 새 위치: (${newX.toFixed(2)}, ${newY.toFixed(2)}, ${newZ.toFixed(2)})`);
   
   return {
     ...item,

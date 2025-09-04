@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { CameraControls, AdaptiveDpr, AdaptiveEvents } from '@react-three/drei';
+import { CameraControls, AdaptiveEvents, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface Canvas3DProps {
@@ -146,6 +146,9 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
           {/* 배경색 설정 */}
           <color attach="background" args={['#f8fafc']} />
 
+          {/* 환경 맵핑 - 크롬 재질 반사를 위해 추가 */}
+          <Environment preset="apartment" />
+
           {/* 조명 */}
           <ambientLight intensity={0.6} color="#ffffff" />
           <hemisphereLight args={['#87CEEB', '#C0C0C0', 0.4]} />
@@ -166,10 +169,10 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
             shadow-bias={-0.0001}
           />
 
-          {/* 편집 모드나 모바일에서는 AdaptiveDpr 비활성화 */}
-          {!isEditMode && !isMobile && (
+          {/* AdaptiveDpr 완전 비활성화 - 에셋 선택 시 화면 뿌옇게 변하는 문제 해결 */}
+          {/* {!isEditMode && !isMobile && (
             <AdaptiveDpr pixelated={false} />
-          )}
+          )} */}
           <AdaptiveEvents />
 
           {children}

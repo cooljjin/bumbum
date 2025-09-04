@@ -137,7 +137,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '글라스 커피 테이블',
     category: 'living',
     subcategory: 'table',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 테스트 테이블 모델 사용
     thumbnailPath: '/thumbnails/furniture/coffee-table-001.svg',
     footprint: {
       width: 1.2,
@@ -414,6 +414,46 @@ export const sampleFurniture: FurnitureItem[] = [
     }
   },
 
+  {
+    id: 'golden-glow-lamp-0904034529',
+    name: 'Golden Glow Lamp',
+    nameKo: '골든 글로우 램프',
+    category: 'living',
+    subcategory: 'lighting',
+    modelPath: '/models/furniture/Golden_Glow_Lamp_0904034529_texture.glb',
+    thumbnailPath: '/thumbnails/furniture/golden-glow-lamp-0904034529.png',
+    footprint: {
+      width: 0.4,
+      depth: 0.4,
+      height: 0.7
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0
+    },
+    metadata: {
+      brand: 'GoldenGlow',
+      model: 'GG-L-0904034529',
+      price: 120000,
+      description: '부드러운 황금빛 글로우를 내는 세련된 테이블 램프',
+      tags: ['조명', '테이블램프', '골든', '글로우', '세련됨', '황금빛'],
+      materials: ['유리', '크롬', '금속'],
+      colors: ['골드', '크롬', '크림']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 15,
+      collisionGroup: 'lighting'
+    }
+  },
+
   // === 침실 가구 ===
   {
     id: 'bed-001',
@@ -439,6 +479,87 @@ export const sampleFurniture: FurnitureItem[] = [
       price: 800000,
       description: '편안한 수면을 위한 퀸 사이즈 침대',
       tags: ['침대', '침실', '퀸사이즈', '편안함'],
+      materials: ['나무', '천'],
+      colors: ['우드', '화이트', '블랙']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 90,
+      collisionGroup: 'furniture'
+    }
+  },
+
+  // 추가 침대 옵션들
+  {
+    id: 'bed-single-001',
+    name: 'Single Bed',
+    nameKo: '싱글 침대',
+    category: 'bedroom',
+    subcategory: 'bed',
+    modelPath: null,
+    thumbnailPath: '/thumbnails/furniture/bed-single-001.svg',
+    footprint: {
+      width: 1.0,
+      depth: 2.0,
+      height: 0.6
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0
+    },
+    metadata: {
+      brand: 'SleepWell',
+      model: 'SB-001',
+      price: 450000,
+      description: '1인용으로 적합한 싱글 침대',
+      tags: ['침대', '침실', '싱글', '1인용', '컴팩트'],
+      materials: ['나무', '천'],
+      colors: ['우드', '화이트', '블랙']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 90,
+      collisionGroup: 'furniture'
+    }
+  },
+
+  {
+    id: 'bed-king-001',
+    name: 'King Size Bed',
+    nameKo: '킹 사이즈 침대',
+    category: 'bedroom',
+    subcategory: 'bed',
+    modelPath: null,
+    thumbnailPath: '/thumbnails/furniture/bed-king-001.svg',
+    footprint: {
+      width: 1.8,
+      depth: 2.0,
+      height: 0.6
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0
+    },
+    metadata: {
+      brand: 'SleepWell',
+      model: 'KB-001',
+      price: 1200000,
+      description: '넓은 공간을 제공하는 킹 사이즈 침대',
+      tags: ['침대', '침실', '킹사이즈', '넓은', '편안함'],
       materials: ['나무', '천'],
       colors: ['우드', '화이트', '블랙']
     },
@@ -1144,12 +1265,94 @@ export const sampleFurniture: FurnitureItem[] = [
     }
   },
 
-  // Clock 추가
+  // Test Table 추가
+  {
+    id: 'testtable',
+    name: 'Test Table',
+    nameKo: '테스트 테이블',
+    category: 'living',
+    subcategory: 'table',
+    modelPath: '/models/furniture/testtable.glb',
+    thumbnailPath: '/thumbnails/furniture/testtable.svg',
+    footprint: {
+      width: 1.2,
+      depth: 0.8,
+      height: 0.75
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0
+    },
+    metadata: {
+      brand: 'TestFurniture',
+      model: 'TF-TT-001',
+      price: 120000,
+      description: '테스트용 테이블 모델',
+      tags: ['테이블', '테스트', '실험용'],
+      materials: ['나무', '메탈'],
+      colors: ['우드', '블랙']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 15,
+      collisionGroup: 'furniture'
+    }
+  },
+
+  // Test Bed 추가
+  {
+    id: 'testbed',
+    name: 'Test Bed',
+    nameKo: '테스트 침대',
+    category: 'bedroom',
+    subcategory: 'bed',
+    modelPath: '/models/furniture/_testbed.glb',
+    thumbnailPath: '/thumbnails/furniture/_testbed.svg',
+    footprint: {
+      width: 1.6,
+      depth: 2.0,
+      height: 0.6
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0
+    },
+    metadata: {
+      brand: 'TestFurniture',
+      model: 'TF-TB-001',
+      price: 600000,
+      description: '테스트용 침대 모델',
+      tags: ['침대', '테스트', '실험용', '침실'],
+      materials: ['나무', '천'],
+      colors: ['우드', '화이트', '블랙']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 90,
+      collisionGroup: 'furniture'
+    }
+  },
+
+  // === 시계 및 시간 관련 장식품 ===
   {
     id: 'clock',
     name: 'Wall Clock',
     nameKo: '벽시계',
-    category: 'decor',
+    category: 'decorative',
     subcategory: 'clock',
     modelPath: '/models/furniture/clock.glb',
     thumbnailPath: '/thumbnails/furniture/clock.png',
@@ -1161,7 +1364,9 @@ export const sampleFurniture: FurnitureItem[] = [
     placement: {
       canRotate: true,
       canScale: true,
-      floorOffset: 0
+      floorOffset: 0,
+      wallOnly: true,
+      wallHeight: 1.8
     },
     metadata: {
       brand: 'TimeDesign',
@@ -1171,6 +1376,86 @@ export const sampleFurniture: FurnitureItem[] = [
       tags: ['시계', '벽걸이', '우아한', '실용적'],
       materials: ['나무', '유리'],
       colors: ['우드', '화이트', '블랙']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, Math.PI / 2)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 15,
+      collisionGroup: 'furniture'
+    }
+  },
+
+  {
+    id: 'clock-modern-001',
+    name: 'Modern Digital Clock',
+    nameKo: '모던 디지털 시계',
+    category: 'decorative',
+    subcategory: 'clock',
+    modelPath: null,
+    thumbnailPath: '/thumbnails/furniture/clock-modern-001.svg',
+    footprint: {
+      width: 0.3,
+      depth: 0.05,
+      height: 0.2
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0
+    },
+    metadata: {
+      brand: 'TechTime',
+      model: 'TT-DC-001',
+      price: 65000,
+      description: '현대적인 디지털 디스플레이가 있는 벽시계',
+      tags: ['시계', '디지털', '모던', '벽걸이', '현대적'],
+      materials: ['플라스틱', '메탈'],
+      colors: ['블랙', '화이트', '실버']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 15,
+      collisionGroup: 'furniture'
+    }
+  },
+
+  {
+    id: 'clock-vintage-001',
+    name: 'Vintage Wall Clock',
+    nameKo: '빈티지 벽시계',
+    category: 'decorative',
+    subcategory: 'clock',
+    modelPath: null,
+    thumbnailPath: '/thumbnails/furniture/clock-vintage-001.svg',
+    footprint: {
+      width: 0.5,
+      depth: 0.1,
+      height: 0.5
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0
+    },
+    metadata: {
+      brand: 'VintageTime',
+      model: 'VT-WC-001',
+      price: 85000,
+      description: '클래식한 빈티지 스타일의 벽시계',
+      tags: ['시계', '빈티지', '클래식', '벽걸이', '레트로'],
+      materials: ['나무', '금속'],
+      colors: ['골드', '브라운', '블랙']
     },
     renderSettings: {
       castShadow: true,

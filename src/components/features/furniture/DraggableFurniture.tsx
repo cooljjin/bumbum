@@ -1,14 +1,81 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { useThree } from '@react-three/fiber';
+import { useThree, useFrame } from '@react-three/fiber';
 import { Box } from '@react-three/drei';
 import { Vector3, Euler, Group, Raycaster, Plane, Vector2 } from 'three';
 import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
-import { createFallbackModel, createFurnitureModel, loadModel } from '../../../utils/modelLoader';
+import { createFallbackModel, createFurnitureModel, loadModel, compareModelWithFootprint } from '../../../utils/modelLoader';
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
+import { constrainFurnitureToRoom, isFurnitureInRoom } from '../../../utils/roomBoundary';
+import * as THREE from 'three';
 
-
+/**
+ * 모델을 footprint 크기에 맞게 조정하는 함수
+ * 벽 통과 방지를 위해 정확한 크기 매칭 구현
+ */
+const adjustModelToFootprint = (model: THREE.Group, footprint: { width: number; height: number; depth: number }): THREE.Group => {
+  // 모델의 바운딩 박스 계산
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  
+  console.log(`📐 원본 모델 크기: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`);
+  console.log(`📏 목표 footprint: ${footprint.width} x ${footprint.height} x ${footprint.depth}`);
+  console.log(`🎯 원본 모델 중심점: (${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)})`);
+  
+  // 스케일 비율 계산 (각 축별로 정확히 맞춤)
+  const scaleX = footprint.width / size.x;
+  const scaleY = footprint.height / size.y;
+  const scaleZ = footprint.depth / size.z;
+  
+  const scale = new THREE.Vector3(scaleX, scaleY, scaleZ);
+  
+  console.log(`🔧 적용할 스케일: ${scale.x.toFixed(3)} x ${scale.y.toFixed(3)} x ${scale.z.toFixed(3)}`);
+  
+  // 모델 복사 및 스케일 적용
+  const adjustedModel = model.clone();
+  adjustedModel.scale.copy(scale);
+  
+  // 스케일 적용 후 새로운 바운딩 박스 계산
+  const adjustedBox = new THREE.Box3().setFromObject(adjustedModel);
+  const adjustedSize = adjustedBox.getSize(new THREE.Vector3());
+  const adjustedCenter = adjustedBox.getCenter(new THREE.Vector3());
+  
+  console.log(`📐 스케일 적용 후 크기: ${adjustedSize.x.toFixed(2)} x ${adjustedSize.y.toFixed(2)} x ${adjustedSize.z.toFixed(2)}`);
+  console.log(`🎯 스케일 적용 후 중심점: (${adjustedCenter.x.toFixed(2)}, ${adjustedCenter.y.toFixed(2)}, ${adjustedCenter.z.toFixed(2)})`);
+  
+  // 모델을 바닥에 정확히 맞춤 (Y축 위치 조정)
+  // 바닥이 Y=0이 되도록 모델의 하단이 Y=0에 위치하도록 조정
+  const bottomY = adjustedCenter.y - adjustedSize.y / 2;
+  adjustedModel.position.y = -bottomY;
+  
+  // X, Z축도 중심을 원점으로 맞춤 (선택적)
+  adjustedModel.position.x = -adjustedCenter.x;
+  adjustedModel.position.z = -adjustedCenter.z;
+  
+  // 최종 검증
+  const finalBox = new THREE.Box3().setFromObject(adjustedModel);
+  const finalSize = finalBox.getSize(new THREE.Vector3());
+  const finalCenter = finalBox.getCenter(new THREE.Vector3());
+  
+  console.log(`✅ 최종 모델 크기: ${finalSize.x.toFixed(2)} x ${finalSize.y.toFixed(2)} x ${finalSize.z.toFixed(2)}`);
+  console.log(`✅ 최종 모델 중심점: (${finalCenter.x.toFixed(2)}, ${finalCenter.y.toFixed(2)}, ${finalCenter.z.toFixed(2)})`);
+  
+  // 크기 검증 (허용 오차 1cm)
+  const tolerance = 0.01;
+  const sizeMatches = Math.abs(finalSize.x - footprint.width) < tolerance &&
+                     Math.abs(finalSize.y - footprint.height) < tolerance &&
+                     Math.abs(finalSize.z - footprint.depth) < tolerance;
+  
+  if (!sizeMatches) {
+    console.warn(`⚠️ 크기 매칭 실패! 목표: ${footprint.width}x${footprint.height}x${footprint.depth}, 실제: ${finalSize.x.toFixed(2)}x${finalSize.y.toFixed(2)}x${finalSize.z.toFixed(2)}`);
+  } else {
+    console.log(`✅ 크기 매칭 성공!`);
+  }
+  
+  return adjustedModel;
+};
 
 interface DraggableFurnitureProps {
   item: PlacedItem;
@@ -17,6 +84,7 @@ interface DraggableFurnitureProps {
   onSelect: (id: string | null) => void;
   onUpdate: (id: string, updates: Partial<PlacedItem>) => void;
   onDelete: (id: string) => void;
+  onDuplicate?: (item: PlacedItem) => void;
 }
 
 export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(({
@@ -24,7 +92,9 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   isSelected,
   isEditMode,
   onSelect,
-  onUpdate
+  onUpdate,
+  onDelete,
+  onDuplicate
 }) => {
   console.log('[DraggableFurniture] mounted', item?.id);
 
@@ -32,6 +102,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   const [model, setModel] = useState<Group | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const originalEmissiveRef = useRef<Map<THREE.Material, THREE.Color>>(new Map());
 
   // 🖱️ 드래그 앤 드롭 관련 상태 변수들
   const [isDragging, setIsDragging] = useState(false);
@@ -175,10 +246,20 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     // Y 위치는 원래 높이 유지
     newPosition.y = dragStartPosition.y;
 
-    // 위치 업데이트
-    onUpdate(item.id, { position: newPosition });
-
-    console.log('🔄 드래그 중:', newPosition, event.touches ? '(터치)' : '(마우스)');
+    // 임시 아이템으로 충돌 감지
+    const tempItem = { ...item, position: newPosition };
+    
+    // 방 경계 내에 있는지 확인
+    if (isFurnitureInRoom(tempItem)) {
+      // 방 안에 있으면 위치 업데이트
+      onUpdate(item.id, { position: newPosition });
+      console.log('✅ 드래그 중 (방 안):', newPosition, event.touches ? '(터치)' : '(마우스)');
+    } else {
+      // 방 밖에 있으면 제한된 위치로 이동
+      const constrainedItem = constrainFurnitureToRoom(tempItem);
+      onUpdate(item.id, { position: constrainedItem.position });
+      console.log('🚫 드래그 중 (방 밖, 제한됨):', constrainedItem.position, event.touches ? '(터치)' : '(마우스)');
+    }
   }, [isDragging, dragStartPosition, dragStartMousePosition, camera, grid, item.id, onUpdate]);
 
   // ✅ 드래그 종료 핸들러
@@ -186,6 +267,13 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     if (!isDragging) return;
 
     event.stopPropagation();
+
+    // 최종 위치 검증 및 제한
+    const finalItem = constrainFurnitureToRoom(item);
+    if (!finalItem.position.equals(item.position)) {
+      onUpdate(item.id, { position: finalItem.position });
+      console.log('🔧 드래그 종료 시 위치 제한 적용:', finalItem.position);
+    }
 
     setIsDragging(false);
     setDragStartPosition(null);
@@ -195,16 +283,20 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     setDragging(false);
 
     console.log('✅ 드래그 종료:', item.name);
-  }, [isDragging, item.name, setDragging]);
+  }, [isDragging, item, onUpdate, setDragging]);
 
   // 🖱️ 마우스 이벤트 핸들러
-  const handleMouseDown = useCallback((event: any) => {
-    if (event.button === 0) { // 좌클릭만
+  // 포인터 다운(마우스/터치 공통)
+  const handlePointerDown = useCallback((event: any) => {
+    const isTouch = event.pointerType === 'touch' || !!event.touches;
+    const isLeft = event.button === 0 || event.button === undefined;
+    if (isTouch || isLeft) {
+      try { event.currentTarget?.setPointerCapture?.(event.pointerId); } catch {}
       handleDragStart(event);
     }
   }, [handleDragStart]);
 
-  const handleMouseMove = useCallback((event: any) => {
+  const handlePointerMove = useCallback((event: any) => {
     if (isDragging) {
       if (event?.touches || event?.type === 'touchmove' || event?.nativeEvent?.touches) {
         safePreventDefault(event);
@@ -213,7 +305,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     }
   }, [isDragging, handleDrag]);
 
-  const handleMouseUp = useCallback((event: any) => {
+  const handlePointerUp = useCallback((event: any) => {
     if (isDragging) {
       handleDragEnd(event);
     }
@@ -233,33 +325,32 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   // 전역 마우스 및 터치 이벤트 리스너
   useEffect((): (() => void) | void => {
     if (isDragging) {
-      // 마우스 이벤트
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      
-      // 터치 이벤트 (모바일 지원)
-      window.addEventListener('touchmove', handleMouseMove, { passive: false });
-      window.addEventListener('touchend', handleMouseUp, { passive: false });
+      // 마우스/포인터 이벤트
+      window.addEventListener('mousemove', handlePointerMove);
+      window.addEventListener('mouseup', handlePointerUp);
+      // 터치
+      window.addEventListener('touchmove', handlePointerMove, { passive: false });
+      window.addEventListener('touchend', handlePointerUp, { passive: false });
 
       return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-        window.removeEventListener('touchmove', handleMouseMove);
-        window.removeEventListener('touchend', handleMouseUp);
+        window.removeEventListener('mousemove', handlePointerMove);
+        window.removeEventListener('mouseup', handlePointerUp);
+        window.removeEventListener('touchmove', handlePointerMove);
+        window.removeEventListener('touchend', handlePointerUp);
       };
     }
     return undefined;
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, handlePointerMove, handlePointerUp]);
 
   // 컴포넌트가 언마운트될 때 이벤트 리스너 정리
   useEffect(() => {
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchmove', handleMouseMove);
-      window.removeEventListener('touchend', handleMouseUp);
+      window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('mouseup', handlePointerUp);
+      window.removeEventListener('touchmove', handlePointerMove);
+      window.removeEventListener('touchend', handlePointerUp);
     };
-  }, [handleMouseMove, handleMouseUp]);
+  }, [handlePointerMove, handlePointerUp]);
 
   // 클릭 이벤트 처리
   const handleClick = useCallback((event: any) => {
@@ -309,7 +400,13 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
             
             if (gltfModel) {
               console.info(`✅ GLTF 모델 로드 성공: ${furniture.nameKo}`);
-              setModel(gltfModel);
+              
+              // 원본 모델과 footprint 크기 비교
+              compareModelWithFootprint(gltfModel, furniture.footprint, furniture.nameKo);
+              
+              // 모델 크기를 footprint에 맞게 조정
+              const adjustedModel = adjustModelToFootprint(gltfModel, furniture.footprint);
+              setModel(adjustedModel);
               setIsLoading(false);
               return;
             }
@@ -322,11 +419,38 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
         // GLTF 로드 실패 시 폴백 모델 생성
         console.info(`폴백 모델 생성: ${furniture.nameKo}`);
+        
+        // 카테고리별 색상 선택
+        const getCategoryColor = (category: string, subcategory?: string) => {
+          switch (category) {
+            case 'living':
+              if (subcategory === 'sofa') return 0x8B4513; // 갈색
+              if (subcategory === 'table') return 0xDEB887; // 버건디
+              if (subcategory === 'chair') return 0x8B4513; // 갈색
+              return 0x8B4513;
+            case 'bedroom':
+              if (subcategory === 'bed') return 0x8B4513; // 갈색
+              if (subcategory === 'storage') return 0xDEB887; // 버건디
+              return 0x8B4513;
+            case 'kitchen':
+              return 0xDEB887; // 버건디
+            case 'office':
+              return 0x696969; // 회색
+            case 'storage':
+              return 0xDEB887; // 버건디
+            case 'decorative':
+              if (subcategory === 'clock') return 0xFFFFFF; // 흰색
+              return 0xDEB887; // 버건디
+            default:
+              return 0x8B4513; // 기본 갈색
+          }
+        };
+        
         const fallbackModel = createFurnitureModel(
           furniture.footprint.width,
           furniture.footprint.height,
           furniture.footprint.depth,
-          0x8B4513
+          getCategoryColor(furniture.category, furniture.subcategory)
         );
         setModel(fallbackModel);
         setIsLoading(false);
@@ -400,6 +524,39 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     }
   }, [item.id, item.isLocked, item.position, item.rotation, item.scale]);
 
+  // 선택 상태에 따른 하이라이트 효과
+  useFrame(() => {
+    if (model) {
+      model.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material) {
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          
+          materials.forEach((material) => {
+            if (material.emissive) {
+              if (isSelected) {
+                // 선택된 상태: 하이라이트 효과 적용
+                if (!originalEmissiveRef.current.has(material)) {
+                  // 원본 emissive 색상 저장
+                  originalEmissiveRef.current.set(material, material.emissive.clone());
+                }
+                material.emissive.setHex(0x444444);
+              } else {
+                // 선택 해제된 상태: 원본 색상으로 복원
+                const originalEmissive = originalEmissiveRef.current.get(material);
+                if (originalEmissive) {
+                  material.emissive.copy(originalEmissive);
+                } else {
+                  // 원본 색상이 저장되지 않은 경우 검은색으로 설정
+                  material.emissive.setHex(0x000000);
+                }
+              }
+            }
+          });
+        }
+      });
+    }
+  });
+
   // 로딩 상태 표시
   if (isLoading) {
     return (
@@ -441,9 +598,9 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         rotation={safeRotation(item.rotation)}
         scale={safeScale(item.scale)}
         onClick={handleClick}
-        onPointerDown={handleMouseDown}
-        onPointerMove={handleMouseMove}
-        onPointerUp={handleMouseUp}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
         onPointerOver={handlePointerEnter}
         onPointerOut={handlePointerLeave}
         onWheel={(e) => e.stopPropagation()}
@@ -452,13 +609,25 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         {model && (
           <primitive
             object={model}
-            onPointerDown={(e: any) => e.stopPropagation()}
-            onPointerMove={(e: any) => e.stopPropagation()}
-            onPointerUp={(e: any) => e.stopPropagation()}
+            onPointerDown={(e: any) => { e.stopPropagation(); handlePointerDown(e); }}
+            onPointerMove={(e: any) => { e.stopPropagation(); handlePointerMove(e); }}
+            onPointerUp={(e: any) => { e.stopPropagation(); handlePointerUp(e); }}
             onPointerOver={(e: any) => e.stopPropagation()}
             onPointerOut={(e: any) => e.stopPropagation()}
             onWheel={(e: any) => e.stopPropagation()}
           />
+        )}
+
+        {/* 드래그/선택 히트박스 확장 - 모바일 터치 신뢰성 향상 */}
+        {isEditMode && !item.isLocked && !isDragging && (
+          <Box
+            args={[item.footprint.width + 0.6, item.footprint.height + 0.6, item.footprint.depth + 0.6]}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          >
+            <meshBasicMaterial transparent opacity={0} />
+          </Box>
         )}
 
         {/* 드래그 중일 때 시각적 피드백 */}
@@ -475,10 +644,10 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
           </Box>
         )}
 
-        {/* 선택 표시기 */}
+        {/* 선택 표시기 - 개선된 버전 */}
         {isSelected && (
-          <Box args={[item.footprint.width + 0.1, item.footprint.height + 0.1, item.footprint.depth + 0.1]}>
-            <meshBasicMaterial color="#0066ff" transparent opacity={0.3} />
+          <Box n            args={[item.footprint.width + 0.1, item.footprint.height + 0.1, item.footprint.depth + 0.1]}n            position={[0, item.footprint.height / 2, 0]}n          >
+            <meshBasicMaterial color="#3b82f6" transparent opacity={0.4} />
           </Box>
         )}
 

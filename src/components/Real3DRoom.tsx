@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 
 // 클라이언트 사이드에서만 실행되는 컴포넌트들
@@ -8,22 +8,11 @@ const Canvas = dynamic(() => import('@react-three/fiber').then(mod => ({ default
   ssr: false,
   loading: () => <div className="w-full h-full bg-gray-100 flex items-center justify-center">3D 렌더러 로딩 중...</div>
 });
-const CameraControls = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.CameraControls })), { 
-  ssr: false,
-  loading: () => null
-});
+import { CameraControls, AdaptiveEvents } from '@react-three/drei';
 // const ContactShadows = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.ContactShadows })), { 
 //   ssr: false,
 //   loading: () => null
 // });
-const AdaptiveDpr = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.AdaptiveDpr })), { 
-  ssr: false,
-  loading: () => null
-});
-const AdaptiveEvents = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.AdaptiveEvents })), { 
-  ssr: false,
-  loading: () => null
-});
 import { useThree, useFrame } from '@react-three/fiber';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -76,6 +65,7 @@ const EnhancedTouchControls = dynamic(() => import('./features/editor/EnhancedTo
 });
 
 import { updateRoomDimensions, isFurnitureInRoom, constrainFurnitureToRoom, getRoomBoundaries } from '../utils/roomBoundary';
+import '../utils/modelSizeAnalyzer'; // 모델 크기 분석기 로드
 import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, selectItem, addItem, clearAllItems, useIsDragging } from '../store/editorStore';
 import { 
   enableScrollLock, 
@@ -117,11 +107,13 @@ const useClientSideReady = () => {
 const CameraController = React.memo(({
   isViewLocked,
   isDragging,
+  isEditMode,
   controlsRef,
   onTransitionLockChange,
 }: {
   isViewLocked: boolean;
   isDragging: boolean;
+  isEditMode: boolean;
   controlsRef: React.RefObject<import('camera-controls').default | null>;
   onTransitionLockChange?: (locked: boolean) => void;
 }) => {
@@ -252,9 +244,100 @@ const CameraController = React.memo(({
       dollySpeed={0.2}
       // 무한 줌 방지
       infinityDolly={false}
+      // 터치 제스처 매핑
+      // 보기 모드: 1손 오빗, 2손 패닝, 핀치 줌(기본)
+      // 편집 모드: 1손은 가구 드래그에 사용하므로 카메라 회전 비활성화
+      // @ts-ignore - pass-through to camera-controls
+      touches={{
+        one: isEditMode ? 'none' : 'rotate',
+        two: 'truck',
+        three: 'none'
+      }}
     />
   );
 });
+
+// 바텀시트: 카탈로그용 스냅 포인트(25/66/100%)
+function BottomSheetCatalog({
+  isOpen,
+  onClose,
+  initialSnap = 0.66,
+  children
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  initialSnap?: 0.25 | 0.66 | 1.0;
+  children: React.ReactNode;
+}) {
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const [heightPx, setHeightPx] = useState(0);
+  const snaps = [0.25, 0.66, 1.0];
+
+  const vh = () => (typeof window !== 'undefined' ? window.innerHeight : 0);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setHeightPx(Math.round(vh() * initialSnap));
+  }, [isOpen, initialSnap]);
+
+  // 드래그 핸들
+  const dragState = useRef<{ startY: number; startH: number; dragging: boolean }>({ startY: 0, startH: 0, dragging: false });
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    dragState.current = { startY: e.clientY, startH: heightPx, dragging: true };
+  }, [heightPx]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragState.current.dragging) return;
+    const dy = dragState.current.startY - e.clientY; // 위로 끌면 +
+    const newH = Math.max(vh() * 0.2, Math.min(vh(), dragState.current.startH + dy));
+    setHeightPx(newH);
+  }, []);
+
+  const onPointerUp = useCallback(() => {
+    if (!dragState.current.dragging) return;
+    dragState.current.dragging = false;
+    // 스냅
+    const ratio = heightPx / Math.max(1, vh());
+    let nearest = snaps[0];
+    let minDiff = Infinity;
+    snaps.forEach(s => { const d = Math.abs(s - ratio); if (d < minDiff) { minDiff = d; nearest = s; } });
+    // 아주 낮게 내리면 닫기
+    if (ratio < 0.22) {
+      onClose();
+    } else {
+      setHeightPx(Math.round(vh() * nearest));
+    }
+  }, [heightPx]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      ref={sheetRef}
+      className="fixed left-0 right-0 bottom-0 w-full bg-white border-t shadow-2xl z-[9999] flex flex-col"
+      style={{
+        height: `${heightPx}px`,
+        paddingBottom: 'env(safe-area-inset-bottom)'
+      }}
+    >
+      <div
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        className="w-full py-2 cursor-grab active:cursor-grabbing select-none"
+        aria-label="시트를 드래그해서 열고 닫기"
+      >
+        <div className="mx-auto h-1.5 w-10 rounded-full bg-gray-300" />
+      </div>
+      <div className="border-t border-gray-200" />
+      <div className="flex-1 min-h-0 overflow-y-auto" data-scrollable="true" style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' as any }}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const Real3DRoomComponent = React.memo(({
   shadowMode,
@@ -266,7 +349,7 @@ const Real3DRoomComponent = React.memo(({
   const isClientReady = useClientSideReady();
 
   // 모든 useState 훅들은 항상 호출되어야 함 (React Hooks 규칙)
-  const [showTransitionEffect, setShowTransitionEffect] = useState(false);
+  // const [showTransitionEffect, setShowTransitionEffect] = useState(false); // 파란색 오버레이 효과 제거
   const [showFurnitureCatalog, setShowFurnitureCatalog] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [showRoomSizeSettings, setShowRoomSizeSettings] = useState(false);
@@ -432,12 +515,13 @@ const Real3DRoomComponent = React.memo(({
   // 외부 편집 모드 상태와 편집 스토어 상태를 동기화
   const [isEditMode, setIsEditMode] = useState(externalEditMode ?? (storeEditMode === 'edit'));
 
-  // 시점 전환 시 효과 표시
+  // 시점 전환 시 효과 표시 (파란색 오버레이 제거)
   useEffect(() => {
     if (isViewLocked) {
-      setShowTransitionEffect(true);
-      const timer = setTimeout(() => setShowTransitionEffect(false), 1000);
-      return () => clearTimeout(timer);
+      // 시점 잠금 시 파란색 오버레이 효과 제거
+      // setShowTransitionEffect(true);
+      // const timer = setTimeout(() => setShowTransitionEffect(false), 1000);
+      // return () => clearTimeout(timer);
     }
     return undefined;
   }, [isViewLocked]);
@@ -894,7 +978,9 @@ const Real3DRoomComponent = React.memo(({
           const maxAnisotropy = gl.capabilities.getMaxAnisotropy();
           console.log(`🎨 GPU 최대 Anisotropy 지원: ${maxAnisotropy}`);
           
-          // 텍스처 품질 향상을 위한 추가 설정
+          // 텍스처 품질 향상을 위한 추가 설정 (모바일은 4, 데스크톱은 8까지 제한)
+          // @ts-ignore - DEFAULT_ANISOTROPY는 런타임 상수
+          THREE.Texture.DEFAULT_ANISOTROPY = Math.min(isMobile ? 4 : 8, maxAnisotropy);
           gl.outputColorSpace = THREE.SRGBColorSpace;
           
           // 추가 배경색 설정
@@ -963,6 +1049,7 @@ const Real3DRoomComponent = React.memo(({
         <CameraController
           isViewLocked={isViewLocked}
           isDragging={isDragging}
+          isEditMode={isEditMode}
           controlsRef={cameraControlsRef}
           onTransitionLockChange={setIsTransitionInputLocked}
         />
@@ -980,8 +1067,8 @@ const Real3DRoomComponent = React.memo(({
           position={[5, 10, 5]}
           intensity={0.8}
           color="#ffffff"
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
+          shadow-mapSize-width={isMobile ? 1024 : 2048}
+          shadow-mapSize-height={isMobile ? 1024 : 2048}
         />
 
         {/* 3D 룸 */}
@@ -1003,8 +1090,15 @@ const Real3DRoomComponent = React.memo(({
           showDetails={false}
         /> */}
 
-        {/* 그리드 시스템 - 편집 모드에서만 표시 */}
-        {isEditMode && <GridSystem size={10} divisions={10} color="#ffffff" />}
+        {/* 그리드 시스템 - 항상 렌더링하되 편집모드에서만 표시 (최적화) */}
+        {isClientReady && (
+          <GridSystem 
+            size={10} 
+            divisions={10} 
+            color="#ffffff" 
+            isEditMode={isEditMode}
+          />
+        )}
 
 
 
@@ -1016,7 +1110,7 @@ const Real3DRoomComponent = React.memo(({
             pulseSpeed={0.0}
             visibleEdgeColor={0x3b82f6}
             hiddenEdgeColor={0x1e40af}
-            enabled={isEditMode && selectedItemId !== null}
+            enabled={false}
           >
             {/* 배치된 가구들 - 편집 모드와 뷰 모드 모두에서 표시 */}
             {placedItems.map((item) => (
@@ -1064,10 +1158,10 @@ const Real3DRoomComponent = React.memo(({
           onItemUpdate={updateItem}
         />
 
-        {/* 편집 모드나 모바일에서는 AdaptiveDpr 비활성화하여 흐릿함 방지 */}
-        {!isEditMode && !isMobile && (
+        {/* AdaptiveDpr 완전 비활성화 - 에셋 선택 시 화면 뿌옇게 변하는 문제 해결 */}
+        {/* {!isEditMode && !isMobile && (
           <AdaptiveDpr pixelated={false} />
-        )}
+        )} */}
         <AdaptiveEvents />
       </Canvas>
 
@@ -1086,10 +1180,10 @@ const Real3DRoomComponent = React.memo(({
         />
       )}
 
-      {/* 시점 전환 효과 */}
-      {showTransitionEffect && (
+      {/* 시점 전환 효과 제거 - 파란색 오버레이로 인한 사용자 혼란 방지 */}
+      {/* {showTransitionEffect && (
         <div className="absolute inset-0 bg-blue-500 bg-opacity-20 pointer-events-none transition-opacity duration-1000" />
-      )}
+      )} */}
 
 
 
@@ -1121,26 +1215,23 @@ const Real3DRoomComponent = React.memo(({
         )}
 
       {/* 가구 카탈로그 하단 패널 - 화면 하단 2/3 차지 */}
-      {isEditMode && showFurnitureCatalog && (
-        <motion.div
-          initial={{ transform: 'translateY(100%)' }}
-          animate={{ transform: 'translateY(0)' }}
-          exit={{ transform: 'translateY(100%)' }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed left-0 right-0 w-full bg-white border-t-2 border-blue-200 overflow-hidden shadow-2xl flex flex-col h-[66vh] z-[9999] bottom-0"
+      {isEditMode && (
+        <BottomSheetCatalog
+          isOpen={showFurnitureCatalog}
+          onClose={() => setShowFurnitureCatalog(false)}
+          initialSnap={0.66}
         >
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 border-b-2 border-blue-300">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 border-b-2 border-blue-300 sticky top-0">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <h3 className="text-sm font-bold">
                   {isPlacingFurniture ? '🎯 가구배치중' : '🪑 가구라이브러리'}
                 </h3>
-                                  <p className="text-blue-100 text-xs mt-1">
-                    {isPlacingFurniture
-                      ? `${selectedFurniture?.nameKo || selectedFurniture?.name} 배치 (ESC취소)`
-                      : '편집할 가구 선택'
-                    }
-                  </p>
+                <p className="text-blue-100 text-xs mt-1">
+                  {isPlacingFurniture
+                    ? `${selectedFurniture?.nameKo || selectedFurniture?.name} 배치 (ESC취소)`
+                    : '편집할 가구 선택'}
+                </p>
               </div>
               <button
                 onClick={handleToggleFurnitureCatalog}
@@ -1151,7 +1242,7 @@ const Real3DRoomComponent = React.memo(({
               </button>
             </div>
           </div>
-          <div className="bg-white flex-1 p-2 min-h-0">
+          <div className="bg-white p-2">
             <EnhancedFurnitureCatalog
               furnitureData={sampleFurniture}
               onFurnitureSelect={handleFurnitureSelect}
@@ -1159,7 +1250,7 @@ const Real3DRoomComponent = React.memo(({
               isMobile={true}
             />
           </div>
-        </motion.div>
+        </BottomSheetCatalog>
       )}
 
               {/* 가구 배치 완료 버튼 - 배치 모드에서만 표시 (우측 최상단) */}

@@ -115,6 +115,25 @@ textarea {
 }
 
 /* 모바일에서 더 큰 터치 타겟 */
+
+/* ===== 그리드 전환 효과 최적화 ===== */
+
+/* 그리드 페이드 전환 효과 */
+.grid-fade-transition {
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* 편집모드 전환 시 부드러운 효과 */
+.edit-mode-transition {
+  transition: all 0.2s ease-in-out;
+}
+
+/* 3D 요소 최적화 */
+.three-js-optimized {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
 @media (max-width: 768px) {
   button,
   [role="button"],
@@ -342,7 +361,7 @@ textarea {
 }
 
 /* SVG 필터 정의 (색각 이상 시뮬레이션) */
-svg {
+svg.filter-svg {
   position: absolute;
   left: -9999px;
   visibility: hidden;

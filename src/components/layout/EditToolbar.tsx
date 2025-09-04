@@ -77,7 +77,7 @@ export default function EditToolbar({
         <div className={`flex ${isMobile ? 'gap-2' : 'gap-2'}`}>
           <motion.button
             onClick={undo}
-            className={`${isMobile ? 'p-2' : 'px-3 py-2'} bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all duration-300 border-2 border-gray-300 hover:border-gray-400 ${isMobile ? 'min-w-[44px]' : 'min-w-[80px]'} overflow-hidden`}
+            className={`${isMobile ? 'p-2' : 'px-3 py-2'} bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all duration-300 border-2 border-gray-300 hover:border-gray-400 ${isMobile ? 'min-w-[44px] min-h-[44px]' : 'min-w-[80px]'} overflow-hidden`}
             title="실행 취소 (Ctrl+Z)"
             animate={{
               scale: currentMode === 'normal' ? 1 : currentMode === 'compact' ? 0.95 : 0.9
@@ -105,7 +105,7 @@ export default function EditToolbar({
 
           <motion.button
             onClick={redo}
-            className={`${isMobile ? 'p-2' : 'px-3 py-2'} bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all duration-300 border-2 border-gray-300 hover:border-gray-400 ${isMobile ? 'min-w-[44px]' : 'min-w-[80px]'} overflow-hidden`}
+            className={`${isMobile ? 'p-2' : 'px-3 py-2'} bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all duration-300 border-2 border-gray-300 hover:border-gray-400 ${isMobile ? 'min-w-[44px] min-h-[44px]' : 'min-w-[80px]'} overflow-hidden`}
             title="다시 실행 (Ctrl+Y)"
             animate={{
               scale: currentMode === 'normal' ? 1 : currentMode === 'compact' ? 0.95 : 0.9
@@ -147,7 +147,7 @@ export default function EditToolbar({
         {/* 가구 카탈로그 토글 */}
         <motion.button
           onClick={onToggleFurnitureCatalog}
-          className={`${isMobile ? 'p-2' : 'px-3 py-2'} rounded-xl font-medium transition-all duration-300 border-2 ${isMobile ? 'min-w-[44px]' : 'min-w-[70px]'} overflow-hidden ${
+          className={`${isMobile ? 'p-2' : 'px-3 py-2'} rounded-xl font-medium transition-all duration-300 border-2 ${isMobile ? 'min-w-[44px] min-h-[44px]' : 'min-w-[70px]'} overflow-hidden ${
             showFurnitureCatalog
               ? 'bg-blue-600 text-white border-blue-700 shadow-lg'
               : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200 hover:border-gray-400'
@@ -180,7 +180,7 @@ export default function EditToolbar({
         {/* 룸 템플릿 토글 */}
         <motion.button
           onClick={onToggleTemplateSelector}
-          className={`${isMobile ? 'p-2' : 'px-3 py-2'} rounded-xl font-medium transition-all duration-300 border-2 ${isMobile ? 'min-w-[44px]' : 'min-w-[70px]'} overflow-hidden ${
+          className={`${isMobile ? 'p-2' : 'px-3 py-2'} rounded-xl font-medium transition-all duration-300 border-2 ${isMobile ? 'min-w-[44px] min-h-[44px]' : 'min-w-[70px]'} overflow-hidden ${
             showTemplateSelector
               ? 'bg-purple-600 text-white border-purple-700 shadow-lg'
               : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200 hover:border-gray-400'

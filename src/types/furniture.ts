@@ -36,6 +36,8 @@ export interface FurnitureItem {
     canScale: boolean;      // 크기 조절 가능 여부
     floorOffset: number;    // 바닥에서의 오프셋 (미터)
     wallOffset?: number;    // 벽에서의 오프셋 (벽에 붙이는 가구용)
+    wallOnly?: boolean;     // 벽에만 배치 가능한지 여부 (시계 등)
+    wallHeight?: number;    // 벽에 배치할 때의 높이 (미터)
   };
 
   // 메타데이터

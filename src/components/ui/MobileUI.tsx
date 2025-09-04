@@ -56,12 +56,13 @@ export const MobileUI: React.FC<MobileUIProps> = ({
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6px)' }}
       >
         <div className="flex items-center justify-center px-4 py-3">
           {/* 중앙: 편집 도구 토글 버튼 */}
           <motion.button
             onClick={() => setShowToolPanel(!showToolPanel)}
-            className={`px-6 py-3 rounded-full transition-colors ${
+            className={`px-6 py-3 rounded-full transition-colors min-h-[44px] ${
               showToolPanel 
                 ? 'bg-blue-500 text-white' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -92,7 +93,7 @@ export const MobileUI: React.FC<MobileUIProps> = ({
               <motion.button
                 onClick={onUndo}
                 disabled={!canUndo}
-                className={`p-3 rounded-xl transition-colors ${
+                className={`p-3 rounded-xl transition-colors min-w-[44px] min-h-[44px] ${
                   canUndo
                     ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -105,7 +106,7 @@ export const MobileUI: React.FC<MobileUIProps> = ({
               <motion.button
                 onClick={onRedo}
                 disabled={!canRedo}
-                className={`p-3 rounded-xl transition-colors ${
+                className={`p-3 rounded-xl transition-colors min-w-[44px] min-h-[44px] ${
                   canRedo
                     ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -117,7 +118,7 @@ export const MobileUI: React.FC<MobileUIProps> = ({
 
               <motion.button
                 onClick={onDeleteSelected}
-                className="p-3 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                className="p-3 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 transition-colors min-w-[44px] min-h-[44px]"
                 whileTap={{ scale: 0.95 }}
               >
                 <FiTrash2 size={20} />
@@ -144,7 +145,7 @@ export const MobileUI: React.FC<MobileUIProps> = ({
               <div className="flex justify-center gap-4 mb-4">
                 <motion.button
                   onClick={() => setShowFurnitureSelector(true)}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl bg-orange-50 hover:bg-orange-100 transition-colors"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl bg-orange-50 hover:bg-orange-100 transition-colors min-w-[64px] min-h-[64px]"
                   whileTap={{ scale: 0.95 }}
                 >
                   <FiTarget size={20} className="text-orange-600" />
@@ -154,7 +155,7 @@ export const MobileUI: React.FC<MobileUIProps> = ({
                 <motion.button
                   onClick={() => setShowFurnitureControls(true)}
                   disabled={!selectedItemId}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors min-w-[64px] min-h-[64px] ${
                     selectedItemId
                       ? 'bg-blue-50 hover:bg-blue-100 text-blue-600'
                       : 'bg-gray-50 text-gray-400 cursor-not-allowed'
@@ -168,7 +169,7 @@ export const MobileUI: React.FC<MobileUIProps> = ({
                 <motion.button
                   onClick={onDeleteSelected}
                   disabled={!selectedItemId}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors min-w-[64px] min-h-[64px] ${
                     selectedItemId
                       ? 'bg-red-50 hover:bg-red-100 text-red-600'
                       : 'bg-gray-50 text-gray-400 cursor-not-allowed'

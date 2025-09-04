@@ -57,6 +57,8 @@ export default function HomePage() {
               onShowAccessibility={() => uiManager.openModal('accessibility')}
               onShowExport={() => uiManager.openModal('export')}
               onShowAnalytics={() => uiManager.openModal('analytics')}
+              isEditMode={uiManager.isEditMode}
+              onEditModeToggle={uiManager.toggleEditMode}
             />
           }
           sidebar={
