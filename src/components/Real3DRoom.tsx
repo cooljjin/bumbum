@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
 // 클라이언트 사이드에서만 실행되는 컴포넌트들
@@ -109,6 +110,7 @@ const CameraController = React.memo(({
   isDragging,
   isEditMode,
   hasSelection,
+  debugFreeCam,
   controlsRef,
   onTransitionLockChange,
 }: {
@@ -116,6 +118,7 @@ const CameraController = React.memo(({
   isDragging: boolean;
   isEditMode: boolean;
   hasSelection: boolean;
+  debugFreeCam: boolean;
   controlsRef: React.RefObject<import('camera-controls').default | null>;
   onTransitionLockChange?: (locked: boolean) => void;
 }) => {
@@ -248,10 +251,10 @@ const CameraController = React.memo(({
       infinityDolly={false}
       // 터치 제스처 매핑
       // 보기 모드: 1손 오빗, 2손 패닝, 핀치 줌(기본)
-      // 편집 모드: 선택/드래그 중에만 1손 오빗 비활성화
+      // 편집 모드: 선택/드래그 중에만 1손 오빗 비활성화 (debugFreeCam이면 항상 허용)
       // @ts-ignore - pass-through to camera-controls
       touches={{
-        one: isEditMode && (isDragging || hasSelection) ? 'none' : 'rotate',
+        one: debugFreeCam ? 'rotate' : (isEditMode && (isDragging || hasSelection) ? 'none' : 'rotate'),
         two: 'truck',
         three: 'none'
       }}
@@ -349,6 +352,8 @@ const Real3DRoomComponent = React.memo(({
 }: Real3DRoomProps) => {
   // 클라이언트 사이드 준비 상태
   const isClientReady = useClientSideReady();
+  const searchParams = typeof window !== 'undefined' ? useSearchParams() : (null as any);
+  const debugFreeCam = !!(searchParams && searchParams.get('freecam') === '1');
 
   // 모든 useState 훅들은 항상 호출되어야 함 (React Hooks 규칙)
   // const [showTransitionEffect, setShowTransitionEffect] = useState(false); // 파란색 오버레이 효과 제거
@@ -1001,6 +1006,7 @@ const Real3DRoomComponent = React.memo(({
             context.clear(context.COLOR_BUFFER_BIT);
           }
         }}
+        onContextMenu={(e) => { e.preventDefault(); }}
         onPointerDown={(e) => {
           if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
             try {
@@ -1056,6 +1062,7 @@ const Real3DRoomComponent = React.memo(({
           isDragging={isDragging}
           isEditMode={isEditMode}
           hasSelection={!!selectedItemId}
+          debugFreeCam={debugFreeCam}
           controlsRef={cameraControlsRef}
           onTransitionLockChange={setIsTransitionInputLocked}
         />
@@ -1158,7 +1165,7 @@ const Real3DRoomComponent = React.memo(({
 
         {/* 모바일 터치 컨트롤 - Canvas 내부에 배치 */}
         <EnhancedTouchControls
-          enabled={isMobile && isEditMode && !!selectedItemId && isDragging}
+          enabled={isMobile && isEditMode && !!selectedItemId && isDragging && !debugFreeCam}
           selectedItemId={selectedItemId}
           onItemSelect={selectItem}
           onItemUpdate={updateItem}
@@ -1170,6 +1177,18 @@ const Real3DRoomComponent = React.memo(({
         )} */}
         <AdaptiveEvents />
       </Canvas>
+
+      {/* 상태 HUD (디버그용) - 입력 차단 방지 위해 pointer-events:none */}
+      <div
+        className="absolute top-4 left-4 z-50 text-xs bg-black/60 text-white rounded-md px-2 py-1"
+        style={{ pointerEvents: 'none' }}
+      >
+        <div>Mode: {isEditMode ? 'Edit' : 'View'}</div>
+        <div>Selected: {selectedItemId ? 'Yes' : 'No'}</div>
+        <div>Dragging: {isDragging ? 'Yes' : 'No'}</div>
+        <div>ViewLock: {isViewLocked ? 'Yes' : 'No'}</div>
+        {debugFreeCam && <div>FreeCam: ON</div>}
+      </div>
 
       {/* 전환 중 입력 락 오버레이 */}
       {isTransitionInputLocked && (
