@@ -8,6 +8,7 @@ import { createFallbackModel, createFurnitureModel } from '../../../utils/modelL
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
 import MobileTouchHandler from '../../ui/MobileTouchHandler';
+import { constrainFurnitureToRoom, isFurnitureInRoom } from '../../../utils/roomBoundary';
 
 interface EditableFurnitureProps {
   item: PlacedItem;
@@ -224,7 +225,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     );
   }, []);
 
-  // TransformControls 변경 이벤트 처리 - 스냅 기능 포함
+  // TransformControls 변경 이벤트 처리 - 스냅 기능 및 벽 충돌 감지 포함
   const handleTransformChange = React.useCallback(() => {
     if (!meshRef.current || !transformControlsRef.current) return;
 
@@ -247,6 +248,28 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
       // 회전 스냅 적용 (편집 모드에서만)
       if (rotationSnap.enabled && mode === 'edit') {
         currentRotation = snapRotation(currentRotation, rotationSnap.angle);
+      }
+
+      // 🔥 벽 충돌 감지 추가
+      const tempItem = {
+        ...item,
+        position: currentPosition,
+        rotation: currentRotation,
+        scale: currentScale
+      };
+
+      // 방 경계 내에 있는지 확인
+      if (!isFurnitureInRoom(tempItem)) {
+        // 방 밖에 있으면 제한된 위치로 이동
+        const constrainedItem = constrainFurnitureToRoom(tempItem);
+        currentPosition = constrainedItem.position;
+        
+        // TransformControls의 위치도 즉시 업데이트
+        if (meshRef.current) {
+          meshRef.current.position.copy(currentPosition);
+        }
+        
+        console.log('🚫 TransformControls: 벽 충돌 감지, 위치 제한:', currentPosition);
       }
 
       // 현재 값과 이전 값을 비교하여 실제 변경된 경우에만 업데이트

@@ -65,7 +65,10 @@
     "test:findRelatedTests": "jest --findRelatedTests",
     "test:listTests": "jest --listTests",
     "deploy": "npm run build && cd out && zip -r ../bondidi-deploy.zip . && echo '✅ 배포 파일 생성 완료: bondidi-deploy.zip'",
-    "deploy:clean": "rm -f bondidi-deploy.zip && npm run deploy"
+    "deploy:clean": "rm -f bondidi-deploy.zip && npm run deploy",
+    "mcp:smoke": "node scripts/mcp-smoke.js -- node scripts/mcp-dummy-server.js",
+    "mcp:tcp:tools:codex": "node scripts/mcp-tcp-client.js --host 127.0.0.1 --port 9882 --list-tools",
+    "mcp:tcp:tools:cursor": "node scripts/mcp-tcp-client.js --host 127.0.0.1 --port 9881 --list-tools"
   },
   "keywords": [],
   "author": "",

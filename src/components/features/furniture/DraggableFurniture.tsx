@@ -7,7 +7,7 @@ import { PlacedItem } from '../../../types/editor';
 import { createFallbackModel, createFurnitureModel, loadModel, compareModelWithFootprint } from '../../../utils/modelLoader';
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
-import { constrainFurnitureToRoom, isFurnitureInRoom } from '../../../utils/roomBoundary';
+import { constrainFurnitureToRoom } from '../../../utils/roomBoundary';
 import * as THREE from 'three';
 
 /**
@@ -109,13 +109,14 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   const [dragStartPosition, setDragStartPosition] = useState<Vector3 | null>(null);
   const [dragStartMousePosition, setDragStartMousePosition] = useState<Vector2 | null>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const suppressClickRef = useRef(false);
 
   // 🎯 드래그 앤 드롭 관련 ref들
   const raycaster = useRef<Raycaster>(new Raycaster());
   const dragPlane = useRef<Plane>(new Plane(new Vector3(0, 1, 0), 0));
 
   const { grid, setDragging } = useEditorStore();
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
 
   // 안전한 preventDefault 래퍼 (r3f PointerEvent에는 preventDefault가 없을 수 있음)
   const safePreventDefault = (ev: any) => {
@@ -173,12 +174,17 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     if (!isEditMode || item.isLocked) return;
 
     event.stopPropagation();
+    // 드래그 동안 클릭/탭 토글 방지
+    suppressClickRef.current = true;
 
     // 선택 상태로 만들기
     onSelect(item.id);
 
     setIsDragging(true);
     setDragStartPosition(item.position.clone());
+
+    // 🔥 드래그 평면을 가구의 현재 높이로 설정
+    dragPlane.current.set(new Vector3(0, 1, 0), -item.position.y);
 
     // 마우스 또는 터치 위치 저장
     let clientX, clientY;
@@ -192,8 +198,13 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       clientY = event.clientY;
     }
 
-    const mouseX = (clientX / window.innerWidth) * 2 - 1;
-    const mouseY = -(clientY / window.innerHeight) * 2 + 1;
+    const rect = gl?.domElement?.getBoundingClientRect?.();
+    const width = rect?.width ?? window.innerWidth;
+    const height = rect?.height ?? window.innerHeight;
+    const offsetX = rect ? clientX - rect.left : clientX;
+    const offsetY = rect ? clientY - rect.top : clientY;
+    const mouseX = (offsetX / width) * 2 - 1;
+    const mouseY = -(offsetY / height) * 2 + 1;
     setDragStartMousePosition(new Vector2(mouseX, mouseY));
 
     // 전역 드래그 상태 업데이트
@@ -224,8 +235,13 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       clientY = event.clientY;
     }
 
-    const mouseX = (clientX / window.innerWidth) * 2 - 1;
-    const mouseY = -(clientY / window.innerHeight) * 2 + 1;
+    const rect = gl?.domElement?.getBoundingClientRect?.();
+    const width = rect?.width ?? window.innerWidth;
+    const height = rect?.height ?? window.innerHeight;
+    const offsetX = rect ? clientX - rect.left : clientX;
+    const offsetY = rect ? clientY - rect.top : clientY;
+    const mouseX = (offsetX / width) * 2 - 1;
+    const mouseY = -(offsetY / height) * 2 + 1;
 
     // 레이캐스터로 3D 공간의 위치 계산
     raycaster.current.setFromCamera(new Vector2(mouseX, mouseY), camera);
@@ -246,20 +262,10 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     // Y 위치는 원래 높이 유지
     newPosition.y = dragStartPosition.y;
 
-    // 임시 아이템으로 충돌 감지
-    const tempItem = { ...item, position: newPosition };
-    
-    // 방 경계 내에 있는지 확인
-    if (isFurnitureInRoom(tempItem)) {
-      // 방 안에 있으면 위치 업데이트
-      onUpdate(item.id, { position: newPosition });
-      console.log('✅ 드래그 중 (방 안):', newPosition, event.touches ? '(터치)' : '(마우스)');
-    } else {
-      // 방 밖에 있으면 제한된 위치로 이동
-      const constrainedItem = constrainFurnitureToRoom(tempItem);
-      onUpdate(item.id, { position: constrainedItem.position });
-      console.log('🚫 드래그 중 (방 밖, 제한됨):', constrainedItem.position, event.touches ? '(터치)' : '(마우스)');
-    }
+    // 1차 그리드 스냅 후, 즉시 룸 경계로 클램핑하여 시각적 침투 방지
+    const constrained = constrainFurnitureToRoom({ ...item, position: newPosition } as PlacedItem);
+    onUpdate(item.id, { position: constrained.position });
+    console.log('🖱️ 드래그 중 위치 업데이트:', newPosition, event.touches ? '(터치)' : '(마우스)');
   }, [isDragging, dragStartPosition, dragStartMousePosition, camera, grid, item.id, onUpdate]);
 
   // ✅ 드래그 종료 핸들러
@@ -268,13 +274,6 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
     event.stopPropagation();
 
-    // 최종 위치 검증 및 제한
-    const finalItem = constrainFurnitureToRoom(item);
-    if (!finalItem.position.equals(item.position)) {
-      onUpdate(item.id, { position: finalItem.position });
-      console.log('🔧 드래그 종료 시 위치 제한 적용:', finalItem.position);
-    }
-
     setIsDragging(false);
     setDragStartPosition(null);
     setDragStartMousePosition(null);
@@ -282,8 +281,10 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     // 전역 드래그 상태 업데이트
     setDragging(false);
 
+    // 짧은 지연 후 클릭 억제 플래그 해제 (모바일에서 click 발생 방지)
+    setTimeout(() => { suppressClickRef.current = false; }, 0);
     console.log('✅ 드래그 종료:', item.name);
-  }, [isDragging, item, onUpdate, setDragging]);
+  }, [isDragging, item, setDragging]);
 
   // 🖱️ 마우스 이벤트 핸들러
   // 포인터 다운(마우스/터치 공통)
@@ -311,6 +312,12 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     }
   }, [isDragging, handleDragEnd]);
 
+  const handlePointerCancel = useCallback((event: any) => {
+    if (isDragging) {
+      handleDragEnd(event);
+    }
+  }, [isDragging, handleDragEnd]);
+
   // 🎯 호버 효과
   const handlePointerEnter = useCallback(() => {
     if (isEditMode && !item.isLocked) {
@@ -326,35 +333,47 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   useEffect((): (() => void) | void => {
     if (isDragging) {
       // 마우스/포인터 이벤트
-      window.addEventListener('mousemove', handlePointerMove);
-      window.addEventListener('mouseup', handlePointerUp);
+      window.addEventListener('pointermove', handlePointerMove as any, { passive: false });
+      window.addEventListener('pointerup', handlePointerUp as any, { passive: false });
+      window.addEventListener('pointercancel', handlePointerCancel as any, { passive: false });
+      // 레거시 폴백
+      window.addEventListener('mousemove', handlePointerMove as any);
+      window.addEventListener('mouseup', handlePointerUp as any);
       // 터치
-      window.addEventListener('touchmove', handlePointerMove, { passive: false });
-      window.addEventListener('touchend', handlePointerUp, { passive: false });
+      window.addEventListener('touchmove', handlePointerMove as any, { passive: false });
+      window.addEventListener('touchend', handlePointerUp as any, { passive: false });
 
       return () => {
-        window.removeEventListener('mousemove', handlePointerMove);
-        window.removeEventListener('mouseup', handlePointerUp);
-        window.removeEventListener('touchmove', handlePointerMove);
-        window.removeEventListener('touchend', handlePointerUp);
+        window.removeEventListener('pointermove', handlePointerMove as any);
+        window.removeEventListener('pointerup', handlePointerUp as any);
+        window.removeEventListener('pointercancel', handlePointerCancel as any);
+        window.removeEventListener('mousemove', handlePointerMove as any);
+        window.removeEventListener('mouseup', handlePointerUp as any);
+        window.removeEventListener('touchmove', handlePointerMove as any);
+        window.removeEventListener('touchend', handlePointerUp as any);
       };
     }
     return undefined;
-  }, [isDragging, handlePointerMove, handlePointerUp]);
+  }, [isDragging, handlePointerMove, handlePointerUp, handlePointerCancel]);
 
   // 컴포넌트가 언마운트될 때 이벤트 리스너 정리
   useEffect(() => {
     return () => {
-      window.removeEventListener('mousemove', handlePointerMove);
-      window.removeEventListener('mouseup', handlePointerUp);
-      window.removeEventListener('touchmove', handlePointerMove);
-      window.removeEventListener('touchend', handlePointerUp);
+      window.removeEventListener('pointermove', handlePointerMove as any);
+      window.removeEventListener('pointerup', handlePointerUp as any);
+      window.removeEventListener('pointercancel', handlePointerCancel as any);
+      window.removeEventListener('mousemove', handlePointerMove as any);
+      window.removeEventListener('mouseup', handlePointerUp as any);
+      window.removeEventListener('touchmove', handlePointerMove as any);
+      window.removeEventListener('touchend', handlePointerUp as any);
     };
-  }, [handlePointerMove, handlePointerUp]);
+  }, [handlePointerMove, handlePointerUp, handlePointerCancel]);
 
   // 클릭 이벤트 처리
   const handleClick = useCallback((event: any) => {
     event.stopPropagation();
+    // 드래그 후 클릭 이벤트 억제
+    if (suppressClickRef.current || isDragging) return;
 
     if (item.isLocked) {
       console.log('고정된 객체는 선택할 수 없습니다:', item.id);
@@ -524,6 +543,28 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     }
   }, [item.id, item.isLocked, item.position, item.rotation, item.scale]);
 
+  // userData에 식별자 설정: 캔버스 전역 터치에서 가구 여부 판별용
+  useEffect(() => {
+    if (meshRef.current) {
+      try {
+        (meshRef.current as any).userData = {
+          ...(meshRef.current as any).userData,
+          isFurniture: true,
+          itemId: item.id,
+        };
+      } catch {}
+    }
+    if (model) {
+      try {
+        (model as any).userData = {
+          ...(model as any).userData,
+          isFurniture: true,
+          itemId: item.id,
+        };
+      } catch {}
+    }
+  }, [model, item.id]);
+
   // 선택 상태에 따른 하이라이트 효과
   useFrame(() => {
     if (model) {
@@ -601,6 +642,16 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onLostPointerCapture={() => {
+          if (isDragging) {
+            try {
+              handleDragEnd({ stopPropagation: () => {} });
+            } catch {
+              setDragging(false);
+            }
+          }
+        }}
         onPointerOver={handlePointerEnter}
         onPointerOut={handlePointerLeave}
         onWheel={(e) => e.stopPropagation()}
@@ -612,6 +663,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
             onPointerDown={(e: any) => { e.stopPropagation(); handlePointerDown(e); }}
             onPointerMove={(e: any) => { e.stopPropagation(); handlePointerMove(e); }}
             onPointerUp={(e: any) => { e.stopPropagation(); handlePointerUp(e); }}
+            onPointerCancel={(e: any) => { e.stopPropagation(); handlePointerCancel(e); }}
             onPointerOver={(e: any) => e.stopPropagation()}
             onPointerOut={(e: any) => e.stopPropagation()}
             onWheel={(e: any) => e.stopPropagation()}
@@ -625,6 +677,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
           >
             <meshBasicMaterial transparent opacity={0} />
           </Box>
@@ -646,7 +699,10 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
         {/* 선택 표시기 - 개선된 버전 */}
         {isSelected && (
-          <Box n            args={[item.footprint.width + 0.1, item.footprint.height + 0.1, item.footprint.depth + 0.1]}n            position={[0, item.footprint.height / 2, 0]}n          >
+          <Box
+            args={[item.footprint.width + 0.1, item.footprint.height + 0.1, item.footprint.depth + 0.1]}
+            position={[0, item.footprint.height / 2, 0]}
+          >
             <meshBasicMaterial color="#3b82f6" transparent opacity={0.4} />
           </Box>
         )}

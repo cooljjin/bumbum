@@ -5,6 +5,7 @@ import { Vector3, Euler, Group } from 'three';
 import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
+import { constrainFurnitureToRoom, isFurnitureInRoom } from '../../../utils/roomBoundary';
 
 interface EditableRoomFurnitureProps {
   item: PlacedItem;
@@ -54,11 +55,11 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
     }
   }, [isSelected, mode, grid.enabled, grid.size, grid.divisions, rotationSnap.enabled, rotationSnap.angle]);
 
-  // TransformControls 변경 이벤트 처리
+  // TransformControls 변경 이벤트 처리 - 벽 충돌 감지 포함
   const handleTransformChange = () => {
     if (groupRef.current) {
       try {
-        const newPosition = new Vector3(
+        let newPosition = new Vector3(
           groupRef.current.position.x,
           groupRef.current.position.y,
           groupRef.current.position.z
@@ -73,6 +74,28 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
           groupRef.current.scale.y,
           groupRef.current.scale.z
         );
+
+        // 🔥 벽 충돌 감지 추가
+        const tempItem = {
+          ...item,
+          position: newPosition,
+          rotation: newRotation,
+          scale: newScale
+        };
+
+        // 방 경계 내에 있는지 확인
+        if (!isFurnitureInRoom(tempItem)) {
+          // 방 밖에 있으면 제한된 위치로 이동
+          const constrainedItem = constrainFurnitureToRoom(tempItem);
+          newPosition = constrainedItem.position;
+          
+          // TransformControls의 위치도 즉시 업데이트
+          if (groupRef.current) {
+            groupRef.current.position.copy(newPosition);
+          }
+          
+          console.log('🚫 Room Furniture TransformControls: 벽 충돌 감지, 위치 제한:', newPosition);
+        }
 
         onUpdate({
           position: newPosition,

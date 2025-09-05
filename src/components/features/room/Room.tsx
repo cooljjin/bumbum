@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useRef } from 'react';
 import * as THREE from 'three';
+import { getCurrentRoomDimensions } from '../../../utils/roomBoundary';
 
 interface RoomProps {
   receiveShadow?: boolean;
@@ -11,8 +12,12 @@ interface RoomProps {
 
 export default function Room({ receiveShadow = false }: RoomProps) {
   const roomRef = useRef<THREE.Group>(null);
-  const wallThickness = 0.3; // 벽 두께 (미터)
+  const dims = getCurrentRoomDimensions();
+  const wallThickness = dims.wallThickness; // 벽 두께 (미터)
   const floorThickness = 0.3; // 바닥 두께 (미터)
+  const halfWidth = dims.width / 2;
+  const halfDepth = dims.depth / 2;
+  const height = dims.height;
   const backWallRef = useRef<THREE.Mesh>(null);
   const frontWallRef = useRef<THREE.Mesh>(null);
   const leftWallRef = useRef<THREE.Mesh>(null);
@@ -52,7 +57,7 @@ export default function Room({ receiveShadow = false }: RoomProps) {
     const toHide = new Set<string>(sorted.slice(0, 2).map(([name]) => name));
 
     // 카메라가 천장보다 높으면 천장 숨김
-    if (cam.y > 5 + 0.01) {
+    if (cam.y > height + 0.01) {
       toHide.add('ceiling');
     }
 
@@ -107,43 +112,43 @@ export default function Room({ receiveShadow = false }: RoomProps) {
     <group ref={roomRef}>
       {/* 바닥 - 두께가 있는 박스 형태 (상단 면이 y=0) */}
       <mesh position={[0, -floorThickness / 2, 0]} receiveShadow={receiveShadow} castShadow={false}>
-        <boxGeometry args={[10, floorThickness, 10]} />
+        <boxGeometry args={[dims.width, floorThickness, dims.depth]} />
         <meshStandardMaterial color="#103B57" roughness={0.8} metalness={0.1} />
       </mesh>
 
       {/* 벽들 - 흰색, 바닥에 완전히 붙여서 배치 */}
       {/* 뒤쪽 벽 */}
-      <mesh ref={backWallRef} position={[0, 2.5, -5 - wallThickness / 2]} receiveShadow={receiveShadow}>
-        <boxGeometry args={[10, 5, wallThickness]} />
+      <mesh ref={backWallRef} position={[0, height / 2, -halfDepth - wallThickness / 2]} receiveShadow={receiveShadow}>
+        <boxGeometry args={[dims.width, height, wallThickness]} />
         <meshStandardMaterial ref={backMatRef} color="#ffffff" roughness={0.7} metalness={0.05} transparent opacity={1} />
       </mesh>
 
       {/* 왼쪽 벽 */}
-      <mesh ref={leftWallRef} position={[-5 - wallThickness / 2, 2.5, 0]} receiveShadow={receiveShadow}>
-        <boxGeometry args={[wallThickness, 5, 10]} />
+      <mesh ref={leftWallRef} position={[-halfWidth - wallThickness / 2, height / 2, 0]} receiveShadow={receiveShadow}>
+        <boxGeometry args={[wallThickness, height, dims.depth]} />
         <meshStandardMaterial ref={leftMatRef} color="#ffffff" roughness={0.7} metalness={0.05} transparent opacity={1} />
       </mesh>
 
       {/* 오른쪽 벽 */}
-      <mesh ref={rightWallRef} position={[5 + wallThickness / 2, 2.5, 0]} receiveShadow={receiveShadow}>
-        <boxGeometry args={[wallThickness, 5, 10]} />
+      <mesh ref={rightWallRef} position={[halfWidth + wallThickness / 2, height / 2, 0]} receiveShadow={receiveShadow}>
+        <boxGeometry args={[wallThickness, height, dims.depth]} />
         <meshStandardMaterial ref={rightMatRef} color="#ffffff" roughness={0.7} metalness={0.05} transparent opacity={1} />
       </mesh>
 
       {/* 앞쪽 벽 (입구 쪽) */}
-      <mesh ref={frontWallRef} position={[0, 2.5, 5 + wallThickness / 2]} receiveShadow={receiveShadow}>
-        <boxGeometry args={[10, 5, wallThickness]} />
+      <mesh ref={frontWallRef} position={[0, height / 2, halfDepth + wallThickness / 2]} receiveShadow={receiveShadow}>
+        <boxGeometry args={[dims.width, height, wallThickness]} />
         <meshStandardMaterial ref={frontMatRef} color="#ffffff" roughness={0.7} metalness={0.05} transparent opacity={1} />
       </mesh>
 
       {/* 천장 */}
       <mesh
         ref={ceilingRef}
-        position={[0, 5, 0]}
+        position={[0, height, 0]}
         rotation={[Math.PI / 2, 0, 0]}
         receiveShadow={receiveShadow}
       >
-        <planeGeometry args={[10, 10]} />
+        <planeGeometry args={[dims.width, dims.depth]} />
         <meshStandardMaterial
           ref={ceilingMatRef}
           color="#f8fafc"

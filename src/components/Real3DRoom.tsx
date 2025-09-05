@@ -108,12 +108,14 @@ const CameraController = React.memo(({
   isViewLocked,
   isDragging,
   isEditMode,
+  hasSelection,
   controlsRef,
   onTransitionLockChange,
 }: {
   isViewLocked: boolean;
   isDragging: boolean;
   isEditMode: boolean;
+  hasSelection: boolean;
   controlsRef: React.RefObject<import('camera-controls').default | null>;
   onTransitionLockChange?: (locked: boolean) => void;
 }) => {
@@ -246,10 +248,10 @@ const CameraController = React.memo(({
       infinityDolly={false}
       // 터치 제스처 매핑
       // 보기 모드: 1손 오빗, 2손 패닝, 핀치 줌(기본)
-      // 편집 모드: 1손은 가구 드래그에 사용하므로 카메라 회전 비활성화
+      // 편집 모드: 선택/드래그 중에만 1손 오빗 비활성화
       // @ts-ignore - pass-through to camera-controls
       touches={{
-        one: isEditMode ? 'none' : 'rotate',
+        one: isEditMode && (isDragging || hasSelection) ? 'none' : 'rotate',
         two: 'truck',
         three: 'none'
       }}
@@ -864,9 +866,18 @@ const Real3DRoomComponent = React.memo(({
     // 기본적으로 객체는 고정되지 않은 상태로 설정
     newPlacedItem.isLocked = false;
 
-    // 편집 스토어에 추가
-    addItem(newPlacedItem);
-    console.log('새 가구 배치:', newPlacedItem);
+    // 🔥 가구 배치 시 벽 충돌 감지 및 위치 제한 적용
+    const constrainedItem = constrainFurnitureToRoom(newPlacedItem);
+    if (!constrainedItem.position.equals(newPlacedItem.position)) {
+      console.log('🚫 가구 배치 시 벽 충돌 감지, 위치 제한:', {
+        원래위치: `(${newPlacedItem.position.x.toFixed(2)}, ${newPlacedItem.position.y.toFixed(2)}, ${newPlacedItem.position.z.toFixed(2)})`,
+        제한위치: `(${constrainedItem.position.x.toFixed(2)}, ${constrainedItem.position.y.toFixed(2)}, ${constrainedItem.position.z.toFixed(2)})`
+      });
+    }
+
+    // 편집 스토어에 추가 (제한된 위치로)
+    addItem(constrainedItem);
+    console.log('새 가구 배치:', constrainedItem);
   };
 
   // 가구 선택 핸들러 - null 값도 처리할 수 있도록 수정
@@ -966,7 +977,7 @@ const Real3DRoomComponent = React.memo(({
         style={{
           backgroundColor: '#f8fafc',
           background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-          touchAction: isEditMode && isMobile ? 'none' : 'auto'
+          touchAction: isMobile ? 'none' : 'auto'
         }}
         onCreated={({ gl, scene }) => {
           gl.setClearColor('#f8fafc', 1);
@@ -991,57 +1002,51 @@ const Real3DRoomComponent = React.memo(({
           }
         }}
         onPointerDown={(e) => {
-          // 3D 캔버스 내에서의 터치는 허용
-          if (isEditMode && isMobile) {
-            e.stopPropagation();
-            console.log('🎯 3D 캔버스 터치 허용됨');
+          if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+            try {
+              const hits = document.elementsFromPoint(e.clientX, e.clientY).slice(0, 6).map((el) => {
+                const cs = getComputedStyle(el as Element);
+                return {
+                  tag: (el as HTMLElement).tagName,
+                  class: (el as HTMLElement).className,
+                  id: (el as HTMLElement).id,
+                  z: cs.zIndex,
+                  pe: cs.pointerEvents,
+                  pos: cs.position,
+                };
+              });
+              console.log('🧭 Pointer hit test (top→down):', hits);
+            } catch {}
           }
+          // 드래그 중일 때만 전파 차단 (카메라 제스처 보존)
+          if (isEditMode && isMobile && isDragging) e.stopPropagation();
         }}
         onPointerMove={(e) => {
-          // 3D 캔버스 내에서의 터치 이동 허용
-          if (isEditMode && isMobile) {
-            e.stopPropagation();
-          }
+          // 드래그 중일 때만 전파 차단 (카메라 제스처 보존)
+          if (isEditMode && isMobile && isDragging) e.stopPropagation();
         }}
         onPointerUp={(e) => {
-          // 3D 캔버스 내에서의 터치 해제 허용
-          if (isEditMode && isMobile) {
-            e.stopPropagation();
-          }
+          // 드래그 중일 때만 전파 차단 (카메라 제스처 보존)
+          if (isEditMode && isMobile && isDragging) e.stopPropagation();
         }}
         onWheel={(e) => {
           // 캔버스 위 스크롤/핀치 제스처가 페이지에 전파되지 않도록
           e.stopPropagation();
         }}
-        // 터치 이벤트 지원 (모바일)
+        // 터치 이벤트: 드래그 중일 때만 전파 차단 (카메라 제스처 보존)
         onTouchStart={(e) => {
-          if (isEditMode && isMobile) {
-            e.stopPropagation();
-            console.log('🎯 3D 캔버스 터치 시작 허용됨');
-          }
-          
-          // 편집 모드에서 가구가 아닌 빈 공간 터치 시 선택 해제
-          if (isEditMode && selectedItemId) {
-            // 터치된 객체가 가구인지 확인
-            const touchedObject = (e as any).object;
-            const isFurniture = touchedObject?.userData?.isFurniture === true;
-            
-            // 가구가 아닌 객체를 터치했거나 빈 공간을 터치한 경우
-            if (!isFurniture) {
-              console.log('🎯 가구가 아닌 공간 터치 - 가구 선택 해제');
-              selectItem(null);
-            }
-          }
+          if (isEditMode && isMobile && isDragging) e.stopPropagation();
         }}
         onTouchMove={(e) => {
-          if (isEditMode && isMobile) {
-            e.stopPropagation();
-          }
+          if (isEditMode && isMobile && isDragging) e.stopPropagation();
         }}
         onTouchEnd={(e) => {
-          if (isEditMode && isMobile) {
-            e.stopPropagation();
-            console.log('🎯 3D 캔버스 터치 종료 허용됨');
+          if (isEditMode && isMobile && isDragging) e.stopPropagation();
+        }}
+        // 빈 공간을 탭/클릭했을 때 선택 해제
+        onPointerMissed={(e) => {
+          if (isEditMode && selectedItemId) {
+            selectItem(null);
           }
         }}
       >
@@ -1050,6 +1055,7 @@ const Real3DRoomComponent = React.memo(({
           isViewLocked={isViewLocked}
           isDragging={isDragging}
           isEditMode={isEditMode}
+          hasSelection={!!selectedItemId}
           controlsRef={cameraControlsRef}
           onTransitionLockChange={setIsTransitionInputLocked}
         />
@@ -1152,7 +1158,7 @@ const Real3DRoomComponent = React.memo(({
 
         {/* 모바일 터치 컨트롤 - Canvas 내부에 배치 */}
         <EnhancedTouchControls
-          enabled={isMobile && isEditMode}
+          enabled={isMobile && isEditMode && !!selectedItemId && isDragging}
           selectedItemId={selectedItemId}
           onItemSelect={selectItem}
           onItemUpdate={updateItem}

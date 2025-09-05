@@ -256,12 +256,23 @@ export const useEditorStore = create<EditorStore>()(
           return;
         }
 
-        // 위치가 변경된 경우 벽 안에 있는지 검증
+        // 위치/회전/스케일 변경 시 벽 안에 있는지 검증 (회전/스케일도 경계에 영향)
         let validatedItem: PlacedItem = updatedItem;
-        if (updates.position && !isFurnitureInRoom(updatedItem)) {
-          console.log(`🚨 가구 이동 시 벽 밖으로 나감: ${updatedItem.name || updatedItem.id}`);
-          validatedItem = constrainFurnitureToRoom(updatedItem);
-          console.log(`✅ 가구를 방 안으로 이동: ${validatedItem.position.x.toFixed(2)}, ${validatedItem.position.y.toFixed(2)}, ${validatedItem.position.z.toFixed(2)}`);
+        const affectsBounds = !!(updates.position || updates.rotation || updates.scale);
+        if (affectsBounds) {
+          const isInRoom = isFurnitureInRoom(updatedItem);
+          console.log(`🔍 editorStore updateItem: ${updatedItem.name || updatedItem.id}`, {
+            새위치: `(${updatedItem.position.x.toFixed(2)}, ${updatedItem.position.y.toFixed(2)}, ${updatedItem.position.z.toFixed(2)})`,
+            새회전: `(${updatedItem.rotation.x.toFixed(2)}, ${updatedItem.rotation.y.toFixed(2)}, ${updatedItem.rotation.z.toFixed(2)})`,
+            새스케일: `(${updatedItem.scale.x.toFixed(2)}, ${updatedItem.scale.y.toFixed(2)}, ${updatedItem.scale.z.toFixed(2)})`,
+            방안에있음: isInRoom ? '✅ 예' : '❌ 아니오'
+          });
+
+          if (!isInRoom) {
+            console.log(`🚨 가구 변경으로 벽 밖 조건 발생: ${updatedItem.name || updatedItem.id}`);
+            validatedItem = constrainFurnitureToRoom(updatedItem);
+            console.log(`✅ 가구를 방 안으로 보정: ${validatedItem.position.x.toFixed(2)}, ${validatedItem.position.y.toFixed(2)}, ${validatedItem.position.z.toFixed(2)}`);
+          }
         }
 
         const updatedItems = [...placedItems];

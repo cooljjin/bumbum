@@ -97,6 +97,7 @@ export default defineConfig({
   },
   preserveOutput: 'failures-only',
   maxFailures: (process.env as any).CI ? 10 : 0,
-  grep: (process.env as any).TEST_GREP ? new RegExp((process.env as any).TEST_GREP) : [],
-  grepInvert: (process.env as any).TEST_GREP_INVERT ? new RegExp((process.env as any).TEST_GREP_INVERT) : [],
+  // 환경변수가 없을 때는 undefined로 두어 전체 테스트가 매칭되도록
+  grep: (process.env as any).TEST_GREP ? new RegExp((process.env as any).TEST_GREP) : undefined,
+  grepInvert: (process.env as any).TEST_GREP_INVERT ? new RegExp((process.env as any).TEST_GREP_INVERT) : undefined,
 });
