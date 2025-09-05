@@ -109,6 +109,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   const [dragStartPosition, setDragStartPosition] = useState<Vector3 | null>(null);
   const [dragStartMousePosition, setDragStartMousePosition] = useState<Vector2 | null>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const dragIntentRef = useRef<{ active: boolean; startX: number; startY: number } | null>(null);
+  const fromPointerDownRef = useRef(false);
   const suppressClickRef = useRef(false);
 
   // 🎯 드래그 앤 드롭 관련 ref들
@@ -174,26 +176,21 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     if (!isEditMode || item.isLocked) return;
 
     event.stopPropagation();
-    // 드래그 동안 클릭/탭 토글 방지
-    suppressClickRef.current = true;
-
-    // 선택 상태로 만들기
+    fromPointerDownRef.current = true;
+    // 선택 상태로 만들기(탭으로 선택; 토글은 하지 않음)
     onSelect(item.id);
 
-    setIsDragging(true);
     setDragStartPosition(item.position.clone());
 
-    // 🔥 드래그 평면을 가구의 현재 높이로 설정
+    // 드래그 평면을 가구의 현재 높이로 설정
     dragPlane.current.set(new Vector3(0, 1, 0), -item.position.y);
 
-    // 마우스 또는 터치 위치 저장
+    // 마우스 또는 터치 위치 저장 + 드래그 의도 시작(임계치 넘으면 실제 드래그 진입)
     let clientX, clientY;
     if (event.touches && event.touches.length > 0) {
-      // 터치 이벤트
       clientX = event.touches[0].clientX;
       clientY = event.touches[0].clientY;
     } else {
-      // 마우스 이벤트
       clientX = event.clientX;
       clientY = event.clientY;
     }
@@ -207,11 +204,11 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     const mouseY = -(offsetY / height) * 2 + 1;
     setDragStartMousePosition(new Vector2(mouseX, mouseY));
 
-    // 전역 드래그 상태 업데이트
-    setDragging(true);
+    const DRAG_THRESHOLD = 6; // px
+    dragIntentRef.current = { active: true, startX: clientX, startY: clientY };
+    suppressClickRef.current = false;
 
-    console.log('🖱️ 드래그 시작:', item.name, event.touches ? '(터치)' : '(마우스)');
-  }, [isEditMode, item.isLocked, item.id, item.position, item.name, onSelect, setDragging]);
+  }, [isEditMode, item.isLocked, item.id, item.position, onSelect]);
 
   // 🔄 드래그 중 핸들러 (마우스 및 터치 지원)
   const handleDrag = useCallback((event: any) => {
@@ -233,6 +230,20 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       // 마우스 이벤트
       clientX = event.clientX;
       clientY = event.clientY;
+    }
+
+    // 드래그 의도 단계: 임계치 넘으면 실제 드래그 시작
+    if (!isDragging && dragIntentRef.current?.active) {
+      const dx = clientX - dragIntentRef.current.startX;
+      const dy = clientY - dragIntentRef.current.startY;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 6) {
+        setIsDragging(true);
+        setDragging(true);
+        suppressClickRef.current = true;
+      } else {
+        return; // 아직 드래그 시작 전이면 무시
+      }
     }
 
     const rect = gl?.domElement?.getBoundingClientRect?.();
@@ -277,6 +288,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     setIsDragging(false);
     setDragStartPosition(null);
     setDragStartMousePosition(null);
+    dragIntentRef.current = null;
+    fromPointerDownRef.current = false;
 
     // 전역 드래그 상태 업데이트
     setDragging(false);
@@ -302,6 +315,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       if (event?.touches || event?.type === 'touchmove' || event?.nativeEvent?.touches) {
         safePreventDefault(event);
       }
+      handleDrag(event);
+    } else if (dragIntentRef.current?.active) {
       handleDrag(event);
     }
   }, [isDragging, handleDrag]);
@@ -374,20 +389,13 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     event.stopPropagation();
     // 드래그 후 클릭 이벤트 억제
     if (suppressClickRef.current || isDragging) return;
-
     if (item.isLocked) {
       console.log('고정된 객체는 선택할 수 없습니다:', item.id);
       return;
     }
-
-    if (isSelected) {
-      onSelect(null);
-      console.log('객체 선택 해제:', item.id);
-    } else {
-      onSelect(item.id);
-      console.log('객체 선택:', item.id);
-    }
-  }, [isSelected, item.id, item.isLocked, onSelect]);
+    // 단일 탭은 선택만 유지(토글하지 않음) - 빈 공간 탭으로만 해제
+    if (!isSelected) onSelect(item.id);
+  }, [isSelected, item.id, item.isLocked, onSelect, isDragging]);
 
   // 모델 로딩
   useEffect(() => {
