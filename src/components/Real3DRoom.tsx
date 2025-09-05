@@ -400,6 +400,23 @@ const Real3DRoomComponent = React.memo(({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // iOS Safari 전용: 페이지 핀치 제스처가 캔버스 핀치를 가로채지 않도록 전역 차단
+  useEffect(() => {
+    if (!isMobile) return undefined;
+    const prevent = (e: Event) => {
+      e.preventDefault();
+    };
+    const opts = { passive: false, capture: true } as AddEventListenerOptions;
+    document.addEventListener('gesturestart', prevent, opts);
+    document.addEventListener('gesturechange', prevent, opts);
+    document.addEventListener('gestureend', prevent, opts);
+    return () => {
+      document.removeEventListener('gesturestart', prevent, { capture: true } as any);
+      document.removeEventListener('gesturechange', prevent, { capture: true } as any);
+      document.removeEventListener('gestureend', prevent, { capture: true } as any);
+    };
+  }, [isMobile]);
+
   // 스크롤 락 처리 (모바일에서 '드래그 중'에만 페이지 스크롤 방지)
   useEffect(() => {
     if (!isMobile) return undefined;
@@ -1041,10 +1058,21 @@ const Real3DRoomComponent = React.memo(({
         }}
         // 터치 이벤트: 드래그 중일 때만 전파 차단 (카메라 제스처 보존)
         onTouchStart={(e) => {
-          if (isEditMode && isMobile && isDragging) e.stopPropagation();
+          // 두 손가락 이상이면 페이지 핀치 방지 (iOS Safari 대응)
+          if ((e as any).touches && (e as any).touches.length >= 2) {
+            e.preventDefault();
+            e.stopPropagation();
+          } else if (isEditMode && isMobile && isDragging) {
+            e.stopPropagation();
+          }
         }}
         onTouchMove={(e) => {
-          if (isEditMode && isMobile && isDragging) e.stopPropagation();
+          if ((e as any).touches && (e as any).touches.length >= 2) {
+            e.preventDefault();
+            e.stopPropagation();
+          } else if (isEditMode && isMobile && isDragging) {
+            e.stopPropagation();
+          }
         }}
         onTouchEnd={(e) => {
           if (isEditMode && isMobile && isDragging) e.stopPropagation();
