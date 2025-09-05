@@ -1,6 +1,6 @@
 {
   "name": "src",
-  "version": "0.01",
+  "version": "0.0.1",
   "main": "index.js",
   "scripts": {
     "dev": "next dev -p 3002",

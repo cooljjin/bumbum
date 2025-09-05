@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiMenu, FiSettings, FiLock, FiUnlock, FiEdit3, FiCheck } from 'react-icons/fi';
+import packageJson from '../../../package.json';
 
 interface MobileHeaderProps {
   isViewLocked: boolean;
@@ -54,7 +55,12 @@ export function MobileHeader({
           >
             <FiMenu size={18} />
           </motion.button>
-          <h1 className="text-lg font-bold text-gray-800">🏠 미니룸</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-gray-800">🏠 미니룸</h1>
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+              v{packageJson.version}
+            </span>
+          </div>
         </div>
 
         {/* 오른쪽: 핵심 기능만 */}
