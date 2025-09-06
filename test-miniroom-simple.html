@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>미니룸 드래그 테스트 - 간단 버전</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            overflow: hidden;
+        }
+        .container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        .test-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            min-width: 200px;
+        }
+        .canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        .gesture-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 0, 0, 0.1);
+            z-index: 30;
+            touch-action: none;
+        }
+        .ui-controls {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 60;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: 12px;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(6px);
+            color: white;
+            user-select: none;
+            pointer-events: auto;
+        }
+        .ui-controls button {
+            padding: 6px 10px;
+            border-radius: 10px;
+            border: 0;
+            background: #374151;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .ui-controls button:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 테스트 정보 -->
+        <div class="test-info">
+            <h3 style="margin: 0 0 10px 0; color: #60a5fa;">드래그 테스트 정보</h3>
+            <div>드래그 횟수: <strong id="drag-count">0</strong></div>
+            <div>마지막 이벤트: <strong id="last-event">없음</strong></div>
+            <div style="margin-top: 10px; font-size: 12px; color: #ccc;">
+                • 마우스 드래그로 카메라 이동<br/>
+                • 휠로 줌 인/아웃<br/>
+                • 터치 디바이스에서 핀치로 줌
+            </div>
+        </div>
+
+        <!-- UI 컨트롤 -->
+        <div class="ui-controls">
+            <button onclick="resetCamera()">Reset View</button>
+            <span style="opacity: 0.8; font-size: 12px;">• Drag = Pan • Pinch/Wheel = Zoom</span>
+        </div>
+
+        <!-- Canvas 컨테이너 -->
+        <div class="canvas-container">
+            <canvas id="three-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+            <div class="gesture-overlay" id="gesture-overlay"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://esm.sh/three@0.158.0';
+
+        // 상태 관리
+        let dragCount = 0;
+        let lastEvent = '없음';
+        let camera, scene, renderer, controls;
+        let isDragging = false;
+        let lastMouseX = 0, lastMouseY = 0;
+
+        function updateTestInfo() {
+            document.getElementById('drag-count').textContent = dragCount.toString();
+            document.getElementById('last-event').textContent = lastEvent;
+        }
+
+        function resetCamera() {
+            camera.position.set(4, 3, 6);
+            camera.lookAt(0, 0, 0);
+            lastEvent = '카메라 리셋';
+            updateTestInfo();
+        }
+
+        // Three.js 초기화
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0e1116);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(4, 3, 6);
+            camera.lookAt(0, 0, 0);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: document.getElementById('three-canvas'),
+                antialias: true 
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+            // 조명
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            directionalLight.position.set(5, 8, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            // 바닥
+            const grid = new THREE.GridHelper(20, 20, 0x888888, 0x444444);
+            grid.position.y = -0.01;
+            scene.add(grid);
+
+            // 회전하는 박스
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: 0x7ccfff, 
+                metalness: 0.1, 
+                roughness: 0.6 
+            });
+            const box = new THREE.Mesh(geometry, material);
+            box.position.set(0, 0.5, 0);
+            box.castShadow = true;
+            box.receiveShadow = true;
+            scene.add(box);
+
+            // 애니메이션 루프
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                // 박스 회전
+                box.rotation.y += 0.01;
+                
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // 이벤트 리스너 설정
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            const gestureOverlay = document.getElementById('gesture-overlay');
+
+            // 마우스 이벤트
+            gestureOverlay.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                e.preventDefault();
+            });
+
+            gestureOverlay.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - lastMouseX;
+                const deltaY = e.clientY - lastMouseY;
+                
+                // 카메라 이동 (pan)
+                const speed = 0.01;
+                camera.position.x -= deltaX * speed;
+                camera.position.z += deltaY * speed;
+                camera.lookAt(0, 0, 0);
+                
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                
+                dragCount++;
+                lastEvent = `마우스 드래그: dx=${deltaX.toFixed(2)}, dy=${deltaY.toFixed(2)}`;
+                updateTestInfo();
+                
+                e.preventDefault();
+            });
+
+            gestureOverlay.addEventListener('mouseup', (e) => {
+                isDragging = false;
+                e.preventDefault();
+            });
+
+            gestureOverlay.addEventListener('mouseleave', (e) => {
+                isDragging = false;
+                e.preventDefault();
+            });
+
+            // 휠 이벤트 (줌)
+            gestureOverlay.addEventListener('wheel', (e) => {
+                const deltaY = e.deltaY;
+                const zoomSpeed = 0.1;
+                
+                // 카메라 거리 조절
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+                camera.position.addScaledVector(direction, deltaY * zoomSpeed);
+                
+                lastEvent = `휠 줌: dy=${deltaY.toFixed(2)}`;
+                updateTestInfo();
+                
+                e.preventDefault();
+            });
+
+            // 터치 이벤트
+            let lastTouchDistance = 0;
+            let lastTouchX = 0, lastTouchY = 0;
+
+            gestureOverlay.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                
+                if (e.touches.length === 1) {
+                    // 단일 터치 - 드래그
+                    lastTouchX = e.touches[0].clientX;
+                    lastTouchY = e.touches[0].clientY;
+                } else if (e.touches.length === 2) {
+                    // 두 손가락 터치 - 핀치 줌
+                    const touch1 = e.touches[0];
+                    const touch2 = e.touches[1];
+                    lastTouchDistance = Math.sqrt(
+                        Math.pow(touch2.clientX - touch1.clientX, 2) + 
+                        Math.pow(touch2.clientY - touch1.clientY, 2)
+                    );
+                }
+            });
+
+            gestureOverlay.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                
+                if (e.touches.length === 1) {
+                    // 단일 터치 드래그
+                    const deltaX = e.touches[0].clientX - lastTouchX;
+                    const deltaY = e.touches[0].clientY - lastTouchY;
+                    
+                    const speed = 0.01;
+                    camera.position.x -= deltaX * speed;
+                    camera.position.z += deltaY * speed;
+                    camera.lookAt(0, 0, 0);
+                    
+                    lastTouchX = e.touches[0].clientX;
+                    lastTouchY = e.touches[0].clientY;
+                    
+                    dragCount++;
+                    lastEvent = `터치 드래그: dx=${deltaX.toFixed(2)}, dy=${deltaY.toFixed(2)}`;
+                    updateTestInfo();
+                } else if (e.touches.length === 2) {
+                    // 두 손가락 핀치 줌
+                    const touch1 = e.touches[0];
+                    const touch2 = e.touches[1];
+                    const currentDistance = Math.sqrt(
+                        Math.pow(touch2.clientX - touch1.clientX, 2) + 
+                        Math.pow(touch2.clientY - touch1.clientY, 2)
+                    );
+                    
+                    const deltaDistance = currentDistance - lastTouchDistance;
+                    const zoomSpeed = 0.01;
+                    
+                    const direction = new THREE.Vector3();
+                    camera.getWorldDirection(direction);
+                    camera.position.addScaledVector(direction, -deltaDistance * zoomSpeed);
+                    
+                    lastTouchDistance = currentDistance;
+                    lastEvent = `핀치 줌: delta=${deltaDistance.toFixed(2)}`;
+                    updateTestInfo();
+                }
+            });
+
+            gestureOverlay.addEventListener('touchend', (e) => {
+                e.preventDefault();
+            });
+
+            // 윈도우 리사이즈
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // 초기화
+        init();
+        updateTestInfo();
+    </script>
+</body>
+</html>

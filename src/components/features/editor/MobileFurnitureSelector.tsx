@@ -55,7 +55,7 @@ export const MobileFurnitureSelector: React.FC<MobileFurnitureSelectorProps> = (
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {/* e.stopPropagation(); */}}
           >
             {/* 헤더 */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">

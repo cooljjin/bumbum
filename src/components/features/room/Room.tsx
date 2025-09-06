@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useRef } from 'react';
 import * as THREE from 'three';
 import { getCurrentRoomDimensions } from '../../../utils/roomBoundary';
 
@@ -39,9 +38,16 @@ export default function Room({ receiveShadow = false }: RoomProps) {
     ceiling: 1
   });
 
+  // 성능 최적화를 위한 카메라 위치 추적
+  const lastCamPos = useRef<THREE.Vector3>(new THREE.Vector3());
+
   // 카메라에서 가장 가까운 벽을 숨겨 내부가 보이도록 처리 (부드러운 페이드)
   useFrame(() => {
     const cam = camera.position;
+
+    // 성능 최적화: 카메라 위치가 크게 변하지 않았으면 스킵
+    if (lastCamPos.current.distanceTo(cam) < 0.1) return;
+    lastCamPos.current.copy(cam);
 
     // 각 벽 중심과 카메라 간 거리 계산
     const walls: Array<[name: string, mesh: THREE.Mesh | null, dist: number]> = [];

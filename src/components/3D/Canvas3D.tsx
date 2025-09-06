@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { CameraControls, AdaptiveEvents, Environment } from '@react-three/drei';
+import { AdaptiveEvents, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface Canvas3DProps {
@@ -10,7 +10,6 @@ interface Canvas3DProps {
   isEditMode: boolean;
   minDpr: number;
   maxDpr: number;
-  cameraControlsRef: React.RefObject<any>;
   children: React.ReactNode;
 }
 
@@ -19,7 +18,6 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
   isEditMode,
   minDpr,
   maxDpr,
-  cameraControlsRef,
   children
 }) => {
   const [isMounted, setIsMounted] = useState(false);
@@ -64,7 +62,7 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
           style={{
             backgroundColor: '#f8fafc',
             background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-            touchAction: isEditMode && isMobile ? 'none' : 'auto'
+            touchAction: 'auto'  // 카메라 컨트롤을 위해 터치 이벤트 허용
           }}
           onCreated={({ gl, scene }: { gl: any; scene: any }) => {
             gl.setClearColor('#f8fafc', 1);
@@ -92,56 +90,11 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
               context.clear(context.COLOR_BUFFER_BIT);
             }
           }}
-          onPointerDown={(e: any) => {
-            if (isEditMode && isMobile) {
-              e.stopPropagation();
-              console.log('🎯 3D 캔버스 터치 허용됨');
-            }
-          }}
-          onPointerMove={(e: any) => {
-            if (isEditMode && isMobile) {
-              e.stopPropagation();
-            }
-          }}
-          onPointerUp={(e: any) => {
-            if (isEditMode && isMobile) {
-              e.stopPropagation();
-            }
-          }}
-          onWheel={(e: any) => {
-            e.stopPropagation();
-          }}
-          onTouchStart={(e: any) => {
-            if (isEditMode && isMobile) {
-              e.stopPropagation();
-              console.log('🎯 3D 캔버스 터치 시작 허용됨');
-            }
-          }}
-          onTouchMove={(e: any) => {
-            if (isEditMode && isMobile) {
-              e.stopPropagation();
-            }
-          }}
-          onTouchEnd={(e: any) => {
-            if (isEditMode && isMobile) {
-              e.stopPropagation();
-              console.log('🎯 3D 캔버스 터치 종료 허용됨');
-            }
+          onWheel={() => {
+            // e.stopPropagation(); // 이벤트 전파 허용
           }}
         >
-          {/* 카메라 컨트롤러 */}
-          <CameraControls
-            ref={cameraControlsRef}
-            makeDefault
-            minDistance={1}
-            maxDistance={20}
-            minPolarAngle={Math.PI / 6}
-            maxPolarAngle={Math.PI - Math.PI / 6}
-            smoothTime={0.25}
-            maxSpeed={Infinity}
-            dollySpeed={0.2}
-            infinityDolly={false}
-          />
+          {/* 카메라 컨트롤은 UnifiedCameraControls에서 처리됨 */}
 
           {/* 배경색 설정 */}
           <color attach="background" args={['#f8fafc']} />

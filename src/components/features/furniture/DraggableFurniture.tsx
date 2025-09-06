@@ -175,7 +175,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   const handleDragStart = useCallback((event: any) => {
     if (!isEditMode || item.isLocked) return;
 
-    event.stopPropagation();
+    // event.stopPropagation(); // 이벤트 전파 허용
     fromPointerDownRef.current = true;
     // 선택 상태로 만들기(탭으로 선택; 토글은 하지 않음)
     onSelect(item.id);
@@ -214,11 +214,11 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   const handleDrag = useCallback((event: any) => {
     if (!isDragging || !dragStartPosition || !dragStartMousePosition) return;
 
-    // r3f Pointer 이벤트는 passive일 수 있으므로 touch 이벤트에서만 default 차단
-    if (event?.touches || event?.type === 'touchmove' || event?.nativeEvent?.touches) {
-      safePreventDefault(event);
-    }
-    event.stopPropagation();
+    // 터치 이벤트 차단 제거 - CameraControls가 터치 이벤트를 받을 수 있도록 함
+    // if (event?.touches || event?.type === 'touchmove' || event?.nativeEvent?.touches) {
+    //   safePreventDefault(event);
+    // }
+    // event.stopPropagation(); // 이벤트 전파 허용
 
     // 마우스 또는 터치 위치 계산
     let clientX, clientY;
@@ -283,20 +283,34 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   const handleDragEnd = useCallback((event: any) => {
     if (!isDragging) return;
 
-    event.stopPropagation();
+    // event.stopPropagation(); // 이벤트 전파 허용
 
+    console.log('🎯 DraggableFurniture 드래그 종료 시작:', {
+      itemId: item.id,
+      itemName: item.name,
+      wasDragging: isDragging,
+      timestamp: new Date().toISOString()
+    });
+
+    // 로컬 상태와 전역 상태를 동시에 업데이트
     setIsDragging(false);
     setDragStartPosition(null);
     setDragStartMousePosition(null);
     dragIntentRef.current = null;
     fromPointerDownRef.current = false;
 
-    // 전역 드래그 상태 업데이트
+    // 전역 드래그 상태 업데이트 (중복 방지)
     setDragging(false);
 
     // 짧은 지연 후 클릭 억제 플래그 해제 (모바일에서 click 발생 방지)
     setTimeout(() => { suppressClickRef.current = false; }, 0);
-    console.log('✅ 드래그 종료:', item.name);
+    
+    console.log('✅ DraggableFurniture 드래그 종료 완료:', {
+      itemId: item.id,
+      itemName: item.name,
+      localDragging: false,
+      globalDragging: false
+    });
   }, [isDragging, item, setDragging]);
 
   // 🖱️ 마우스 이벤트 핸들러
@@ -322,10 +336,15 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   }, [isDragging, handleDrag]);
 
   const handlePointerUp = useCallback((event: any) => {
+    console.log('🎯 DraggableFurniture 포인터 업 이벤트:', {
+      isDragging,
+      itemId: item.id,
+      timestamp: new Date().toISOString()
+    });
     if (isDragging) {
       handleDragEnd(event);
     }
-  }, [isDragging, handleDragEnd]);
+  }, [isDragging, handleDragEnd, item.id]);
 
   const handlePointerCancel = useCallback((event: any) => {
     if (isDragging) {
@@ -347,6 +366,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   // 전역 마우스 및 터치 이벤트 리스너
   useEffect((): (() => void) | void => {
     if (isDragging) {
+      console.log('🎯 전역 이벤트 리스너 등록:', item.id);
       // 마우스/포인터 이벤트
       window.addEventListener('pointermove', handlePointerMove as any, { passive: false });
       window.addEventListener('pointerup', handlePointerUp as any, { passive: false });
@@ -359,6 +379,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       window.addEventListener('touchend', handlePointerUp as any, { passive: false });
 
       return () => {
+        console.log('🧹 전역 이벤트 리스너 정리:', item.id);
         window.removeEventListener('pointermove', handlePointerMove as any);
         window.removeEventListener('pointerup', handlePointerUp as any);
         window.removeEventListener('pointercancel', handlePointerCancel as any);
@@ -386,7 +407,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
   // 클릭 이벤트 처리
   const handleClick = useCallback((event: any) => {
-    event.stopPropagation();
+    // event.stopPropagation(); // 이벤트 전파 허용
     // 드래그 후 클릭 이벤트 억제
     if (suppressClickRef.current || isDragging) return;
     if (item.isLocked) {
@@ -662,19 +683,19 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         }}
         onPointerOver={handlePointerEnter}
         onPointerOut={handlePointerLeave}
-        onWheel={(e) => e.stopPropagation()}
+        onWheel={(e) => {/* e.stopPropagation(); */}}
       >
         {/* 3D 모델 */}
         {model && (
           <primitive
             object={model}
-            onPointerDown={(e: any) => { e.stopPropagation(); handlePointerDown(e); }}
-            onPointerMove={(e: any) => { e.stopPropagation(); handlePointerMove(e); }}
-            onPointerUp={(e: any) => { e.stopPropagation(); handlePointerUp(e); }}
-            onPointerCancel={(e: any) => { e.stopPropagation(); handlePointerCancel(e); }}
-            onPointerOver={(e: any) => e.stopPropagation()}
-            onPointerOut={(e: any) => e.stopPropagation()}
-            onWheel={(e: any) => e.stopPropagation()}
+        onPointerDown={(e: any) => { /* e.stopPropagation(); */ handlePointerDown(e); }}
+        onPointerMove={(e: any) => { /* e.stopPropagation(); */ handlePointerMove(e); }}
+        onPointerUp={(e: any) => { /* e.stopPropagation(); */ handlePointerUp(e); }}
+        onPointerCancel={(e: any) => { /* e.stopPropagation(); */ handlePointerCancel(e); }}
+        onPointerOver={(e: any) => { /* e.stopPropagation() */ }}
+        onPointerOut={(e: any) => { /* e.stopPropagation() */ }}
+        onWheel={(e: any) => { /* e.stopPropagation() */ }}
           />
         )}
 

@@ -170,12 +170,12 @@ export const preventTouchScroll = (e: Event): void => {
     return;
   }
 
-  // 다른 영역에서는 터치 이벤트 방지
-  if (e.type === 'touchmove' || e.type === 'touchstart' || e.type === 'touchend') {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('🔒 터치 스크롤 방지됨');
-  }
+  // 다른 영역에서는 터치 이벤트 방지 (카메라 컨트롤을 위해 주석 처리)
+  // if (e.type === 'touchmove' || e.type === 'touchstart' || e.type === 'touchend') {
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  //   console.log('🔒 터치 스크롤 방지됨');
+  // }
 };
 
 /**
@@ -196,7 +196,7 @@ export const preventWheelScroll = (e: WheelEvent): void => {
 
   // 다른 영역에서는 휠 이벤트 방지
   e.preventDefault();
-  e.stopPropagation();
+  // e.stopPropagation(); // 이벤트 전파 허용
   console.log('🔒 휠 스크롤 방지됨');
 };
 
@@ -208,7 +208,7 @@ export const preventKeyScroll = (e: KeyboardEvent): void => {
   
   if (scrollKeys.includes(e.code)) {
     // 입력 필드에서는 키보드 스크롤 허용
-    if (isClickableElement(e.target)) {
+    if (e.target && isClickableElement(e.target)) {
       console.log('🎯 클릭 가능한 요소 키보드 허용됨');
       return;
     }

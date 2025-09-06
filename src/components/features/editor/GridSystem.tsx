@@ -61,14 +61,17 @@ export const GridSystem: React.FC<GridSystemProps> = React.memo(({
         gridRef.current.material.transparent = true;
         gridRef.current.visible = newOpacity > 0.01;
         
-        // 애니메이션 계속
+        // 애니메이션 계속 (메모리 누수 방지를 위한 타이머 정리)
         if (Math.abs(newOpacity - targetOpacity) > 0.01) {
-          requestAnimationFrame(() => {
+          const animationId = requestAnimationFrame(() => {
             if (gridRef.current && gridRef.current.material) {
               gridRef.current.material.opacity = targetOpacity;
               gridRef.current.visible = targetOpacity > 0.01;
             }
           });
+          
+          // 컴포넌트 언마운트 시 애니메이션 취소
+          return () => cancelAnimationFrame(animationId);
         }
       }
     }

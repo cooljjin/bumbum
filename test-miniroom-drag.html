@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>미니룸 드래그 테스트</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            padding: 20px;
+            background: #2a2a2a;
+            text-align: center;
+        }
+        .miniroom-container {
+            flex: 1;
+            position: relative;
+        }
+        .test-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>미니룸 드래그 테스트</h1>
+            <p>마우스나 터치로 드래그하여 카메라를 움직여보세요</p>
+        </div>
+        <div class="miniroom-container">
+            <div class="test-info">
+                <div>테스트 상태: <span id="test-status">준비 중...</span></div>
+                <div>드래그 횟수: <span id="drag-count">0</span></div>
+                <div>마지막 이벤트: <span id="last-event">없음</span></div>
+            </div>
+            <div id="miniroom-root"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import React from 'https://esm.sh/react@18';
+        import ReactDOM from 'https://esm.sh/react-dom@18';
+        import { Canvas } from 'https://esm.sh/@react-three/fiber@8.15.19';
+        import { CameraControls, PresentationControls, TransformControls, Html } from 'https://esm.sh/@react-three/drei@9.88.13';
+        import * as THREE from 'https://esm.sh/three@0.158.0';
+        import { useGesture } from 'https://esm.sh/@use-gesture/react@10.3.0';
+        import { create } from 'https://esm.sh/zustand@4.4.7';
+
+        // 상태 관리
+        let dragCount = 0;
+        let lastEvent = '없음';
+
+        function updateTestInfo() {
+            document.getElementById('test-status').textContent = '실행 중';
+            document.getElementById('drag-count').textContent = dragCount.toString();
+            document.getElementById('last-event').textContent = lastEvent;
+        }
+
+        // 카메라 상태 관리
+        const useCam = create((set) => ({
+            zoom: 0,
+            truck: [0, 0],
+            addTruck: (dx, dy) => set((s) => ({ truck: [s.truck[0] + dx, s.truck[1] + dy] })),
+            addZoom: (dz) => set((s) => ({ zoom: Math.min(Math.max(s.zoom + dz, -5), 5) })),
+            reset: () => set({ zoom: 0, truck: [0, 0] }),
+        }));
+
+        // 바닥
+        function Floor() {
+            const grid = React.useMemo(() => new THREE.GridHelper(20, 20, 0x888888, 0x444444), []);
+            return React.createElement('primitive', { object: grid, position: [0, -0.01, 0] });
+        }
+
+        // 조명
+        function LightRig() {
+            return React.createElement(React.Fragment, null,
+                React.createElement('ambientLight', { intensity: 0.5 }),
+                React.createElement('directionalLight', { position: [5, 8, 5], intensity: 0.9, castShadow: true })
+            );
+        }
+
+        // 회전하는 박스
+        function CuteBox(props) {
+            const ref = React.useRef();
+            React.useEffect(() => {
+                let animationId;
+                const animate = () => {
+                    if (ref.current) {
+                        ref.current.rotation.y += 0.01;
+                    }
+                    animationId = requestAnimationFrame(animate);
+                };
+                animate();
+                return () => cancelAnimationFrame(animationId);
+            }, []);
+            
+            return React.createElement('mesh', { ref, castShadow: true, receiveShadow: true, ...props },
+                React.createElement('boxGeometry', { args: [1, 1, 1] }),
+                React.createElement('meshStandardMaterial', { color: "#7ccfff", metalness: 0.1, roughness: 0.6 })
+            );
+        }
+
+        // 카메라 컨트롤러
+        function CameraController({ controls }) {
+            React.useEffect(() => {
+                let animationId;
+                const animate = () => {
+                    const api = controls.current;
+                    if (api) {
+                        const { truck, zoom } = useCam.getState();
+                        if (truck[0] !== 0 || truck[1] !== 0) {
+                            api.truck(truck[0], truck[1], true);
+                            useCam.setState({ truck: [0, 0] });
+                        }
+                        if (zoom !== 0) {
+                            api.dolly(zoom, true);
+                            useCam.setState({ zoom: 0 });
+                        }
+                    }
+                    animationId = requestAnimationFrame(animate);
+                };
+                animate();
+                return () => cancelAnimationFrame(animationId);
+            }, [controls]);
+            return null;
+        }
+
+        // 제스처 오버레이
+        function GestureOverlay({ controls }) {
+            const ref = React.useRef();
+            const addTruck = useCam((s) => s.addTruck);
+            const addZoom = useCam((s) => s.addZoom);
+
+            useGesture(
+                {
+                    onDrag: ({ delta: [dx, dy], event, touches }) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const speed = touches > 0 ? 0.0025 : 0.002;
+                        addTruck(-dx * speed, dy * speed);
+                        dragCount++;
+                        lastEvent = `드래그: dx=${dx.toFixed(2)}, dy=${dy.toFixed(2)}`;
+                        updateTestInfo();
+                        console.log('🖱️ 드래그 이벤트:', { dx, dy, touches, speed });
+                    },
+                    onPinch: ({ delta: [d], event }) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        addZoom(-d * 0.005);
+                        lastEvent = `핀치: delta=${d.toFixed(2)}`;
+                        updateTestInfo();
+                        console.log('🤏 핀치 이벤트:', { delta: d });
+                    },
+                    onWheel: ({ delta: [_, dy], event }) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        addZoom(dy * 0.0015);
+                        lastEvent = `휠: dy=${dy.toFixed(2)}`;
+                        updateTestInfo();
+                        console.log('🎡 휠 이벤트:', { dy });
+                    },
+                },
+                { 
+                    target: ref, 
+                    eventOptions: { passive: false },
+                    drag: { threshold: 1 },
+                    pinch: { threshold: 0.05 }
+                }
+            );
+
+            return React.createElement('div', {
+                ref,
+                style: { 
+                    position: "absolute", 
+                    inset: 0, 
+                    touchAction: "none",
+                    zIndex: 50,
+                    pointerEvents: "auto",
+                    backgroundColor: "rgba(255, 0, 0, 0.05)" // 디버깅용
+                }
+            });
+        }
+
+        // 메인 미니룸 컴포넌트
+        function MiniRoom() {
+            const camRef = React.useRef();
+
+            return React.createElement('div', { 
+                style: { width: "100%", height: "100%", position: "relative" }
+            },
+                // UI 컨트롤
+                React.createElement('div', {
+                    style: {
+                        position: "absolute",
+                        top: 12,
+                        left: 12,
+                        zIndex: 60,
+                        display: "flex",
+                        gap: 8,
+                        alignItems: "center",
+                        padding: "8px 10px",
+                        borderRadius: 12,
+                        background: "rgba(0,0,0,0.45)",
+                        backdropFilter: "blur(6px)",
+                        color: "white",
+                        userSelect: "none",
+                        pointerEvents: "auto",
+                    }
+                },
+                    React.createElement('button', {
+                        onClick: () => useCam.getState().reset(),
+                        style: {
+                            padding: "6px 10px",
+                            borderRadius: 10,
+                            border: 0,
+                            background: "#374151",
+                            color: "white",
+                            fontSize: 14,
+                        }
+                    }, "Reset View"),
+                    React.createElement('span', { style: { opacity: 0.8, fontSize: 12 } }, "• Drag = Pan • Pinch/Wheel = Zoom")
+                ),
+
+                // Canvas
+                React.createElement(Canvas, {
+                    shadows: true,
+                    camera: { position: [4, 3, 6], fov: 45 },
+                    gl: { antialias: true },
+                    style: { touchAction: "none" },
+                    onCreated: ({ gl }) => {
+                        gl.setClearColor(0x0e1116);
+                        gl.outputColorSpace = THREE.SRGBColorSpace;
+                    }
+                },
+                    React.createElement(LightRig),
+                    React.createElement(Floor),
+                    React.createElement(PresentationControls, { global: true, polar: [-0.3, 0.3], azimuth: [-0.6, 0.6] },
+                        React.createElement(CuteBox, { position: [0, 0.5, 0] })
+                    ),
+                    React.createElement(CameraControls, { 
+                        ref: camRef, 
+                        makeDefault: true, 
+                        dollyToCursor: true, 
+                        minDistance: 2, 
+                        maxDistance: 20
+                    }),
+                    React.createElement(CameraController, { controls: camRef }),
+                    React.createElement(Html, { position: [0, 1.6, 0], center: true },
+                        React.createElement('div', {
+                            style: {
+                                padding: "4px 8px",
+                                borderRadius: 8,
+                                background: "rgba(255,255,255,0.08)",
+                                border: "1px solid rgba(255,255,255,0.15)",
+                                color: "#e5e7eb",
+                                fontSize: 12,
+                                whiteSpace: "nowrap",
+                                userSelect: "none",
+                                pointerEvents: "none",
+                            }
+                        }, "Touch: pinch = zoom, drag = pan")
+                    )
+                ),
+
+                // 제스처 오버레이
+                React.createElement(GestureOverlay, { controls: camRef })
+            );
+        }
+
+        // 앱 렌더링
+        const root = ReactDOM.createRoot(document.getElementById('miniroom-root'));
+        root.render(React.createElement(MiniRoom));
+
+        // 초기 상태 업데이트
+        updateTestInfo();
+    </script>
+</body>
+</html>

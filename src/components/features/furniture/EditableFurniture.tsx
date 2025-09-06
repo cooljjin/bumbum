@@ -191,7 +191,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
             const originalListener = listener;
             listener = function(this: any, event: Event) {
               if ('key' in event && blockedKeys.includes((event as KeyboardEvent).key)) {
-                event.stopPropagation();
+                // event.stopPropagation(); // 이벤트 전파 허용
                 return;
               }
               return originalListener.apply(this, [event]);
@@ -382,7 +382,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
 
   // 클릭 이벤트 처리 - 선택/해제 토글 (고정된 객체는 선택 불가)
   const handleClick = (event: any) => {
-    event.stopPropagation();
+    // event.stopPropagation(); // 이벤트 전파 허용
 
     // 고정된 객체는 선택할 수 없음
     if (item.isLocked) {
@@ -430,7 +430,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
         case 'l':
         case 'L':
           event.preventDefault();
-          event.stopPropagation(); // TransformControls에 이벤트가 전달되지 않도록
+          // event.stopPropagation(); // TransformControls에 이벤트가 전달되지 않도록
 
           // 객체 고정/해제 토글 - 현재 위치 확실히 저장
           if (item.isLocked) {
@@ -729,24 +729,24 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
       <group
         ref={meshRef}
         onClick={handleClick}
-        onPointerDown={(e) => e.stopPropagation()}
-        onPointerMove={(e) => e.stopPropagation()}
-        onPointerUp={(e) => e.stopPropagation()}
-        onPointerOver={(e) => e.stopPropagation()}
-        onPointerOut={(e) => e.stopPropagation()}
-        onWheel={(e) => e.stopPropagation()}
+        onPointerDown={(e) => { /* e.stopPropagation() */ }}
+        onPointerMove={(e) => { /* e.stopPropagation() */ }}
+        onPointerUp={(e) => { /* e.stopPropagation() */ }}
+        onPointerOver={(e) => { /* e.stopPropagation() */ }}
+        onPointerOut={(e) => { /* e.stopPropagation() */ }}
+        onWheel={(e) => { /* e.stopPropagation() */ }}
         visible={isVisible}
       >
         {/* 3D 모델 - 실제 조작이 필요한 요소에만 포인터 이벤트 활성화 */}
         {model && (
           <primitive
             object={model}
-            onPointerDown={(e: any) => e.stopPropagation()}
-            onPointerMove={(e: any) => e.stopPropagation()}
-            onPointerUp={(e: any) => e.stopPropagation()}
-            onPointerOver={(e: any) => e.stopPropagation()}
-            onPointerOut={(e: any) => e.stopPropagation()}
-            onWheel={(e: any) => e.stopPropagation()}
+            onPointerDown={(e: any) => { /* e.stopPropagation() */ }}
+            onPointerMove={(e: any) => { /* e.stopPropagation() */ }}
+            onPointerUp={(e: any) => { /* e.stopPropagation() */ }}
+            onPointerOver={(e: any) => { /* e.stopPropagation() */ }}
+            onPointerOut={(e: any) => { /* e.stopPropagation() */ }}
+            onWheel={(e: any) => { /* e.stopPropagation() */ }}
           />
         )}
 

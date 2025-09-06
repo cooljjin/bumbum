@@ -75,7 +75,7 @@ export default function RoomSizeSettings({
     >
       <motion.div
         className="bg-white rounded-2xl p-6 w-96 max-w-[90vw] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        onClick={() => {/* e.stopPropagation(); */}}
       >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-gray-800">🏠 방 크기 설정</h2>

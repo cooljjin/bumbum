@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { analyzeAllModelSizes, analyzeModelSize } from '../../utils/modelSizeAnalyzer';
+import { analyzeAllModelSizes } from '../../utils/modelSizeAnalyzer';
 
 export default function ModelTestPage() {
   useEffect(() => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Html } from '@react-three/drei';
-import { Vector3, Euler } from 'three';
+import { Vector3 } from 'three';
 
 interface FloatingControlsProps {
   position: Vector3;

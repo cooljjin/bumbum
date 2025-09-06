@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMenu, FiX, FiMove, FiTrash2, FiTarget } from 'react-icons/fi';
-import MobileFurnitureControls from '../features/editor/MobileFurnitureControls';
+// MobileFurnitureControls는 MiniRoom으로 대체됨
 import MobileFurnitureSelector from '../features/editor/MobileFurnitureSelector';
 import { usePlacedItems } from '../../store/editorStore';
 
@@ -220,12 +220,7 @@ export const MobileUI: React.FC<MobileUIProps> = ({
         )}
       </AnimatePresence>
 
-      {/* 모바일 가구 컨트롤 */}
-      <MobileFurnitureControls
-        selectedItemId={selectedItemId}
-        onClose={() => setShowFurnitureControls(false)}
-        isVisible={showFurnitureControls}
-      />
+      {/* 모바일 가구 컨트롤은 MiniRoom에서 처리됨 */}
 
       {/* 모바일 가구 선택기 */}
       <MobileFurnitureSelector

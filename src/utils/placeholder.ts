@@ -4,7 +4,7 @@
  */
 export function shouldUsePlaceholderModels(): boolean {
   // Prefer explicit env flag if provided
-  const explicit = process.env.NEXT_PUBLIC_PLACEHOLDER_MODELS;
+  const explicit = process.env['NEXT_PUBLIC_PLACEHOLDER_MODELS'];
   if (explicit === '1' || explicit === 'true') return true;
   if (explicit === '0' || explicit === 'false') return false;
 

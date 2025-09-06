@@ -547,7 +547,18 @@ export const useEditorStore = create<EditorStore>()(
       setDragging: (isDragging: boolean) => {
         const currentDragging = get().isDragging;
         if (currentDragging === isDragging) return;
+        
+        console.log('🎯 editorStore 드래그 상태 변경:', {
+          from: currentDragging,
+          to: isDragging,
+          timestamp: new Date().toISOString()
+        });
+        
         set({ isDragging });
+        
+        console.log('✅ editorStore 드래그 상태 업데이트 완료:', {
+          newState: isDragging
+        });
       },
 
       toggleGrid: () => {

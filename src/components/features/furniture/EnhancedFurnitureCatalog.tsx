@@ -381,7 +381,7 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
                     </div>
                     <button
                       onClick={(e) => {
-                        e.stopPropagation();
+                        // e.stopPropagation(); // 이벤트 전파 허용
                         toggleFavorite(item.id);
                       }}
                       className={`p-1 rounded-full ${

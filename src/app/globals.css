@@ -42,6 +42,44 @@ a {
   font-weight: 500;
 }
 
+/* ===== 모바일 터치 최적화 ===== */
+
+/* 모바일에서 터치 반응성 개선 */
+@media (max-width: 768px) {
+  /* 터치 액션 최적화 */
+  .touch-optimized {
+    touch-action: pan-x pan-y;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* 3D 캔버스 터치 최적화 */
+  .edit-mode-canvas {
+    touch-action: pan-x pan-y;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    /* 터치 지연 제거 */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* 부드러운 스크롤 */
+  .smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+}
+
 /* ===== 접근성 개선 CSS ===== */
 
 /* 스크린 리더 전용 콘텐츠 */
@@ -187,7 +225,7 @@ textarea {
 
 /* 편집 모드에서 3D 캔버스 영역만 터치 허용 */
 .edit-mode-canvas {
-  touch-action: none !important;
+  touch-action: auto !important;  /* 카메라 컨트롤을 위해 터치 허용 */
   -webkit-touch-callout: none !important;
   -webkit-user-select: none !important;
   -khtml-user-select: none !important;
@@ -210,7 +248,7 @@ textarea {
   /* 3D 캔버스 영역은 터치 허용 */
   .scroll-locked canvas,
   .scroll-locked .three-canvas {
-    touch-action: none !important;
+    touch-action: auto !important;  /* 카메라 컨트롤을 위해 터치 허용 */
     -webkit-touch-callout: none !important;
   }
   

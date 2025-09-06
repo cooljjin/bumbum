@@ -5,19 +5,12 @@ import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
 // 클라이언트 사이드에서만 실행되는 컴포넌트들
-const Canvas = dynamic(() => import('@react-three/fiber').then(mod => ({ default: mod.Canvas })), { 
-  ssr: false,
-  loading: () => <div className="w-full h-full bg-gray-100 flex items-center justify-center">3D 렌더러 로딩 중...</div>
-});
-import { CameraControls, AdaptiveEvents } from '@react-three/drei';
+import { AdaptiveEvents } from '@react-three/drei';
 // const ContactShadows = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.ContactShadows })), { 
 //   ssr: false,
 //   loading: () => null
 // });
-import { useThree, useFrame } from '@react-three/fiber';
 import { motion } from 'framer-motion';
-import { createPortal } from 'react-dom';
-import * as THREE from 'three';
 import { Vector3, Euler } from 'three';
 // 클라이언트 사이드에서만 실행되는 컴포넌트들
 const Room = dynamic(() => import('./features/room/Room'), { 
@@ -60,7 +53,11 @@ const OutlineEffect = dynamic(() => import('./shared/OutlineEffect'), {
   ssr: false,
   loading: () => null
 });
-const EnhancedTouchControls = dynamic(() => import('./features/editor/EnhancedTouchControls'), { 
+const MiniRoom = dynamic(() => import('./3D/MiniRoom'), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-gray-100 flex items-center justify-center">3D 룸 로딩 중...</div>
+});
+const UnifiedCameraControls = dynamic(() => import('./3D/UnifiedCameraControls'), { 
   ssr: false,
   loading: () => null
 });
@@ -71,7 +68,6 @@ import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, 
 import { 
   enableScrollLock, 
   disableScrollLock, 
-  preventTouchScroll, 
   preventKeyScroll,
   // isIOSSafari,
   isMobile as isMobileDevice
@@ -104,163 +100,6 @@ const useClientSideReady = () => {
 };
 
 
-// 카메라 컨트롤러 컴포넌트 - React.memo로 최적화
-const CameraController = React.memo(({
-  isViewLocked,
-  isDragging,
-  isEditMode,
-  hasSelection,
-  debugFreeCam,
-  controlsRef,
-  onTransitionLockChange,
-}: {
-  isViewLocked: boolean;
-  isDragging: boolean;
-  isEditMode: boolean;
-  hasSelection: boolean;
-  debugFreeCam: boolean;
-  controlsRef: React.RefObject<import('camera-controls').default | null>;
-  onTransitionLockChange?: (locked: boolean) => void;
-}) => {
-  const { camera } = useThree();
-
-  // 시점 고정 시 이동할 위치와 시점 (10x10x5 방에 맞게 조정)
-  const lockedPosition: [number, number, number] = [5, 4, 6];
-  const lockedLookAt: [number, number, number] = [0, 0, 0];
-
-  // 카메라 위치 모니터링 (1초마다 콘솔에 출력)
-  const lastLogTime = useRef<number>(0);
-
-  // controlsRef를 부모 컴포넌트의 ref에 연결
-  useEffect(() => {
-    if (controlsRef.current) {
-      // controlsRef.current를 부모의 cameraControlsRef에 연결하는 로직은 필요 없음
-      // 이미 파라미터로 전달받은 controlsRef를 사용하므로
-    }
-  }, []);
-
-  // 속도 복원을 위한 이전 값 저장
-  const prevSpeedsRef = useRef<{ azimuthRotateSpeed?: number; polarRotateSpeed?: number; truckSpeed?: number }>({});
-
-  useFrame(() => {
-    // Y축 위치 제한 (너무 낮게 내려가지 않도록)
-    const minY = 0.5;
-    if (camera.position.y < minY) {
-      camera.position.y = minY;
-      console.log('⚠️ Y축 제한: 카메라가 너무 낮게 내려가지 않도록 제한됨 (y >= 0.5)');
-    }
-
-    const now = Date.now();
-    if (now - lastLogTime.current > 1000) { // 1초마다 로그
-      const position = camera.position;
-      const rotation = camera.rotation;
-
-      console.log('🎥 카메라 위치:', {
-        position: {
-          x: position.x.toFixed(2),
-          y: position.y.toFixed(2),
-          z: position.z.toFixed(2)
-        },
-        rotation: {
-          x: (rotation.x * 180 / Math.PI).toFixed(1) + '°',
-          y: (rotation.y * 180 / Math.PI).toFixed(1) + '°',
-          z: (rotation.z * 180 / Math.PI).toFixed(1) + '°'
-        }
-      });
-
-      lastLogTime.current = now;
-    }
-  });
-
-  useEffect(() => {
-    if (!controlsRef.current) return;
-
-    // 드래그 중에는 카메라 완전 비활성화 (회전/이동/줌 모두 차단)
-    if (isDragging) {
-      controlsRef.current.enabled = false;
-      return;
-    }
-
-    if (isViewLocked && controlsRef.current) {
-      // 시점 고정: 회전/이동은 잠그고, 줌은 허용
-      console.log('🔒 시점 고정 모드: 회전/이동 비활성화, 전환 중 입력 락');
-      controlsRef.current.enabled = true;
-
-      // CameraControls 설정
-      controlsRef.current.smoothTime = 1.0;        // 1초 동안 전환
-      controlsRef.current.maxSpeed = 3;            // 과속 방지
-      // 회전/이동 속도를 0으로 설정하여 동작 비활성화
-      try {
-        // 일부 환경에서 존재하지 않을 수 있으므로 안전하게 시도
-        // 이전 값 저장
-        prevSpeedsRef.current.azimuthRotateSpeed = (controlsRef.current as any).azimuthRotateSpeed;
-        prevSpeedsRef.current.polarRotateSpeed = (controlsRef.current as any).polarRotateSpeed;
-        prevSpeedsRef.current.truckSpeed = (controlsRef.current as any).truckSpeed;
-
-        // 회전/이동 잠금
-        (controlsRef.current as any).azimuthRotateSpeed = 0;
-        (controlsRef.current as any).polarRotateSpeed = 0;
-        (controlsRef.current as any).truckSpeed = 0;
-      } catch (e) {
-        // no-op
-      }
-
-      // 부드러운 전환으로 목표 위치로 이동
-      onTransitionLockChange?.(true);
-      controlsRef.current.setLookAt(
-        lockedPosition[0], lockedPosition[1], lockedPosition[2],
-        lockedLookAt[0], lockedLookAt[1], lockedLookAt[2],
-        true  // 부드러운 전이 활성화
-      ).finally(() => {
-        // 전환 완료: 입력 락 해제 (줌은 계속 가능)
-        onTransitionLockChange?.(false);
-        console.log('✅ 시점 고정 완료: 목표 위치 도달 (줌만 가능)');
-      });
-
-    } else if (!isViewLocked && controlsRef.current) {
-      // 시점 해제: 사용자가 자유롭게 카메라 조작 가능
-      console.log('🎯 시점 자유 모드: 카메라 조작 활성화');
-      controlsRef.current.enabled = true;
-      // 기본 속도로 복원
-      try {
-        (controlsRef.current as any).azimuthRotateSpeed = prevSpeedsRef.current.azimuthRotateSpeed ?? 1.0;
-        (controlsRef.current as any).polarRotateSpeed = prevSpeedsRef.current.polarRotateSpeed ?? 1.0;
-        (controlsRef.current as any).truckSpeed = prevSpeedsRef.current.truckSpeed ?? 2.0;
-      } catch (e) {
-        // no-op
-      }
-    }
-  }, [isViewLocked, isDragging]);
-
-  return (
-    <CameraControls
-      ref={controlsRef}
-      makeDefault
-      // 카메라 제한 설정 (10x10x5 방에 맞게 조정)
-      minDistance={1.0}
-      maxDistance={15}
-      maxPolarAngle={Math.PI * 0.85}
-      minPolarAngle={Math.PI * 0.15}
-      // 스크롤할 때만 움직이도록 설정 (부드러운 애니메이션 비활성화)
-      smoothTime={0}
-      // 줌 속도 제한하여 한번에 많이 스크롤해도 끝까지 가지 않도록
-      maxSpeed={1}
-      // 줌 민감도 조절 - 휠 한 번 돌릴 때의 확대/축소 정도를 줄임
-      dollySpeed={0.2}
-      // 무한 줌 방지
-      infinityDolly={false}
-      // 터치 제스처 매핑
-      // 보기 모드: 1손 오빗, 2손 패닝, 핀치 줌(기본)
-      // 편집 모드: 선택/드래그 중에만 1손 오빗 비활성화 (debugFreeCam이면 항상 허용)
-      // @ts-ignore - pass-through to camera-controls
-      touches={{
-        one: debugFreeCam ? 'rotate' : (isEditMode && (isDragging || hasSelection) ? 'none' : 'rotate'),
-        two: 'truck',
-        three: 'none'
-      }}
-    />
-  );
-});
 
 // 바텀시트: 카탈로그용 스냅 포인트(25/66/100%)
 function BottomSheetCatalog({
@@ -312,7 +151,7 @@ function BottomSheetCatalog({
     if (ratio < 0.22) {
       onClose();
     } else {
-      setHeightPx(Math.round(vh() * nearest));
+      setHeightPx(Math.round(vh() * (nearest || 0.66)));
     }
   }, [heightPx]);
 
@@ -350,10 +189,14 @@ const Real3DRoomComponent = React.memo(({
   isEditMode: externalEditMode,
   onEditModeChange
 }: Real3DRoomProps) => {
+  // isViewLocked 상태 디버깅
+  console.log('🏠 Real3DRoom isViewLocked 상태:', isViewLocked);
+  
   // 클라이언트 사이드 준비 상태
   const isClientReady = useClientSideReady();
   const searchParams = typeof window !== 'undefined' ? useSearchParams() : (null as any);
   const debugFreeCam = !!(searchParams && searchParams.get('freecam') === '1');
+  const gestureFixScope = (searchParams && searchParams.get('gfix')) || 'canvas'; // 'canvas' | 'global'
 
   // 모든 useState 훅들은 항상 호출되어야 함 (React Hooks 규칙)
   // const [showTransitionEffect, setShowTransitionEffect] = useState(false); // 파란색 오버레이 효과 제거
@@ -375,10 +218,7 @@ const Real3DRoomComponent = React.memo(({
   const [isPlacingFurniture, setIsPlacingFurniture] = useState(false);
   const [selectedFurniture, setSelectedFurniture] = useState<FurnitureItem | null>(null);
 
-  // DPR 고정 범위 계산 (편집 모드의 흐릿함 방지)
-  const deviceDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-  const minDpr = 1;
-  const maxDpr = Math.min(2, deviceDpr);
+  // DPR 고정 범위 계산은 MiniRoom에서 처리됨
 
   // 편집 스토어에서 상태 가져오기
   const storeEditMode = useEditorMode();
@@ -400,12 +240,10 @@ const Real3DRoomComponent = React.memo(({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // iOS Safari 전용: 페이지 핀치 제스처가 캔버스 핀치를 가로채지 않도록 전역 차단
+  // iOS Safari: 전역 제스처 차단은 opt-in (gfix=global). 기본은 캔버스 내부에서만 차단
   useEffect(() => {
-    if (!isMobile) return undefined;
-    const prevent = (e: Event) => {
-      e.preventDefault();
-    };
+    if (!isMobile || gestureFixScope !== 'global') return undefined;
+    const prevent = (e: Event) => { e.preventDefault(); };
     const opts = { passive: false, capture: true } as AddEventListenerOptions;
     document.addEventListener('gesturestart', prevent, opts);
     document.addEventListener('gesturechange', prevent, opts);
@@ -415,37 +253,20 @@ const Real3DRoomComponent = React.memo(({
       document.removeEventListener('gesturechange', prevent, { capture: true } as any);
       document.removeEventListener('gestureend', prevent, { capture: true } as any);
     };
-  }, [isMobile]);
+  }, [isMobile, gestureFixScope]);
 
-  // 스크롤 락 처리 (모바일에서 '드래그 중'에만 페이지 스크롤 방지)
+  // 스크롤 락 처리 - MiniRoom의 GestureOverlay가 자동으로 처리
   useEffect(() => {
     if (!isMobile) return undefined;
 
     if (isDragging) {
       enableScrollLock();
-
-      document.addEventListener('touchmove', preventTouchScroll, { passive: false, capture: true });
-      document.addEventListener('touchstart', preventTouchScroll, { passive: false, capture: true });
-      document.addEventListener('touchend', preventTouchScroll, { passive: false, capture: true });
-      // document.addEventListener('wheel', preventWheelScroll, { passive: false, capture: true });
       document.addEventListener('keydown', preventKeyScroll, { passive: false, capture: true });
-
-      document.addEventListener('gesturestart', preventTouchScroll, { passive: false, capture: true });
-      document.addEventListener('gesturechange', preventTouchScroll, { passive: false, capture: true });
-      document.addEventListener('gestureend', preventTouchScroll, { passive: false, capture: true });
 
       console.log('🔒 드래그 중 스크롤 락 활성화');
 
       return () => {
-        document.removeEventListener('touchmove', preventTouchScroll, { capture: true });
-        document.removeEventListener('touchstart', preventTouchScroll, { capture: true });
-        document.removeEventListener('touchend', preventTouchScroll, { capture: true });
-        // document.removeEventListener('wheel', preventWheelScroll, { capture: true });
         document.removeEventListener('keydown', preventKeyScroll, { capture: true });
-        document.removeEventListener('gesturestart', preventTouchScroll, { capture: true });
-        document.removeEventListener('gesturechange', preventTouchScroll, { capture: true });
-        document.removeEventListener('gestureend', preventTouchScroll, { capture: true });
-
         disableScrollLock();
         console.log('🔓 드래그 종료 스크롤 락 해제');
       };
@@ -462,7 +283,7 @@ const Real3DRoomComponent = React.memo(({
 
     const prevent = (e: Event) => {
       e.preventDefault();
-      e.stopPropagation();
+      // e.stopPropagation(); // 이벤트 전파 허용
     };
 
     enableScrollLock();
@@ -573,12 +394,12 @@ const Real3DRoomComponent = React.memo(({
 
   // 메모리 관리 및 정리
   useEffect(() => {
-    // 메모리 사용량 모니터링 (로깅만)
+    // 메모리 사용량 모니터링 (로깅 제거)
     const updateMemoryUsage = () => {
       if ('memory' in performance) {
-        const memory = (performance as any).memory;
-        const usageMB = memory.usedJSHeapSize / (1024 * 1024); // MB 단위
-        console.log(`📊 현재 메모리 사용량: ${usageMB.toFixed(2)} MB`);
+        // const memory = (performance as any).memory;
+        // const usageMB = memory.usedJSHeapSize / (1024 * 1024); // MB 단위
+        // console.log(`📊 현재 메모리 사용량: ${usageMB.toFixed(2)} MB`);
       }
     };
 
@@ -600,15 +421,15 @@ const Real3DRoomComponent = React.memo(({
         }
       });
 
-      // 메모리 사용량 로그
-      if ('memory' in performance) {
-        const memory = (performance as any).memory;
-        console.log('📊 최종 메모리 사용량:', {
-          used: `${(memory.usedJSHeapSize / (1024 * 1024)).toFixed(2)} MB`,
-          total: `${(memory.totalJSHeapSize / (1024 * 1024)).toFixed(2)} MB`,
-          limit: `${(memory.jsHeapSizeLimit / (1024 * 1024)).toFixed(2)} MB`
-        });
-      }
+      // 메모리 사용량 로그 제거
+      // if ('memory' in performance) {
+      //   const memory = (performance as any).memory;
+      //   console.log('📊 최종 메모리 사용량:', {
+      //     used: `${(memory.usedJSHeapSize / (1024 * 1024)).toFixed(2)} MB`,
+      //     total: `${(memory.totalJSHeapSize / (1024 * 1024)).toFixed(2)} MB`,
+      //     limit: `${(memory.jsHeapSizeLimit / (1024 * 1024)).toFixed(2)} MB`
+      //   });
+      // }
     };
 
     // 정리 함수 등록 (cleanup 함수는 직접 실행되므로 Set에 추가하지 않음)
@@ -658,17 +479,17 @@ const Real3DRoomComponent = React.memo(({
   const handleFurnitureSelect = (item: FurnitureItem) => {
     console.log('가구 선택됨:', item);
 
-    // 메모리 사용량 확인
-    if ('memory' in performance) {
-      const memory = (performance as any).memory;
-      const usageMB = memory.usedJSHeapSize / (1024 * 1024);
-      console.log(`📊 현재 메모리 사용량: ${usageMB.toFixed(2)} MB`);
+    // 메모리 사용량 확인 제거
+    // if ('memory' in performance) {
+    //   const memory = (performance as any).memory;
+    //   const usageMB = memory.usedJSHeapSize / (1024 * 1024);
+    //   console.log(`📊 현재 메모리 사용량: ${usageMB.toFixed(2)} MB`);
 
-      // 메모리 사용량이 높으면 경고
-      if (usageMB > 100) {
-        console.warn('⚠️ 메모리 사용량이 높습니다. 불필요한 객체를 정리하세요.');
-      }
-    }
+    //   // 메모리 사용량이 높으면 경고
+    //   if (usageMB > 100) {
+    //     console.warn('⚠️ 메모리 사용량이 높습니다. 불필요한 객체를 정리하세요.');
+    //   }
+    // }
 
     // 가구 배치 모드로 전환
     setIsPlacingFurniture(true);
@@ -956,141 +777,21 @@ const Real3DRoomComponent = React.memo(({
   // const isIOS = isIOSSafari();
 
   return (
-    <div className="relative w-full h-full overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-slate-100 z-10 overscroll-contain">
-      {/* 우측 상단 룸 편집 버튼 */}
-      <motion.button
-        onClick={handleEditModeToggle}
-        className={`absolute top-4 right-4 z-50 px-4 py-2 rounded-lg font-medium shadow-lg transition-all duration-200 ${
-          isEditMode
-            ? 'bg-blue-500 text-white hover:bg-blue-600'
-            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
-        }`}
-        whileTap={{ scale: 0.95 }}
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+    <div className="relative w-full h-full overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-slate-100 z-0 overscroll-contain">
+      {/* MiniRoom 컴포넌트 사용 */}
+      <MiniRoom
+        isEditMode={isEditMode}
+        onEditModeChange={handleEditModeToggle}
+        className="w-full h-full"
+        useExternalControls={true} // 외부 카메라 컨트롤 사용
       >
-        <div className="flex items-center gap-2">
-          {isEditMode ? (
-            <>
-              <span>👁️</span>
-              <span>보기 모드</span>
-            </>
-          ) : (
-            <>
-              <span>✏️</span>
-              <span>룸 편집</span>
-            </>
-          )}
-        </div>
-      </motion.button>
-
-      <Canvas
-        shadows
-        camera={{ position: [4.5, 3.0, 4.5], fov: 40 }}
-        gl={{
-          antialias: true,
-          alpha: false,
-          preserveDrawingBuffer: false,
-          powerPreference: 'high-performance'
-        }}
-        dpr={[minDpr, maxDpr]}
-        className={`w-full h-full block absolute top-0 left-0 ${isEditMode && isMobile ? 'edit-mode-canvas' : ''}`}
-        style={{
-          backgroundColor: '#f8fafc',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-          touchAction: isMobile ? 'none' : 'auto'
-        }}
-        onCreated={({ gl, scene }) => {
-          gl.setClearColor('#f8fafc', 1);
-          gl.shadowMap.enabled = true;
-          gl.shadowMap.type = THREE.PCFSoftShadowMap;
-          scene.background = new THREE.Color('#f8fafc');
-
-          // 🔧 텍스처 품질 개선을 위한 설정
-          const maxAnisotropy = gl.capabilities.getMaxAnisotropy();
-          console.log(`🎨 GPU 최대 Anisotropy 지원: ${maxAnisotropy}`);
-          
-          // 텍스처 품질 향상을 위한 추가 설정 (모바일은 4, 데스크톱은 8까지 제한)
-          // @ts-ignore - DEFAULT_ANISOTROPY는 런타임 상수
-          THREE.Texture.DEFAULT_ANISOTROPY = Math.min(isMobile ? 4 : 8, maxAnisotropy);
-          gl.outputColorSpace = THREE.SRGBColorSpace;
-          
-          // 추가 배경색 설정
-          const context = gl.getContext();
-          if (context) {
-            context.clearColor(0.973, 0.98, 0.988, 1.0);
-            context.clear(context.COLOR_BUFFER_BIT);
-          }
-        }}
-        onContextMenu={(e) => { e.preventDefault(); }}
-        onPointerDown={(e) => {
-          if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
-            try {
-              const hits = document.elementsFromPoint(e.clientX, e.clientY).slice(0, 6).map((el) => {
-                const cs = getComputedStyle(el as Element);
-                return {
-                  tag: (el as HTMLElement).tagName,
-                  class: (el as HTMLElement).className,
-                  id: (el as HTMLElement).id,
-                  z: cs.zIndex,
-                  pe: cs.pointerEvents,
-                  pos: cs.position,
-                };
-              });
-              console.log('🧭 Pointer hit test (top→down):', hits);
-            } catch {}
-          }
-          // 드래그 중일 때만 전파 차단 (카메라 제스처 보존)
-          if (isEditMode && isMobile && isDragging) e.stopPropagation();
-        }}
-        onPointerMove={(e) => {
-          // 드래그 중일 때만 전파 차단 (카메라 제스처 보존)
-          if (isEditMode && isMobile && isDragging) e.stopPropagation();
-        }}
-        onPointerUp={(e) => {
-          // 드래그 중일 때만 전파 차단 (카메라 제스처 보존)
-          if (isEditMode && isMobile && isDragging) e.stopPropagation();
-        }}
-        onWheel={(e) => {
-          // 캔버스 위 스크롤/핀치 제스처가 페이지에 전파되지 않도록
-          e.stopPropagation();
-        }}
-        // 터치 이벤트: 드래그 중일 때만 전파 차단 (카메라 제스처 보존)
-        onTouchStart={(e) => {
-          // 두 손가락 이상이면 페이지 핀치 방지 (iOS Safari 대응)
-          if ((e as any).touches && (e as any).touches.length >= 2) {
-            e.preventDefault();
-            e.stopPropagation();
-          } else if (isEditMode && isMobile && isDragging) {
-            e.stopPropagation();
-          }
-        }}
-        onTouchMove={(e) => {
-          if ((e as any).touches && (e as any).touches.length >= 2) {
-            e.preventDefault();
-            e.stopPropagation();
-          } else if (isEditMode && isMobile && isDragging) {
-            e.stopPropagation();
-          }
-        }}
-        onTouchEnd={(e) => {
-          if (isEditMode && isMobile && isDragging) e.stopPropagation();
-        }}
-        // 빈 공간을 탭/클릭했을 때 선택 해제
-        onPointerMissed={(e) => {
-          if (isEditMode && selectedItemId) {
-            selectItem(null);
-          }
-        }}
-      >
-        {/* 카메라 컨트롤러 */}
-        <CameraController
+        {/* 통합 카메라 컨트롤러 */}
+        <UnifiedCameraControls
           isViewLocked={isViewLocked}
           isDragging={isDragging}
           isEditMode={isEditMode}
           hasSelection={!!selectedItemId}
-          debugFreeCam={debugFreeCam}
+          isMobile={isMobile}
           controlsRef={cameraControlsRef}
           onTransitionLockChange={setIsTransitionInputLocked}
         />
@@ -1115,22 +816,6 @@ const Real3DRoomComponent = React.memo(({
         {/* 3D 룸 */}
         <Room receiveShadow={shadowMode === 'realtime'} />
 
-        {/* 방 경계 시각화 - 편집 모드에서 불필요한 요소 제거 */}
-        {/* {isEditMode && (
-          <RoomBoundaryVisualizer 
-            visible={true} 
-            color="#ff6b6b" 
-            lineWidth={2} 
-          />
-        )} */}
-
-        {/* 성능 모니터링 - 편집 모드에서 불필요한 요소 제거 */}
-        {/* <PerformanceMonitor
-          enabled={performanceOptimizationEnabled}
-          position={[0, 5, 0]}
-          showDetails={false}
-        /> */}
-
         {/* 그리드 시스템 - 항상 렌더링하되 편집모드에서만 표시 (최적화) */}
         {isClientReady && (
           <GridSystem 
@@ -1140,8 +825,6 @@ const Real3DRoomComponent = React.memo(({
             isEditMode={isEditMode}
           />
         )}
-
-
 
         {/* 윤곽선 효과 - 편집 모드에서만 활성화 */}
         {isEditMode && (
@@ -1183,32 +866,12 @@ const Real3DRoomComponent = React.memo(({
           />
         ))}
 
-        {/* 그림자 - rgb(79,93,108) 레이어 제거를 위해 주석 처리 */}
-        {/* <ContactShadows
-          opacity={0.35}
-          scale={10}
-          blur={2.5}
-          far={4.5}
-        /> */}
-
-        {/* 모바일 터치 컨트롤 - Canvas 내부에 배치 */}
-        <EnhancedTouchControls
-          enabled={isMobile && isEditMode && !!selectedItemId && isDragging && !debugFreeCam}
-          selectedItemId={selectedItemId}
-          onItemSelect={selectItem}
-          onItemUpdate={updateItem}
-        />
-
-        {/* AdaptiveDpr 완전 비활성화 - 에셋 선택 시 화면 뿌옇게 변하는 문제 해결 */}
-        {/* {!isEditMode && !isMobile && (
-          <AdaptiveDpr pixelated={false} />
-        )} */}
         <AdaptiveEvents />
-      </Canvas>
+      </MiniRoom>
 
       {/* 상태 HUD (디버그용) - 입력 차단 방지 위해 pointer-events:none */}
       <div
-        className="absolute top-4 left-4 z-50 text-xs bg-black/60 text-white rounded-md px-2 py-1"
+        className="absolute top-5 left-5 md:top-3 md:left-3 z-50 text-xs bg-black/60 text-white rounded-md px-2 py-1"
         style={{ pointerEvents: 'none' }}
       >
         <div>Mode: {isEditMode ? 'Edit' : 'View'}</div>
@@ -1223,13 +886,13 @@ const Real3DRoomComponent = React.memo(({
         <div
           className="absolute inset-0 z-[9999]"
           style={{ cursor: 'wait' }}
-          onWheel={(e) => { e.preventDefault(); e.stopPropagation(); }}
-          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-          onPointerMove={(e) => { e.preventDefault(); e.stopPropagation(); }}
-          onPointerUp={(e) => { e.preventDefault(); e.stopPropagation(); }}
-          onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
-          onTouchMove={(e) => { e.preventDefault(); e.stopPropagation(); }}
-          onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onWheel={(e) => { e.preventDefault(); /* e.stopPropagation(); */ }}
+          onPointerDown={(e) => { e.preventDefault(); /* e.stopPropagation(); */ }}
+          onPointerMove={(e) => { e.preventDefault(); /* e.stopPropagation(); */ }}
+          onPointerUp={(e) => { e.preventDefault(); /* e.stopPropagation(); */ }}
+          onTouchStart={(e) => { e.preventDefault(); /* e.stopPropagation(); */ }}
+          onTouchMove={(e) => { e.preventDefault(); /* e.stopPropagation(); */ }}
+          onTouchEnd={(e) => { e.preventDefault(); /* e.stopPropagation(); */ }}
         />
       )}
 
@@ -1368,33 +1031,7 @@ const Real3DRoomComponent = React.memo(({
         </div>
       )}
 
-      {/* 모바일 전용 편집/보기 토글 FAB (Portal로 body에 렌더링하여 클리핑/스택 이슈 회피) */}
-      {isMobile && typeof window !== 'undefined' && createPortal(
-        !isEditMode ? (
-          <button
-            type="button"
-            data-testid="mobile-edit-toggle"
-            onClick={handleEditModeToggle}
-            className="fixed right-4 px-5 py-3 rounded-full bg-blue-600 text-white shadow-xl border border-blue-700 z-[10001] flex items-center gap-2 active:scale-95"
-            style={{ bottom: `calc(env(safe-area-inset-bottom, 0px) + 80px)` }}
-          >
-            <span>✏️</span>
-            <span className="text-sm font-semibold">편집 모드</span>
-          </button>
-        ) : (
-          <button
-            type="button"
-            data-testid="mobile-view-toggle"
-            onClick={handleEditModeToggle}
-            className="fixed right-4 px-5 py-3 rounded-full bg-gray-800 text-white shadow-xl border border-gray-900 z-[10001] flex items-center gap-2 active:scale-95"
-            style={{ bottom: `calc(env(safe-area-inset-bottom, 0px) + 80px)` }}
-          >
-            <span>👁️</span>
-            <span className="text-sm font-semibold">보기 모드</span>
-          </button>
-        ),
-        document.body
-      )}
+      {/* 모바일 전용 편집/보기 토글은 MiniRoom 내부에서 처리됨 */}
 
     </div>
   );

@@ -25,7 +25,7 @@ const OutlineEffect: React.FC<OutlineEffectProps> = ({
   hiddenEdgeColor = 0x22090a,
   enabled = true
 }) => {
-  const { gl, scene, camera } = useThree();
+  const { gl, scene } = useThree();
   const selectionRef = useRef<THREE.Group>(null);
   const timeRef = useRef(0);
 
@@ -60,7 +60,7 @@ const OutlineEffect: React.FC<OutlineEffectProps> = ({
     <>
       <EffectComposer>
         <Outline
-          selection={selectionRef.current}
+          selection={selectionRef.current || []}
           selectionLayer={10}
           edgeStrength={edgeStrength}
           pulseSpeed={pulseSpeed}

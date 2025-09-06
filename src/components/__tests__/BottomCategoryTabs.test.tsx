@@ -294,4 +294,3 @@ describe('BottomCategoryTabs', () => {
     expect(screen.getByText('좌석')).toBeInTheDocument();
     expect(screen.getAllByRole('button')).toHaveLength(1);
   });
-});

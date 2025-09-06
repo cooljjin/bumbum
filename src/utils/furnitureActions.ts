@@ -52,8 +52,6 @@ export const duplicateFurniture = (item: PlacedItem): PlacedItem => {
     position: offsetPosition,
     // 복제된 아이템은 잠금 해제
     isLocked: false,
-    // 복제 시간 기록
-    placedAt: new Date(),
     lastModified: new Date()
   };
 };

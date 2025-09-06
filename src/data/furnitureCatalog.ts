@@ -1690,7 +1690,7 @@ export const createPlacedItemFromFurniture = (
   return {
     id: `${furniture.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     name: furniture.name,
-    modelPath: furniture.modelPath,
+    modelPath: furniture.modelPath || '',
     position,
     rotation,
     scale,

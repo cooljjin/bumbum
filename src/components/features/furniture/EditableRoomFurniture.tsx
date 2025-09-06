@@ -110,7 +110,7 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
 
   // 클릭 이벤트 처리
   const handleClick = (event: any) => {
-    event.stopPropagation();
+    // event.stopPropagation(); // 이벤트 전파 허용
     onSelect();
   };
 

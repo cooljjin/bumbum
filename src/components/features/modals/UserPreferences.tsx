@@ -232,7 +232,7 @@ export const UserPreferences: React.FC<UserPreferencesProps> = ({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={() => {/* e.stopPropagation(); */}}
         >
           {/* 헤더 */}
           <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
