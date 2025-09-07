@@ -89,38 +89,40 @@ const FurnitureModel: React.FC<FurnitureModelProps> = ({
     }
   }, [gltf, furniture, position, rotation, scale]);
 
-  // 선택 상태에 따른 하이라이트 효과
-  useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.material) {
-          const materials = Array.isArray(child.material) ? child.material : [child.material];
-          
-          materials.forEach((material) => {
-            if (material.emissive) {
-              if (isSelected) {
-                // 선택된 상태: 하이라이트 효과 적용
-                if (!originalEmissiveRef.current.has(material)) {
-                  // 원본 emissive 색상 저장
-                  originalEmissiveRef.current.set(material, material.emissive.clone());
-                }
-                material.emissive.setHex(0x444444);
+  // 선택 상태에 따른 하이라이트 효과 (최적화된 버전)
+  useEffect(() => {
+    if (!groupRef.current) return;
+
+    groupRef.current.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material) {
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        
+        materials.forEach((material) => {
+          if (material.emissive) {
+            if (isSelected) {
+              // 선택된 상태: 하이라이트 효과 적용
+              if (!originalEmissiveRef.current.has(material)) {
+                // 원본 emissive 색상 저장
+                originalEmissiveRef.current.set(material, material.emissive.clone());
+              }
+              material.emissive.setHex(0x444444);
+            } else {
+              // 선택 해제된 상태: 원본 색상으로 복원
+              const originalEmissive = originalEmissiveRef.current.get(material);
+              if (originalEmissive) {
+                material.emissive.copy(originalEmissive);
               } else {
-                // 선택 해제된 상태: 원본 색상으로 복원
-                const originalEmissive = originalEmissiveRef.current.get(material);
-                if (originalEmissive) {
-                  material.emissive.copy(originalEmissive);
-                } else {
-                  // 원본 색상이 저장되지 않은 경우 검은색으로 설정
-                  material.emissive.setHex(0x000000);
-                }
+                // 원본 색상이 저장되지 않은 경우 검은색으로 설정
+                material.emissive.setHex(0x000000);
               }
             }
-          });
-        }
-      });
-    }
-  });
+            // 재질 업데이트 플래그 설정
+            material.needsUpdate = true;
+          }
+        });
+      }
+    });
+  }, [isSelected]); // isSelected가 변경될 때만 실행
 
   // 로딩 중 표시
   if (isLoading) {

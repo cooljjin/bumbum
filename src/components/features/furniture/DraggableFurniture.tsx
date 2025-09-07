@@ -173,12 +173,21 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
   // 🖱️ 드래그 시작 핸들러 (마우스 및 터치 지원)
   const handleDragStart = useCallback((event: any) => {
-    if (!isEditMode || item.isLocked) return;
+    console.log('🎯 드래그 시작 시도:', { isEditMode, isLocked: item.isLocked, itemId: item.id });
+    
+    if (!isEditMode || item.isLocked) {
+      console.log('❌ 드래그 시작 실패: 편집 모드가 아니거나 잠긴 객체');
+      return;
+    }
 
     // event.stopPropagation(); // 이벤트 전파 허용
     fromPointerDownRef.current = true;
     // 선택 상태로 만들기(탭으로 선택; 토글은 하지 않음)
     onSelect(item.id);
+
+    // 🎯 드래그 의도 시작 시 즉시 카메라 시점 고정
+    console.log('🔒 드래그 의도 시작 - 카메라 시점 즉시 고정');
+    setDragging(true);
 
     setDragStartPosition(item.position.clone());
 
@@ -204,21 +213,17 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     const mouseY = -(offsetY / height) * 2 + 1;
     setDragStartMousePosition(new Vector2(mouseX, mouseY));
 
-    const DRAG_THRESHOLD = 6; // px
     dragIntentRef.current = { active: true, startX: clientX, startY: clientY };
     suppressClickRef.current = false;
 
-  }, [isEditMode, item.isLocked, item.id, item.position, onSelect]);
+    console.log('✅ 드래그 의도 설정 완료 (카메라 시점 고정됨):', { clientX, clientY, mouseX, mouseY });
+
+  }, [isEditMode, item.isLocked, item.id, item.position, onSelect, gl, setDragging]);
 
   // 🔄 드래그 중 핸들러 (마우스 및 터치 지원)
   const handleDrag = useCallback((event: any) => {
-    if (!isDragging || !dragStartPosition || !dragStartMousePosition) return;
-
-    // 터치 이벤트 차단 제거 - CameraControls가 터치 이벤트를 받을 수 있도록 함
-    // if (event?.touches || event?.type === 'touchmove' || event?.nativeEvent?.touches) {
-    //   safePreventDefault(event);
-    // }
-    // event.stopPropagation(); // 이벤트 전파 허용
+    // 드래그 의도가 없으면 무시
+    if (!dragIntentRef.current?.active) return;
 
     // 마우스 또는 터치 위치 계산
     let clientX, clientY;
@@ -237,14 +242,26 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       const dx = clientX - dragIntentRef.current.startX;
       const dy = clientY - dragIntentRef.current.startY;
       const dist = Math.hypot(dx, dy);
-      if (dist > 6) {
+      console.log('🎯 드래그 거리 체크:', { dist, threshold: 3, isDragging });
+      
+      if (dist > 3) {
+        console.log('✅ 실제 드래그 시작! (카메라는 이미 고정됨)');
         setIsDragging(true);
-        setDragging(true);
+        // setDragging(true); // 이미 handleDragStart에서 호출됨
         suppressClickRef.current = true;
       } else {
         return; // 아직 드래그 시작 전이면 무시
       }
     }
+
+    // 실제 드래그 중이 아니면 무시
+    if (!isDragging || !dragStartPosition || !dragStartMousePosition) return;
+
+    // 터치 이벤트 차단 제거 - CameraControls가 터치 이벤트를 받을 수 있도록 함
+    // if (event?.touches || event?.type === 'touchmove' || event?.nativeEvent?.touches) {
+    //   safePreventDefault(event);
+    // }
+    // event.stopPropagation(); // 이벤트 전파 허용
 
     const rect = gl?.domElement?.getBoundingClientRect?.();
     const width = rect?.width ?? window.innerWidth;
@@ -280,8 +297,11 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   }, [isDragging, dragStartPosition, dragStartMousePosition, camera, grid, item.id, onUpdate]);
 
   // ✅ 드래그 종료 핸들러
-  const handleDragEnd = useCallback((event: any) => {
-    if (!isDragging) return;
+  const handleDragEnd = useCallback((_event: any) => {
+    // 드래그 의도가 있었던 경우 모두 처리 (실제 드래그 여부와 관계없이)
+    const hadDragIntent = dragIntentRef.current?.active;
+    
+    if (!isDragging && !hadDragIntent) return;
 
     // event.stopPropagation(); // 이벤트 전파 허용
 
@@ -289,6 +309,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       itemId: item.id,
       itemName: item.name,
       wasDragging: isDragging,
+      hadDragIntent,
       timestamp: new Date().toISOString()
     });
 
@@ -299,8 +320,11 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     dragIntentRef.current = null;
     fromPointerDownRef.current = false;
 
-    // 전역 드래그 상태 업데이트 (중복 방지)
-    setDragging(false);
+    // 전역 드래그 상태 업데이트 (드래그 의도가 있었던 경우 카메라 시점 해제)
+    if (hadDragIntent) {
+      console.log('🔓 드래그 의도 종료 - 카메라 시점 해제');
+      setDragging(false);
+    }
 
     // 짧은 지연 후 클릭 억제 플래그 해제 (모바일에서 click 발생 방지)
     setTimeout(() => { suppressClickRef.current = false; }, 0);
@@ -316,15 +340,35 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   // 🖱️ 마우스 이벤트 핸들러
   // 포인터 다운(마우스/터치 공통)
   const handlePointerDown = useCallback((event: any) => {
+    console.log('🖱️ 포인터 다운 이벤트:', { 
+      pointerType: event.pointerType, 
+      button: event.button, 
+      touches: !!event.touches,
+      itemId: item.id 
+    });
+    
     const isTouch = event.pointerType === 'touch' || !!event.touches;
     const isLeft = event.button === 0 || event.button === undefined;
     if (isTouch || isLeft) {
-      try { event.currentTarget?.setPointerCapture?.(event.pointerId); } catch {}
+      try { 
+        event.currentTarget?.setPointerCapture?.(event.pointerId); 
+        console.log('✅ 포인터 캡처 성공');
+      } catch (e) {
+        console.log('❌ 포인터 캡처 실패:', e);
+      }
       handleDragStart(event);
+    } else {
+      console.log('❌ 포인터 다운 무시: 터치나 왼쪽 버튼이 아님');
     }
-  }, [handleDragStart]);
+  }, [handleDragStart, item.id]);
 
   const handlePointerMove = useCallback((event: any) => {
+    console.log('🖱️ 포인터 무브 이벤트:', { 
+      isDragging, 
+      dragIntentActive: dragIntentRef.current?.active,
+      itemId: item.id 
+    });
+    
     if (isDragging) {
       if (event?.touches || event?.type === 'touchmove' || event?.nativeEvent?.touches) {
         safePreventDefault(event);
@@ -333,7 +377,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     } else if (dragIntentRef.current?.active) {
       handleDrag(event);
     }
-  }, [isDragging, handleDrag]);
+  }, [isDragging, handleDrag, item.id]);
 
   const handlePointerUp = useCallback((event: any) => {
     console.log('🎯 DraggableFurniture 포인터 업 이벤트:', {
@@ -406,7 +450,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   }, [handlePointerMove, handlePointerUp, handlePointerCancel]);
 
   // 클릭 이벤트 처리
-  const handleClick = useCallback((event: any) => {
+  const handleClick = useCallback((_event: any) => {
     // event.stopPropagation(); // 이벤트 전파 허용
     // 드래그 후 클릭 이벤트 억제
     if (suppressClickRef.current || isDragging) return;
@@ -683,7 +727,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         }}
         onPointerOver={handlePointerEnter}
         onPointerOut={handlePointerLeave}
-        onWheel={(e) => {/* e.stopPropagation(); */}}
+        onWheel={(_e) => {/* e.stopPropagation(); */}}
+        userData={{ isFurniture: true, itemId: item.id }}
       >
         {/* 3D 모델 */}
         {model && (
@@ -693,9 +738,9 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         onPointerMove={(e: any) => { /* e.stopPropagation(); */ handlePointerMove(e); }}
         onPointerUp={(e: any) => { /* e.stopPropagation(); */ handlePointerUp(e); }}
         onPointerCancel={(e: any) => { /* e.stopPropagation(); */ handlePointerCancel(e); }}
-        onPointerOver={(e: any) => { /* e.stopPropagation() */ }}
-        onPointerOut={(e: any) => { /* e.stopPropagation() */ }}
-        onWheel={(e: any) => { /* e.stopPropagation() */ }}
+        onPointerOver={(_e: any) => { /* e.stopPropagation() */ }}
+        onPointerOut={(_e: any) => { /* e.stopPropagation() */ }}
+        onWheel={(_e: any) => { /* e.stopPropagation() */ }}
           />
         )}
 
@@ -714,9 +759,16 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
         {/* 드래그 중일 때 시각적 피드백 */}
         {isDragging && (
-          <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
-            <meshBasicMaterial color="#00ff00" transparent opacity={0.3} />
-          </Box>
+          <>
+            {/* 드래그 중 그림자 */}
+            <Box args={[item.footprint.width, 0.01, item.footprint.depth]} position={[0, -0.01, 0]}>
+              <meshBasicMaterial color="#000000" transparent opacity={0.3} />
+            </Box>
+            {/* 드래그 중 하이라이트 */}
+            <Box args={[item.footprint.width + 0.2, item.footprint.height + 0.2, item.footprint.depth + 0.2]}>
+              <meshBasicMaterial color="#3b82f6" transparent opacity={0.4} />
+            </Box>
+          </>
         )}
 
         {/* 호버 효과 */}

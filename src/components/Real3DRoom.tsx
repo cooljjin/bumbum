@@ -53,9 +53,16 @@ const OutlineEffect = dynamic(() => import('./shared/OutlineEffect'), {
   ssr: false,
   loading: () => null
 });
-const MiniRoom = dynamic(() => import('./3D/MiniRoom'), { 
+const Canvas3D = dynamic(() => import('./3D/Canvas3D'), { 
   ssr: false,
-  loading: () => <div className="w-full h-full bg-gray-100 flex items-center justify-center">3D 룸 로딩 중...</div>
+  loading: () => (
+    <div className="w-full h-full bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2" />
+        <p className="text-gray-600 text-sm">3D 룸 로딩 중...</p>
+      </div>
+    </div>
+  )
 });
 const UnifiedCameraControls = dynamic(() => import('./3D/UnifiedCameraControls'), { 
   ssr: false,
@@ -92,6 +99,7 @@ const useClientSideReady = () => {
   useEffect(() => {
     // 클라이언트 사이드에서만 실행
     if (typeof window !== 'undefined') {
+      // 즉시 설정하여 렌더링 지연 최소화
       setIsReady(true);
     }
   }, []);
@@ -195,7 +203,7 @@ const Real3DRoomComponent = React.memo(({
   // 클라이언트 사이드 준비 상태
   const isClientReady = useClientSideReady();
   const searchParams = typeof window !== 'undefined' ? useSearchParams() : (null as any);
-  const debugFreeCam = !!(searchParams && searchParams.get('freecam') === '1');
+  // const debugFreeCam = !!(searchParams && searchParams.get('freecam') === '1');
   const gestureFixScope = (searchParams && searchParams.get('gfix')) || 'canvas'; // 'canvas' | 'global'
 
   // 모든 useState 훅들은 항상 호출되어야 함 (React Hooks 규칙)
@@ -218,7 +226,10 @@ const Real3DRoomComponent = React.memo(({
   const [isPlacingFurniture, setIsPlacingFurniture] = useState(false);
   const [selectedFurniture, setSelectedFurniture] = useState<FurnitureItem | null>(null);
 
-  // DPR 고정 범위 계산은 MiniRoom에서 처리됨
+  // DPR 고정 범위 계산 (편집 모드의 흐릿함 방지)
+  const deviceDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  const minDpr = 1;
+  const maxDpr = Math.min(2, Math.max(1, deviceDpr)); // 최소 1, 최대 2로 제한
 
   // 편집 스토어에서 상태 가져오기
   const storeEditMode = useEditorMode();
@@ -334,16 +345,19 @@ const Real3DRoomComponent = React.memo(({
         addItem(item);
       });
 
-      // 카메라 위치 설정
+      // 카메라 위치 설정 (회전 상태 초기화 후 최단거리 이동)
       if (cameraControlsRef.current) {
-        cameraControlsRef.current.setLookAt(
-          template.environment.cameraPosition.x,
-          template.environment.cameraPosition.y,
-          template.environment.cameraPosition.z,
-          template.environment.cameraTarget.x,
-          template.environment.cameraTarget.y,
-          template.environment.cameraTarget.z,
-          true
+        // 1. 카메라 회전 상태 초기화
+        const { forceResetCameraRotation, moveCameraToTarget } = await import('@/utils/cameraUtils');
+        forceResetCameraRotation(cameraControlsRef.current);
+        
+        // 2. 최단 경로로 목표 위치로 이동
+        moveCameraToTarget(
+          cameraControlsRef.current.camera,
+          cameraControlsRef.current,
+          [template.environment.cameraPosition.x, template.environment.cameraPosition.y, template.environment.cameraPosition.z],
+          [template.environment.cameraTarget.x, template.environment.cameraTarget.y, template.environment.cameraTarget.z],
+          false  // 즉시 적용
         );
       }
 
@@ -764,7 +778,7 @@ const Real3DRoomComponent = React.memo(({
   // 클라이언트 사이드가 준비되지 않은 경우 로딩 표시
   if (!isClientReady) {
     return (
-      <div className="flex items-center justify-center w-full h-full">
+      <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-3" />
           <p className="text-gray-600">3D 룸을 로딩 중입니다...</p>
@@ -778,12 +792,13 @@ const Real3DRoomComponent = React.memo(({
 
   return (
     <div className="relative w-full h-full overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-slate-100 z-0 overscroll-contain">
-      {/* MiniRoom 컴포넌트 사용 */}
-      <MiniRoom
+      {/* Canvas3D 컴포넌트 직접 사용 - 중복 렌더링 방지 */}
+      <Canvas3D
+        isMobile={isMobile}
         isEditMode={isEditMode}
+        minDpr={minDpr}
+        maxDpr={maxDpr}
         onEditModeChange={handleEditModeToggle}
-        className="w-full h-full"
-        useExternalControls={true} // 외부 카메라 컨트롤 사용
       >
         {/* 통합 카메라 컨트롤러 */}
         <UnifiedCameraControls
@@ -867,19 +882,8 @@ const Real3DRoomComponent = React.memo(({
         ))}
 
         <AdaptiveEvents />
-      </MiniRoom>
+      </Canvas3D>
 
-      {/* 상태 HUD (디버그용) - 입력 차단 방지 위해 pointer-events:none */}
-      <div
-        className="absolute top-5 left-5 md:top-3 md:left-3 z-50 text-xs bg-black/60 text-white rounded-md px-2 py-1"
-        style={{ pointerEvents: 'none' }}
-      >
-        <div>Mode: {isEditMode ? 'Edit' : 'View'}</div>
-        <div>Selected: {selectedItemId ? 'Yes' : 'No'}</div>
-        <div>Dragging: {isDragging ? 'Yes' : 'No'}</div>
-        <div>ViewLock: {isViewLocked ? 'Yes' : 'No'}</div>
-        {debugFreeCam && <div>FreeCam: ON</div>}
-      </div>
 
       {/* 전환 중 입력 락 오버레이 */}
       {isTransitionInputLocked && (
@@ -894,6 +898,14 @@ const Real3DRoomComponent = React.memo(({
           onTouchMove={(e) => { e.preventDefault(); /* e.stopPropagation(); */ }}
           onTouchEnd={(e) => { e.preventDefault(); /* e.stopPropagation(); */ }}
         />
+      )}
+
+      {/* 가구 드래그 중 시각적 피드백 */}
+      {isDragging && (
+        <div className="absolute top-4 left-4 z-[9999] bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+          <span className="text-sm font-medium">가구 이동 중 - 시점 고정됨</span>
+        </div>
       )}
 
       {/* 시점 전환 효과 제거 - 파란색 오버레이로 인한 사용자 혼란 방지 */}
