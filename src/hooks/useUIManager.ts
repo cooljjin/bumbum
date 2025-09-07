@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useEditorActions } from './useEditorStore';
 
 export interface UIManagerState {
   // View states
@@ -48,6 +49,9 @@ const initialState: UIManagerState = {
 };
 
 export function useUIManager(): UIManager {
+  // Editor store에서 setMode 함수 가져오기
+  const { setMode } = useEditorActions();
+
   // View states
   const [isViewLocked, setIsViewLocked] = useState(initialState.isViewLocked);
   const [isEditMode, setIsEditMode] = useState(initialState.isEditMode);
@@ -61,11 +65,26 @@ export function useUIManager(): UIManager {
 
   // Actions
   const toggleViewLock = () => setIsViewLocked(!isViewLocked);
-  const toggleEditMode = () => setIsEditMode(!isEditMode);
+  
+  // 편집 모드 토글 시 editorStore의 mode도 함께 변경
+  const toggleEditMode = () => {
+    const newEditMode = !isEditMode;
+    setIsEditMode(newEditMode);
+    
+    // editorStore의 mode도 함께 변경
+    setMode(newEditMode ? 'edit' : 'view');
+    
+    console.log('🎯 편집 모드 토글:', { newEditMode, mode: newEditMode ? 'edit' : 'view' });
+  };
+  
   const toggleShowSettings = () => setShowSettings(!showSettings);
 
-
-  const setEditMode = setIsEditMode;
+  // 편집 모드 설정 시에도 editorStore의 mode 함께 변경
+  const setEditMode = (editMode: boolean) => {
+    setIsEditMode(editMode);
+    setMode(editMode ? 'edit' : 'view');
+    console.log('🎯 편집 모드 설정:', { editMode, mode: editMode ? 'edit' : 'view' });
+  };
 
   // Modal priority management - 한 번에 하나의 모달만 표시
   const openModal = (modalType: 'settings' | 'userPreferences' | 'accessibility' | 'export' | 'analytics') => {
