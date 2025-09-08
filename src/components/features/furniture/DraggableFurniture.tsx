@@ -8,6 +8,7 @@ import { createFallbackModel, createFurnitureModel, loadModel, compareModelWithF
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
 import { constrainFurnitureToRoom } from '../../../utils/roomBoundary';
+import { checkDragCollision, moveToSafePosition } from '../../../utils/collisionDetection';
 import * as THREE from 'three';
 
 /**
@@ -109,6 +110,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   const [dragStartPosition, setDragStartPosition] = useState<Vector3 | null>(null);
   const [dragStartMousePosition, setDragStartMousePosition] = useState<Vector2 | null>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [isColliding, setIsColliding] = useState(false);
   const dragIntentRef = useRef<{ active: boolean; startX: number; startY: number } | null>(null);
   const fromPointerDownRef = useRef(false);
   const suppressClickRef = useRef(false);
@@ -117,7 +119,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   const raycaster = useRef<Raycaster>(new Raycaster());
   const dragPlane = useRef<Plane>(new Plane(new Vector3(0, 1, 0), 0));
 
-  const { grid, setDragging } = useEditorStore();
+  const { grid, setDragging, placedItems } = useEditorStore();
   const { camera, gl } = useThree();
 
   // 안전한 preventDefault 래퍼 (r3f PointerEvent에는 preventDefault가 없을 수 있음)
@@ -292,9 +294,21 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
     // 1차 그리드 스냅 후, 즉시 룸 경계로 클램핑하여 시각적 침투 방지
     const constrained = constrainFurnitureToRoom({ ...item, position: newPosition } as PlacedItem);
+    
+    // 드래그 중 충돌 감지
+    const otherItems = placedItems.filter(placedItem => placedItem.id !== item.id);
+    const collisionCheck = checkDragCollision(constrained, otherItems, constrained.position);
+    
+    // 충돌 상태 업데이트 (시각적 피드백용)
+    setIsColliding(collisionCheck.hasCollision);
+    
+    if (collisionCheck.hasCollision) {
+      console.log(`🚨 드래그 중 충돌 감지: ${item.name || item.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
+    }
+    
     onUpdate(item.id, { position: constrained.position });
-    console.log('🖱️ 드래그 중 위치 업데이트:', newPosition, event.touches ? '(터치)' : '(마우스)');
-  }, [isDragging, dragStartPosition, dragStartMousePosition, camera, grid, item.id, onUpdate]);
+    console.log('🖱️ 드래그 중 위치 업데이트:', newPosition, event.touches ? '(터치)' : '(마우스)', collisionCheck.hasCollision ? '(충돌!)' : '');
+  }, [isDragging, dragStartPosition, dragStartMousePosition, camera, grid, item.id, onUpdate, placedItems]);
 
   // ✅ 드래그 종료 핸들러
   const handleDragEnd = useCallback((_event: any) => {
@@ -317,6 +331,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     setIsDragging(false);
     setDragStartPosition(null);
     setDragStartMousePosition(null);
+    setIsColliding(false); // 충돌 상태 초기화
     dragIntentRef.current = null;
     fromPointerDownRef.current = false;
 
@@ -324,6 +339,27 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     if (hadDragIntent) {
       console.log('🔓 드래그 의도 종료 - 카메라 시점 해제');
       setDragging(false);
+    }
+
+    // 드래그 종료 시 충돌 검사 및 자동 이동
+    if (isDragging) {
+      const otherItems = placedItems.filter(placedItem => placedItem.id !== item.id);
+      const collisionCheck = checkDragCollision(item, otherItems, item.position);
+      
+      if (collisionCheck.hasCollision) {
+        console.log(`🚨 드래그 종료 시 충돌 감지: ${item.name || item.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
+        console.log(`   충돌하는 가구들: ${collisionCheck.collidingItems.map(collidingItem => collidingItem.name || collidingItem.id).join(', ')}`);
+        
+        // 충돌을 피할 수 있는 안전한 위치로 자동 이동
+        const safeItem = moveToSafePosition(item, otherItems);
+        
+        if (safeItem.position !== item.position) {
+          console.log(`✅ 충돌 해결: ${item.name || item.id}을(를) 안전한 위치로 자동 이동`);
+          console.log(`   원래 위치: (${item.position.x.toFixed(2)}, ${item.position.y.toFixed(2)}, ${item.position.z.toFixed(2)})`);
+          console.log(`   새 위치: (${safeItem.position.x.toFixed(2)}, ${safeItem.position.y.toFixed(2)}, ${safeItem.position.z.toFixed(2)})`);
+          onUpdate(item.id, { position: safeItem.position });
+        }
+      }
     }
 
     // 짧은 지연 후 클릭 억제 플래그 해제 (모바일에서 click 발생 방지)
@@ -335,7 +371,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       localDragging: false,
       globalDragging: false
     });
-  }, [isDragging, item, setDragging]);
+  }, [isDragging, item, setDragging, placedItems, onUpdate]);
 
   // 🖱️ 마우스 이벤트 핸들러
   // 포인터 다운(마우스/터치 공통)
@@ -458,8 +494,11 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       console.log('고정된 객체는 선택할 수 없습니다:', item.id);
       return;
     }
-    // 단일 탭은 선택만 유지(토글하지 않음) - 빈 공간 탭으로만 해제
-    if (!isSelected) onSelect(item.id);
+    
+    // 단일 선택만 허용 - 이미 선택된 객체를 다시 클릭해도 선택 유지
+    // 다른 객체를 클릭하면 이전 선택이 자동으로 해제됨
+    console.log(`🎯 가구 클릭: ${item.id} (현재 선택됨: ${isSelected})`);
+    onSelect(item.id);
   }, [isSelected, item.id, item.isLocked, onSelect, isDragging]);
 
   // 모델 로딩
@@ -764,10 +803,20 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
             <Box args={[item.footprint.width, 0.01, item.footprint.depth]} position={[0, -0.01, 0]}>
               <meshBasicMaterial color="#000000" transparent opacity={0.3} />
             </Box>
-            {/* 드래그 중 하이라이트 */}
+            {/* 드래그 중 하이라이트 - 충돌 시 빨간색, 정상 시 파란색 */}
             <Box args={[item.footprint.width + 0.2, item.footprint.height + 0.2, item.footprint.depth + 0.2]}>
-              <meshBasicMaterial color="#3b82f6" transparent opacity={0.4} />
+              <meshBasicMaterial 
+                color={isColliding ? "#ef4444" : "#3b82f6"} 
+                transparent 
+                opacity={0.4} 
+              />
             </Box>
+            {/* 충돌 시 추가 경고 표시 */}
+            {isColliding && (
+              <Box args={[item.footprint.width + 0.4, item.footprint.height + 0.4, item.footprint.depth + 0.4]}>
+                <meshBasicMaterial color="#ef4444" transparent opacity={0.2} />
+              </Box>
+            )}
           </>
         )}
 

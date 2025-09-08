@@ -390,14 +390,10 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
       return;
     }
 
-    // 이미 선택된 객체를 클릭하면 해제, 아니면 선택
-    if (isSelected) {
-      onSelect(null); // 선택 해제
-      console.log('객체 선택 해제:', item.id);
-    } else {
-      onSelect(item.id); // 선택
-      console.log('객체 선택:', item.id);
-    }
+    // 단일 선택만 허용 - 다른 객체를 클릭하면 이전 선택이 자동으로 해제됨
+    // 이미 선택된 객체를 다시 클릭해도 선택 유지
+    console.log(`🎯 가구 클릭: ${item.id} (현재 선택됨: ${isSelected})`);
+    onSelect(item.id);
   };
 
   // 키보드 단축키 처리 - 이벤트 리스너 중복 등록 방지

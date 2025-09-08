@@ -3,6 +3,7 @@
 import React, { useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
+import { useEditorActions } from '../../hooks/useEditorStore';
 
 // Real3DRoom 컴포넌트를 동적으로 로드
 const Real3DRoom = dynamic(() => import('../../components/Real3DRoom'), {
@@ -31,6 +32,20 @@ export default function CleanUIPage() {
   const [isViewLocked, setIsViewLocked] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  
+  // Editor store에서 setMode 함수 가져오기
+  const { setMode } = useEditorActions();
+
+  // 편집 모드 토글 함수
+  const handleEditModeToggle = () => {
+    const newEditMode = !isEditMode;
+    setIsEditMode(newEditMode);
+    
+    // editorStore의 mode도 함께 변경
+    setMode(newEditMode ? 'edit' : 'view');
+    
+    console.log('🎯 편집 모드 토글:', { newEditMode, mode: newEditMode ? 'edit' : 'view' });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -70,7 +85,7 @@ export default function CleanUIPage() {
               </button>
 
               <button
-                onClick={() => setIsEditMode(!isEditMode)}
+                onClick={handleEditModeToggle}
                 className={`p-2 rounded-lg transition-all duration-200 ${
                   isEditMode
                     ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
@@ -110,7 +125,6 @@ export default function CleanUIPage() {
               shadowMode="realtime"
               isViewLocked={isViewLocked}
               isEditMode={isEditMode}
-              onEditModeChange={setIsEditMode}
             />
           </Suspense>
         </motion.div>
@@ -181,15 +195,7 @@ export default function CleanUIPage() {
       {/* 모바일 하단 네비게이션 */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
         <div className="flex justify-around py-2">
-          <button
-            onClick={() => setIsEditMode(!isEditMode)}
-            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
-              isEditMode ? 'text-orange-600' : 'text-gray-600'
-            }`}
-          >
-            <span className="text-lg">{isEditMode ? '✏️' : '👁️'}</span>
-            <span className="text-xs">{isEditMode ? '편집' : '보기'}</span>
-          </button>
+          {/* 편집 버튼은 헤더에서 처리 */}
           <button
             onClick={() => setShowSettings(!showSettings)}
             className={`flex flex-col items-center p-2 rounded-lg transition-colors ${

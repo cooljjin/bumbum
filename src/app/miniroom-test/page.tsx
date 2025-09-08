@@ -41,8 +41,6 @@ export default function MiniRoomTestPage() {
       {/* 미니룸 컴포넌트 */}
       <MiniRoom 
         style={{ width: '100%', height: '100%' }}
-        isEditMode={false}
-        useExternalControls={false} // 자체 제스처 핸들러 사용
       />
     </div>
   );

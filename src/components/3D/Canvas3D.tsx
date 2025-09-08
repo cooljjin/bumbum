@@ -11,7 +11,7 @@ interface Canvas3DProps {
   minDpr: number;
   maxDpr: number;
   children: React.ReactNode;
-  onEditModeChange?: (editMode: boolean) => void;
+  onClick?: () => void;
 }
 
 // ---------- 초기 렌더링 강제 실행 컴포넌트 제거됨 ----------
@@ -37,7 +37,7 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
   minDpr,
   maxDpr,
   children,
-  onEditModeChange
+  onClick
 }) => {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -59,20 +59,6 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
 
   return (
     <div className="w-full h-full relative">
-      {/* 편집 모드 토글 버튼 */}
-      {onEditModeChange && (
-        <button
-          onClick={() => onEditModeChange(!isEditMode)}
-          className={`absolute top-4 right-4 z-50 p-2 rounded-full transition-colors ${
-            isEditMode 
-              ? 'bg-blue-500 text-white hover:bg-blue-600' 
-              : 'bg-white/80 text-gray-700 hover:bg-white shadow-lg'
-          }`}
-          title={isEditMode ? '편집 모드 종료' : '편집 모드 시작'}
-        >
-          {isEditMode ? '✓' : '✏️'}
-        </button>
-      )}
 
       <Suspense 
         fallback={
@@ -141,6 +127,7 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
           onWheel={() => {
             // e.stopPropagation(); // 이벤트 전파 허용
           }}
+          onClick={onClick}
         >
           {/* 카메라 컨트롤은 UnifiedCameraControls에서 처리됨 */}
 

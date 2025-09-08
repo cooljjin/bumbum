@@ -15,6 +15,7 @@ import {
 } from '../types/editor';
 import { storageManager } from '../utils/storageManager';
 import { isFurnitureInRoom, constrainFurnitureToRoom } from '../utils/roomBoundary';
+import { checkCollisionWithOthers, moveToSafePosition } from '../utils/collisionDetection';
 
 // 성능 최적화를 위한 상수
 const PERFORMANCE_CONSTANTS = {
@@ -230,6 +231,17 @@ export const useEditorStore = create<EditorStore>()(
           console.log(`✅ 가구를 방 안으로 이동: ${validatedItem.position.x.toFixed(2)}, ${validatedItem.position.y.toFixed(2)}, ${validatedItem.position.z.toFixed(2)}`);
         }
 
+        // 가구 간 충돌 검사 및 해결
+        const collisionCheck = checkCollisionWithOthers(validatedItem, placedItems);
+        if (collisionCheck.hasCollision) {
+          console.log(`🚨 가구 충돌 감지: ${validatedItem.name || validatedItem.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
+          console.log(`   충돌하는 가구들: ${collisionCheck.collidingItems.map(item => item.name || item.id).join(', ')}`);
+          
+          // 충돌을 피할 수 있는 안전한 위치로 이동
+          validatedItem = moveToSafePosition(validatedItem, placedItems);
+          console.log(`✅ 충돌 해결: ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
+        }
+
         const newItems = [...placedItems, validatedItem];
         
         // 배치 업데이트로 성능 향상
@@ -272,6 +284,18 @@ export const useEditorStore = create<EditorStore>()(
             console.log(`🚨 가구 변경으로 벽 밖 조건 발생: ${updatedItem.name || updatedItem.id}`);
             validatedItem = constrainFurnitureToRoom(updatedItem);
             console.log(`✅ 가구를 방 안으로 보정: ${validatedItem.position.x.toFixed(2)}, ${validatedItem.position.y.toFixed(2)}, ${validatedItem.position.z.toFixed(2)}`);
+          }
+
+          // 가구 간 충돌 검사 (위치/회전/스케일 변경 시에만)
+          const otherItems = placedItems.filter(item => item.id !== id);
+          const collisionCheck = checkCollisionWithOthers(validatedItem, otherItems);
+          if (collisionCheck.hasCollision) {
+            console.log(`🚨 가구 업데이트 시 충돌 감지: ${validatedItem.name || validatedItem.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
+            console.log(`   충돌하는 가구들: ${collisionCheck.collidingItems.map(item => item.name || item.id).join(', ')}`);
+            
+            // 충돌을 피할 수 있는 안전한 위치로 이동
+            validatedItem = moveToSafePosition(validatedItem, otherItems);
+            console.log(`✅ 충돌 해결: ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
           }
         }
 
@@ -335,6 +359,9 @@ export const useEditorStore = create<EditorStore>()(
       selectItem: (id: string | null) => {
         const currentSelectedId = get().selectedItemId;
         if (currentSelectedId === id) return; // 불필요한 업데이트 방지
+        
+        // 단일 선택만 허용 - 이전 선택을 명시적으로 해제
+        console.log(`🎯 가구 선택 변경: ${currentSelectedId} → ${id}`);
         set({ selectedItemId: id });
       },
 

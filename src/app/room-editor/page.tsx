@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
+import { useEditorActions } from '../../hooks/useEditorStore';
 
 // Real3DRoom 컴포넌트를 동적으로 로드 (SSR 문제 방지)
 const Real3DRoom = dynamic(() => import('../../components/Real3DRoom').then(mod => ({ default: mod.default })), {
@@ -31,6 +32,9 @@ export default function RoomEditorPage() {
   const [isViewLocked, setIsViewLocked] = useState(false);
   const [isEditMode, setIsEditMode] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Editor store에서 setMode 함수 가져오기
+  const { setMode } = useEditorActions();
 
   useEffect(() => {
     // 페이지 로드 완료 후 로딩 상태 해제
@@ -45,7 +49,11 @@ export default function RoomEditorPage() {
 
   const handleEditModeChange = (editMode: boolean) => {
     setIsEditMode(editMode);
-    console.log('편집 모드 상태:', editMode ? '편집 모드' : '뷰 모드');
+    
+    // editorStore의 mode도 함께 변경
+    setMode(editMode ? 'edit' : 'view');
+    
+    console.log('🎯 편집 모드 상태:', { editMode, mode: editMode ? 'edit' : 'view' });
   };
 
   if (isLoading) {
@@ -109,7 +117,7 @@ export default function RoomEditorPage() {
               </button>
 
               <button
-                onClick={() => setIsEditMode(!isEditMode)}
+                onClick={() => handleEditModeChange(!isEditMode)}
                 className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
                   isEditMode
                     ? 'bg-orange-500 hover:bg-orange-600 text-white'
@@ -137,7 +145,6 @@ export default function RoomEditorPage() {
               shadowMode="realtime"
               isViewLocked={isViewLocked}
               isEditMode={isEditMode}
-              onEditModeChange={handleEditModeChange}
             />
           </Suspense>
         </motion.div>

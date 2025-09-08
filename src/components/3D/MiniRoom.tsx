@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 // import { useGesture } from "@use-gesture/react"; // 직접 이벤트 리스너 사용으로 변경
@@ -251,8 +251,6 @@ function RenderQualityStabilizer() {
 
 // ---------- Main Component ----------
 interface MiniRoomProps {
-  isEditMode?: boolean;
-  onEditModeChange?: (editMode: boolean) => void;
   children?: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
@@ -261,29 +259,13 @@ interface MiniRoomProps {
 }
 
 export default function MiniRoom({ 
-  isEditMode: externalEditMode, 
-  onEditModeChange,
   children,
   className = "",
   style = {},
   minDpr = 1,
   maxDpr = 2
 }: MiniRoomProps) {
-  const [edit, setEdit] = useState(externalEditMode ?? false);
-
-  // 외부 편집 모드 상태와 내부 상태 동기화
-  React.useEffect(() => {
-    if (externalEditMode !== undefined) {
-      setEdit(externalEditMode);
-    }
-  }, [externalEditMode]);
-
-  // 편집 모드 토글 함수
-  const handleEditToggle = () => {
-    const newEditMode = !edit;
-    setEdit(newEditMode);
-    onEditModeChange?.(newEditMode);
-  };
+  // 편집 모드 토글은 메뉴바에서 처리
 
 
   return (
@@ -291,18 +273,7 @@ export default function MiniRoom({
       style={{ width: "100%", height: "100%", position: "relative", ...style }}
       className={className}
     >
-      {/* 편집 모드 토글 버튼 */}
-      <button
-        onClick={handleEditToggle}
-        className={`absolute top-4 right-4 z-50 p-2 rounded-full transition-colors ${
-          edit 
-            ? 'bg-blue-500 text-white hover:bg-blue-600' 
-            : 'bg-white/80 text-gray-700 hover:bg-white shadow-lg'
-        }`}
-        title={edit ? '편집 모드 종료' : '편집 모드 시작'}
-      >
-        {edit ? '✓' : '✏️'}
-      </button>
+      {/* 편집 모드 토글 버튼은 메뉴바에서 처리 */}
 
       {/* Canvas */}
       <Canvas
