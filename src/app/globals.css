@@ -234,6 +234,22 @@ textarea {
   user-select: none !important;
 }
 
+/* 사파리 sticky 포지셔닝 문제 해결 */
+@supports (-webkit-appearance: none) {
+  /* 사파리에서 sticky 요소가 상위 요소 위로 올라가는 문제 방지 */
+  .furniture-library-header {
+    position: relative !important;
+    -webkit-transform: translateZ(0) !important;
+    transform: translateZ(0) !important;
+  }
+  
+  /* 사파리에서 스크롤 컨테이너 내 sticky 요소 제어 */
+  .furniture-library-container {
+    -webkit-overflow-scrolling: touch !important;
+    overflow-scrolling: touch !important;
+  }
+}
+
 /* 모바일에서 스크롤 방지를 위한 추가 스타일 */
 @media (max-width: 768px) {
   .scroll-locked * {

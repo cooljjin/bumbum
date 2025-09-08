@@ -171,7 +171,7 @@ function BottomSheetCatalog({
   return (
     <div
       ref={sheetRef}
-      className="fixed left-0 right-0 bottom-0 w-full bg-white border-t shadow-2xl z-[9999] flex flex-col"
+      className="fixed left-0 right-0 bottom-0 w-full bg-white border-t shadow-2xl z-[9999] flex flex-col furniture-library-container"
       style={{
         height: `${heightPx}px`,
         paddingBottom: 'env(safe-area-inset-bottom)'
@@ -1021,7 +1021,7 @@ const Real3DRoomComponent = React.memo(({
           onClose={() => setShowFurnitureCatalog(false)}
           initialSnap={0.66}
         >
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 border-b-2 border-blue-300">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 border-b-2 border-blue-300 furniture-library-header">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <h3 className="text-sm font-bold">
