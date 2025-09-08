@@ -1021,7 +1021,7 @@ const Real3DRoomComponent = React.memo(({
           onClose={() => setShowFurnitureCatalog(false)}
           initialSnap={0.66}
         >
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 border-b-2 border-blue-300 sticky top-0">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 border-b-2 border-blue-300">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <h3 className="text-sm font-bold">
