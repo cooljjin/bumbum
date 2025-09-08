@@ -30,7 +30,7 @@ export const FurnitureFloatingControls: React.FC<FurnitureFloatingControlsProps>
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed z-50 pointer-events-auto"
+        className="fixed z-40 pointer-events-auto"
         style={{
           left: position.x,
           top: position.y,
