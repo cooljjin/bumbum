@@ -10,7 +10,6 @@ import { MainContent } from '../components/layout/MainContent';
 import { BottomNavigation } from '../components/layout/BottomNavigation';
 import { SettingsSidebar } from '../components/layout/SettingsSidebar';
 import KeyboardShortcuts from '../components/shared/KeyboardShortcuts';
-import UndoRedoHistory from '../components/features/editor/UndoRedoHistory';
 import MobileUI from '../components/ui/MobileUI';
 import UserPreferences from '../components/features/modals/UserPreferences';
 import AccessibilitySettings from '../components/shared/AccessibilitySettings';
@@ -92,10 +91,6 @@ export default function HomePage() {
           onShowHelp={uiManager.toggleShowSettings}
         />
 
-        {/* Undo/Redo 히스토리 */}
-        {uiManager.isEditMode && (
-          <UndoRedoHistory position="top-left" />
-        )}
 
         {/* 모바일 메뉴 */}
         <MobileMenu

@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { useEditorActions } from '../../hooks/useEditorStore';
+import { enableScrollLock, disableScrollLock, preventKeyScroll } from '../../utils/scrollLock';
 
 // Real3DRoom 컴포넌트를 동적으로 로드 (SSR 문제 방지)
 const Real3DRoom = dynamic(() => import('../../components/Real3DRoom').then(mod => ({ default: mod.default })), {
@@ -45,6 +46,25 @@ export default function RoomEditorPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  // 편집 모드에서 스크롤 락 처리
+  useEffect(() => {
+    if (isEditMode) {
+      enableScrollLock();
+      document.addEventListener('keydown', preventKeyScroll, { passive: false, capture: true });
+      console.log('🔒 편집 모드 진입: 스크롤 락 활성화');
+    } else {
+      disableScrollLock();
+      document.removeEventListener('keydown', preventKeyScroll, { capture: true });
+      console.log('🔓 편집 모드 종료: 스크롤 락 해제');
+    }
+
+    return () => {
+      // 컴포넌트 언마운트 시 정리
+      disableScrollLock();
+      document.removeEventListener('keydown', preventKeyScroll, { capture: true });
+    };
+  }, [isEditMode]);
+
 
 
   const handleEditModeChange = (editMode: boolean) => {
@@ -66,7 +86,7 @@ export default function RoomEditorPage() {
           className="text-center"
         >
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-6" />
-          <h1 className="text-3xl font-bold text-gray-800 mb-4">미니룸 에디터</h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">bumbum 에디터</h1>
           <p className="text-lg text-gray-600">3D 룸을 준비하고 있습니다...</p>
         </motion.div>
       </div>
@@ -85,7 +105,7 @@ export default function RoomEditorPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-gray-800">🏠 미니룸 에디터</h1>
+              <h1 className="text-2xl font-bold text-gray-800">🏠 bumbum 에디터</h1>
               <div className="flex items-center gap-2">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   isEditMode

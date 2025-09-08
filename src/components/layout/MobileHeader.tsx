@@ -56,7 +56,7 @@ export function MobileHeader({
             <FiMenu size={18} />
           </motion.button>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold text-gray-800">🏠 미니룸</h1>
+            <h1 className="text-lg font-bold text-gray-800">🏠 bumbum</h1>
             <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
               v{packageJson.version}
             </span>

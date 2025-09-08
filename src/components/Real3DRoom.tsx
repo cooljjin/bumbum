@@ -281,27 +281,37 @@ const Real3DRoomComponent = React.memo(({
     };
   }, [isMobile, gestureFixScope]);
 
-  // 스크롤 락 처리 - MiniRoom의 GestureOverlay가 자동으로 처리
+  // 편집 모드에서 스크롤 락 처리
   useEffect(() => {
-    if (!isMobile) return undefined;
-
-    if (isDragging) {
+    if (externalEditMode) {
       enableScrollLock();
       document.addEventListener('keydown', preventKeyScroll, { passive: false, capture: true });
-
-      console.log('🔒 드래그 중 스크롤 락 활성화');
-
-      return () => {
-        document.removeEventListener('keydown', preventKeyScroll, { capture: true });
-        disableScrollLock();
-        console.log('🔓 드래그 종료 스크롤 락 해제');
-      };
+      console.log('🔒 편집 모드 진입: 스크롤 락 활성화');
     } else {
-      // 드래그가 아닌 상태에서 혹시 잠겨 있으면 해제
       disableScrollLock();
+      document.removeEventListener('keydown', preventKeyScroll, { capture: true });
+      console.log('🔓 편집 모드 종료: 스크롤 락 해제');
+    }
+
+    return () => {
+      // 컴포넌트 언마운트 시 정리
+      disableScrollLock();
+      document.removeEventListener('keydown', preventKeyScroll, { capture: true });
+    };
+  }, [externalEditMode]);
+
+  // 드래그 중 추가 스크롤 락 처리 (편집 모드와 별도)
+  useEffect(() => {
+    if (!isMobile || !externalEditMode) return undefined;
+
+    if (isDragging) {
+      // 편집 모드에서 이미 스크롤 락이 적용되어 있으므로 추가 처리만
+      console.log('🔒 드래그 중 추가 스크롤 락 처리');
+      return undefined;
+    } else {
       return undefined;
     }
-  }, [isDragging, isMobile]);
+  }, [isDragging, isMobile, externalEditMode]);
 
   // 시점 전환 중 전역 입력 락 (마우스/휠/터치 모두 차단)
   useEffect(() => {

@@ -62,21 +62,6 @@ test.describe('사용자 경험 개선 기능 테스트', () => {
     await expect(viewModeIndicator).toBeVisible();
   });
 
-  test('Undo/Redo 히스토리 표시 테스트', async ({ page }) => {
-    // 편집 모드 활성화
-    await page.click('text=룸 편집');
-    await page.waitForTimeout(1000);
-
-    // 히스토리 패널이 표시되는지 확인
-    const historyPanel = page.locator('text=작업 히스토리');
-    await expect(historyPanel).toBeVisible();
-
-    // 실행 취소/다시 실행 버튼이 표시되는지 확인
-    const undoButton = page.locator('text=실행취소');
-    const redoButton = page.locator('text=다시실행');
-    await expect(undoButton).toBeVisible();
-    await expect(redoButton).toBeVisible();
-  });
 
   test('도구바 단축키 힌트 표시 테스트', async ({ page }) => {
     // 편집 모드 활성화

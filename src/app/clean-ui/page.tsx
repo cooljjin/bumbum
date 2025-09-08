@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { useEditorActions } from '../../hooks/useEditorStore';
+import { enableScrollLock, disableScrollLock, preventKeyScroll } from '../../utils/scrollLock';
 
 // Real3DRoom 컴포넌트를 동적으로 로드
 const Real3DRoom = dynamic(() => import('../../components/Real3DRoom'), {
@@ -36,6 +37,25 @@ export default function CleanUIPage() {
   // Editor store에서 setMode 함수 가져오기
   const { setMode } = useEditorActions();
 
+  // 편집 모드에서 스크롤 락 처리
+  useEffect(() => {
+    if (isEditMode) {
+      enableScrollLock();
+      document.addEventListener('keydown', preventKeyScroll, { passive: false, capture: true });
+      console.log('🔒 편집 모드 진입: 스크롤 락 활성화');
+    } else {
+      disableScrollLock();
+      document.removeEventListener('keydown', preventKeyScroll, { capture: true });
+      console.log('🔓 편집 모드 종료: 스크롤 락 해제');
+    }
+
+    return () => {
+      // 컴포넌트 언마운트 시 정리
+      disableScrollLock();
+      document.removeEventListener('keydown', preventKeyScroll, { capture: true });
+    };
+  }, [isEditMode]);
+
   // 편집 모드 토글 함수
   const handleEditModeToggle = () => {
     const newEditMode = !isEditMode;
@@ -60,7 +80,7 @@ export default function CleanUIPage() {
           <div className="flex items-center justify-between">
             {/* 로고와 제목 */}
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-gray-800">🏠 미니룸</h1>
+              <h1 className="text-xl font-bold text-gray-800">🏠 bumbum</h1>
               <div className="hidden sm:flex items-center gap-2">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                   isEditMode ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'

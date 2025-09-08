@@ -65,7 +65,6 @@ const customJestConfig = {
     '!src/components/RotationSnapGuide.tsx',
     '!src/components/SettingsModal.tsx',
     '!src/components/ThemeSelector.tsx',
-    '!src/components/UndoRedoHistory.tsx',
     '!src/app/**/*',
     '!src/data/**/*',
     '!src/constants/**/*',
