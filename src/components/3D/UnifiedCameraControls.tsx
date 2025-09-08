@@ -24,7 +24,7 @@ const MOBILE_CONFIG = {
   polarRotateSpeed: 0.8,   // 수직 회전 감도
   truckSpeed: 1.0,         // 이동 속도
   minDistance: 1.0,        // 최소 거리
-  maxDistance: 10,         // 최대 거리 (모바일 화면에 맞게)
+  maxDistance: 8,          // 최대 거리 (모바일에서 더 가까운 줌 허용)
   maxPolarAngle: Math.PI * 0.75, // 위쪽 제한
   minPolarAngle: Math.PI * 0.25, // 아래쪽 제한
 };
@@ -38,7 +38,7 @@ const PC_CONFIG = {
   polarRotateSpeed: 1.2,   // 수직 회전 감도
   truckSpeed: 2.5,         // 이동 속도
   minDistance: 1.0,        // 최소 거리
-  maxDistance: 15,         // 최대 거리
+  maxDistance: 20,         // 최대 거리 (PC에서 더 먼 줌 허용)
   maxPolarAngle: Math.PI * 0.85, // 위쪽 제한
   minPolarAngle: Math.PI * 0.15, // 아래쪽 제한
 };
