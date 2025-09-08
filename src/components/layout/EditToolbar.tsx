@@ -61,7 +61,7 @@ export default function EditToolbar({
 
   return (
     <motion.div
-      className={`absolute ${isMobile ? 'top-20' : 'top-16'} left-1/2 transform -translate-x-1/2 bg-white rounded-2xl shadow-2xl border-2 border-gray-200 ${
+      className={`fixed ${isMobile ? 'top-20' : 'top-16'} left-1/2 transform -translate-x-1/2 bg-white rounded-2xl shadow-2xl border-2 border-gray-200 ${
         isMobile ? 'max-w-[95vw]' : ''
       }`}
       style={{ zIndex: 100 }}
