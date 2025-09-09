@@ -15,7 +15,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '모던 소파',
     category: 'living',
     subcategory: 'sofa',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/sofa-001.svg',
     footprint: {
       width: 2.2,
@@ -56,7 +56,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '럭셔리 소파',
     category: 'living',
     subcategory: 'sofa',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/weirdtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/sofa-luxury-001.svg',
     footprint: {
       width: 2.5,
@@ -96,7 +96,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '섹셔널 소파',
     category: 'living',
     subcategory: 'sofa',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/sofa-sectional-001.svg',
     footprint: {
       width: 3.0,
@@ -178,7 +178,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '원목 커피 테이블',
     category: 'living',
     subcategory: 'table',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/coffee-table-wood-001.svg',
     footprint: {
       width: 1.2,
@@ -218,7 +218,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '사이드 테이블',
     category: 'living',
     subcategory: 'table',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/side-table-001.svg',
     footprint: {
       width: 0.5,
@@ -259,7 +259,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: 'TV 스탠드',
     category: 'living',
     subcategory: 'entertainment',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/tv-stand-001.svg',
     footprint: {
       width: 1.8,
@@ -299,7 +299,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '벽걸이 TV 마운트',
     category: 'living',
     subcategory: 'entertainment',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/wall-tv-mount.svg',
     footprint: {
       width: 1.2,
@@ -340,7 +340,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '플로어 램프',
     category: 'living',
     subcategory: 'lighting',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/Golden_Glow_Lamp_0904034529_texture.glb', // 실제 램프 모델 사용
     thumbnailPath: '/thumbnails/furniture/floor-lamp-001.svg',
     footprint: {
       width: 0.4,
@@ -380,7 +380,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '테이블 램프',
     category: 'living',
     subcategory: 'lighting',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/Golden_Glow_Lamp_0904034529_texture.glb', // 실제 램프 모델 사용
     thumbnailPath: '/thumbnails/furniture/table-lamp-001.svg',
     footprint: {
       width: 0.3,
@@ -461,7 +461,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '퀸 사이즈 침대',
     category: 'bedroom',
     subcategory: 'bed',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/bed-001.svg',
     footprint: {
       width: 1.6,
@@ -502,7 +502,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '싱글 침대',
     category: 'bedroom',
     subcategory: 'bed',
-    modelPath: null,
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/bed-single-001.svg',
     footprint: {
       width: 1.0,
@@ -542,7 +542,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '킹 사이즈 침대',
     category: 'bedroom',
     subcategory: 'bed',
-    modelPath: null,
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/bed-king-001.svg',
     footprint: {
       width: 1.8,
@@ -583,7 +583,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '침대 옆 테이블',
     category: 'bedroom',
     subcategory: 'table',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/bedside-table-001.svg',
     footprint: {
       width: 0.5,
@@ -623,7 +623,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '드레서',
     category: 'bedroom',
     subcategory: 'storage',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/dresser-001.svg',
     footprint: {
       width: 1.0,
@@ -663,7 +663,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '옷장',
     category: 'bedroom',
     subcategory: 'storage',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/wardrobe-001.svg',
     footprint: {
       width: 1.2,
@@ -704,7 +704,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '원형 식탁',
     category: 'kitchen',
     subcategory: 'table',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/dining-table-001.svg',
     footprint: {
       width: 1.4,
@@ -745,7 +745,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '사무용 책상',
     category: 'office',
     subcategory: 'desk',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/desk-001.svg',
     footprint: {
       width: 1.4,
@@ -786,7 +786,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '사무용 의자',
     category: 'office',
     subcategory: 'chair',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/office-chair-001.svg',
     footprint: {
       width: 0.6,
@@ -826,7 +826,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '컴퓨터 책상',
     category: 'office',
     subcategory: 'desk',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/computer-desk-001.svg',
     footprint: {
       width: 1.6,
@@ -867,7 +867,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '높은 책장',
     category: 'storage',
     subcategory: 'bookshelf',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/bookshelf-001.jpg',
     footprint: {
       width: 0.8,
@@ -908,7 +908,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '간단한 2인용 소파',
     category: 'living',
     subcategory: 'sofa',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/sofa-simple-2seater.svg',
     footprint: {
       width: 1.6,
@@ -948,7 +948,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '간단한 3인용 소파',
     category: 'living',
     subcategory: 'sofa',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/sofa-simple-3seater.svg',
     footprint: {
       width: 2.2,
@@ -988,7 +988,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '간단한 코너 소파',
     category: 'living',
     subcategory: 'sofa',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/sofa-simple-corner.svg',
     footprint: {
       width: 2.5,
@@ -1029,7 +1029,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '간단한 작은 책장',
     category: 'storage',
     subcategory: 'bookshelf',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/bookshelf-simple-small.svg',
     footprint: {
       width: 0.6,
@@ -1069,7 +1069,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '간단한 중간 책장',
     category: 'storage',
     subcategory: 'bookshelf',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/bookshelf-simple-medium.svg',
     footprint: {
       width: 0.8,
@@ -1109,7 +1109,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '간단한 넓은 책장',
     category: 'storage',
     subcategory: 'bookshelf',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/bookshelf-simple-wide.svg',
     footprint: {
       width: 1.2,
@@ -1150,7 +1150,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '간단한 의자',
     category: 'living',
     subcategory: 'chair',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/simple-chair-001.svg',
     footprint: {
       width: 0.5,
@@ -1190,7 +1190,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '간단한 테이블',
     category: 'living',
     subcategory: 'table',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/simple-table-001.svg',
     footprint: {
       width: 1.0,
@@ -1347,6 +1347,47 @@ export const sampleFurniture: FurnitureItem[] = [
     }
   },
 
+  // Cozy Bed 추가
+  {
+    id: 'cozy-bed-0909043453',
+    name: 'Cozy Bed',
+    nameKo: '아늑한 침대',
+    category: 'bedroom',
+    subcategory: 'bed',
+    modelPath: '/models/furniture/Cozy_bed_0909043453_texture.glb',
+    thumbnailPath: '/thumbnails/furniture/cozy-bed-0909043453.png',
+    footprint: {
+      width: 1.0,
+      depth: 2.0,
+      height: 0.6
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0
+    },
+    metadata: {
+      brand: 'CozyHome',
+      model: 'CH-CB-0909043453',
+      price: 550000,
+      description: '따뜻한 나무 톤과 둥근 모서리로 아늑한 느낌을 주는 싱글 침대',
+      tags: ['침대', '싱글', '아늑한', '따뜻한', '나무톤', '둥근모서리', '침실'],
+      materials: ['나무', '천', '쿠션'],
+      colors: ['라이트우드', '크림', '라벤더']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 90,
+      collisionGroup: 'furniture'
+    }
+  },
+
   // === 시계 및 시간 관련 장식품 ===
   {
     id: 'clock',
@@ -1396,7 +1437,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '모던 디지털 시계',
     category: 'decorative',
     subcategory: 'clock',
-    modelPath: null,
+    modelPath: '/models/furniture/clock_black_updated.glb', // 실제 시계 모델 사용
     thumbnailPath: '/thumbnails/furniture/clock-modern-001.svg',
     footprint: {
       width: 0.3,
@@ -1436,7 +1477,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '빈티지 벽시계',
     category: 'decorative',
     subcategory: 'clock',
-    modelPath: null,
+    modelPath: '/models/furniture/clock.glb', // 실제 시계 모델 사용
     thumbnailPath: '/thumbnails/furniture/clock-vintage-001.svg',
     footprint: {
       width: 0.5,
@@ -1476,7 +1517,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '간단한 선반',
     category: 'storage',
     subcategory: 'shelf',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/simple-shelf-001.svg',
     footprint: {
       width: 0.8,
@@ -1517,7 +1558,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '식물 받침대',
     category: 'decorative',
     subcategory: 'plant',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/plant-stand-001.svg',
     footprint: {
       width: 0.4,
@@ -1557,7 +1598,7 @@ export const sampleFurniture: FurnitureItem[] = [
     nameKo: '벽걸이 액자',
     category: 'decorative',
     subcategory: 'art',
-    modelPath: null, // 더미 파일 제거됨
+    modelPath: '/models/furniture/testtable.glb', // 실제 모델 파일 사용
     thumbnailPath: '/thumbnails/furniture/wall-art-001.svg',
     footprint: {
       width: 0.8,

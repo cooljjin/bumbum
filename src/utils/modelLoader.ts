@@ -59,8 +59,9 @@ export async function loadModel(
     console.log('🧩 Placeholder 모델 사용(개발/테스트 모드):', url);
     return createFallbackModel();
   }
-
+  
   console.log('🎯 실제 GLTF 모델 로딩 시도:', url);
+  console.log('🔍 shouldUsePlaceholderModels():', shouldUsePlaceholderModels());
 
   // 모델 URL 해석 (CDN/base URL 지원)
   const resolvedUrl = resolveModelUrl(url);
@@ -510,14 +511,18 @@ export function createFallbackModel(): THREE.Group {
 }
 
 /**
- * 시계 전용 폴백 모델을 생성합니다
+ * 시계 전용 폴백 모델을 생성합니다 (개선된 형태)
  */
 export function createClockFallbackModel(): THREE.Group {
   const group = new THREE.Group();
   
   // 시계 본체 (원형) - 벽에 걸리는 형태로 세우기
-  const clockGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16);
-  const clockMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const clockGeometry = new THREE.CylinderGeometry(0.25, 0.25, 0.08, 16);
+  const clockMaterial = new THREE.MeshPhongMaterial({ 
+    color: 0xffffff,
+    shininess: 80,
+    specular: 0x333333
+  });
   const clockMesh = new THREE.Mesh(clockGeometry, clockMaterial);
   // 시계를 벽에 걸리는 형태로 회전 (Z축을 중심으로 90도 회전)
   clockMesh.rotation.z = Math.PI / 2;
@@ -525,27 +530,70 @@ export function createClockFallbackModel(): THREE.Group {
   clockMesh.receiveShadow = true;
   group.add(clockMesh);
   
-  // 시계 바늘들
-  const hourHandGeometry = new THREE.BoxGeometry(0.15, 0.01, 0.01);
-  const minuteHandGeometry = new THREE.BoxGeometry(0.18, 0.008, 0.008);
-  const handMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+  // 시계 테두리 (금속 느낌)
+  const frameGeometry = new THREE.CylinderGeometry(0.26, 0.26, 0.02, 16);
+  const frameMaterial = new THREE.MeshPhongMaterial({ 
+    color: 0xC0C0C0,
+    shininess: 100,
+    specular: 0x666666
+  });
+  const frameMesh = new THREE.Mesh(frameGeometry, frameMaterial);
+  frameMesh.rotation.z = Math.PI / 2;
+  frameMesh.position.y = 0.03;
+  frameMesh.castShadow = true;
+  frameMesh.receiveShadow = true;
+  group.add(frameMesh);
+  
+  // 시계 바늘들 (더 현실적인 형태)
+  const hourHandGeometry = new THREE.BoxGeometry(0.12, 0.015, 0.01);
+  const minuteHandGeometry = new THREE.BoxGeometry(0.16, 0.01, 0.008);
+  const handMaterial = new THREE.MeshPhongMaterial({ 
+    color: 0x000000,
+    shininess: 50,
+    specular: 0x111111
+  });
   
   const hourHand = new THREE.Mesh(hourHandGeometry, handMaterial);
-  hourHand.position.y = 0.03;
+  hourHand.position.y = 0.04;
   hourHand.rotation.z = Math.PI / 4; // 3시 방향
+  hourHand.castShadow = true;
   group.add(hourHand);
   
   const minuteHand = new THREE.Mesh(minuteHandGeometry, handMaterial);
-  minuteHand.position.y = 0.03;
+  minuteHand.position.y = 0.04;
   minuteHand.rotation.z = Math.PI / 2; // 12시 방향
+  minuteHand.castShadow = true;
   group.add(minuteHand);
   
-  // 시계 중심점
-  const centerGeometry = new THREE.SphereGeometry(0.01, 8, 8);
-  const centerMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+  // 시계 중심점 (금속 느낌)
+  const centerGeometry = new THREE.SphereGeometry(0.015, 8, 8);
+  const centerMaterial = new THREE.MeshPhongMaterial({ 
+    color: 0xC0C0C0,
+    shininess: 100,
+    specular: 0x666666
+  });
   const centerMesh = new THREE.Mesh(centerGeometry, centerMaterial);
-  centerMesh.position.y = 0.03;
+  centerMesh.position.y = 0.04;
+  centerMesh.castShadow = true;
   group.add(centerMesh);
+  
+  // 시계 숫자 (12, 3, 6, 9시)
+  const numberGeometry = new THREE.BoxGeometry(0.02, 0.02, 0.005);
+  const numberMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+  
+  const positions = [
+    { x: 0, z: 0.2, rot: 0 }, // 12시
+    { x: 0.2, z: 0, rot: 0 }, // 3시
+    { x: 0, z: -0.2, rot: 0 }, // 6시
+    { x: -0.2, z: 0, rot: 0 }  // 9시
+  ];
+  
+  positions.forEach(pos => {
+    const number = new THREE.Mesh(numberGeometry, numberMaterial);
+    number.position.set(pos.x, 0.04, pos.z);
+    number.rotation.z = pos.rot;
+    group.add(number);
+  });
   
   return group;
 }
@@ -593,7 +641,7 @@ export function compareModelWithFootprint(
 }
 
 /**
- * 가구 모델을 생성합니다 (기본 형태)
+ * 가구 모델을 생성합니다 (개선된 형태)
  */
 export function createFurnitureModel(
   width: number,
@@ -603,49 +651,138 @@ export function createFurnitureModel(
 ): THREE.Group {
   const group = new THREE.Group();
   
-  // 메인 바디
+  console.log(`🔨 가구 모델 생성 시작: ${width}x${height}x${depth}, 색상: 0x${color.toString(16)}`);
+  
+  // 메인 바디 (더 현실적인 재질)
   const bodyGeometry = new THREE.BoxGeometry(width, height, depth);
-  const bodyMaterial = new THREE.MeshLambertMaterial({ color });
+  const bodyMaterial = new THREE.MeshPhongMaterial({ 
+    color,
+    shininess: 30,
+    specular: 0x111111
+  });
   const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
   bodyMesh.castShadow = true;
   bodyMesh.receiveShadow = true;
+  bodyMesh.position.set(0, height / 2, 0); // 바닥에 맞춤
   group.add(bodyMesh);
   
-  // 테이블의 경우 다리 추가
+  console.log(`📦 메인 바디 생성 완료: 위치 (0, ${height/2}, 0)`);
+  
+  // 테이블의 경우 다리 추가 (더 현실적인 형태)
+  console.log(`🔍 테이블 조건 체크: height=${height} > 0.5? ${height > 0.5}`);
   if (height > 0.5) { // 높이가 0.5m 이상이면 테이블로 간주
     const legHeight = height * 0.8;
-    const legThickness = Math.min(width, depth) * 0.1;
-    const legGeometry = new THREE.BoxGeometry(legThickness, legHeight, legThickness);
-    const legMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+    const legThickness = Math.min(width, depth) * 0.08; // 더 얇은 다리
+    const legGeometry = new THREE.CylinderGeometry(legThickness/2, legThickness/2, legHeight, 8);
+    const legMaterial = new THREE.MeshPhongMaterial({ 
+      color: 0x654321,
+      shininess: 50,
+      specular: 0x222222
+    });
     
-    // 4개의 다리
+    // 4개의 다리 (원형)
     const legPositions = [
-      { x: width * 0.3, z: depth * 0.3 },
-      { x: -width * 0.3, z: depth * 0.3 },
-      { x: width * 0.3, z: -depth * 0.3 },
-      { x: -width * 0.3, z: -depth * 0.3 }
+      { x: width * 0.35, z: depth * 0.35 },
+      { x: -width * 0.35, z: depth * 0.35 },
+      { x: width * 0.35, z: -depth * 0.35 },
+      { x: -width * 0.35, z: -depth * 0.35 }
     ];
     
     legPositions.forEach(pos => {
       const leg = new THREE.Mesh(legGeometry, legMaterial);
-      leg.position.set(pos.x, -height * 0.4, pos.z);
+      leg.position.set(pos.x, legHeight / 2, pos.z); // 바닥에 맞춤
       leg.castShadow = true;
       leg.receiveShadow = true;
       group.add(leg);
     });
+    
+    console.log(`🪑 테이블 다리 4개 추가 완료`);
   }
   
-  // 소파의 경우 등받이 추가
+  // 소파의 경우 등받이와 팔걸이 추가
+  console.log(`🔍 소파 조건 체크: width=${width} > 1.5? ${width > 1.5}, height=${height} > 0.6? ${height > 0.6}`);
   if (width > 1.5 && height > 0.6) { // 소파로 간주
-    const backHeight = height * 0.6;
-    const backGeometry = new THREE.BoxGeometry(width, backHeight, depth * 0.1);
-    const backMaterial = new THREE.MeshLambertMaterial({ color: color * 0.9 });
+    // 등받이
+    const backHeight = height * 0.7;
+    const backGeometry = new THREE.BoxGeometry(width, backHeight, depth * 0.15);
+    const backMaterial = new THREE.MeshPhongMaterial({ 
+      color: Math.floor(color * 0.9),
+      shininess: 20,
+      specular: 0x111111
+    });
     const backMesh = new THREE.Mesh(backGeometry, backMaterial);
-    backMesh.position.set(0, height * 0.2, -depth * 0.45);
+    backMesh.position.set(0, height * 0.15, -depth * 0.425);
     backMesh.castShadow = true;
     backMesh.receiveShadow = true;
     group.add(backMesh);
+    
+    console.log(`🛋️ 소파 등받이 추가 완료`);
+    
+    // 팔걸이 (양쪽)
+    const armHeight = height * 0.6;
+    const armWidth = depth * 0.2;
+    const armGeometry = new THREE.BoxGeometry(armWidth, armHeight, depth * 0.8);
+    const armMaterial = new THREE.MeshPhongMaterial({ 
+      color: Math.floor(color * 0.95),
+      shininess: 20,
+      specular: 0x111111
+    });
+    
+    // 왼쪽 팔걸이
+    const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+    leftArm.position.set(-width * 0.4, armHeight / 2, 0);
+    leftArm.castShadow = true;
+    leftArm.receiveShadow = true;
+    group.add(leftArm);
+    
+    // 오른쪽 팔걸이
+    const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+    rightArm.position.set(width * 0.4, armHeight / 2, 0);
+    rightArm.castShadow = true;
+    rightArm.receiveShadow = true;
+    group.add(rightArm);
+    
+    console.log(`🛋️ 소파 팔걸이 2개 추가 완료`);
   }
   
+  // 의자의 경우 등받이 추가
+  console.log(`🔍 의자 조건 체크: width=${width} < 1.0? ${width < 1.0}, height=${height} > 0.8? ${height > 0.8}, depth=${depth} < 1.0? ${depth < 1.0}`);
+  if (width < 1.0 && height > 0.8 && depth < 1.0) { // 의자로 간주
+    const backHeight = height * 0.6;
+    const backGeometry = new THREE.BoxGeometry(width, backHeight, depth * 0.1);
+    const backMaterial = new THREE.MeshPhongMaterial({ 
+      color: Math.floor(color * 0.9),
+      shininess: 30,
+      specular: 0x111111
+    });
+    const backMesh = new THREE.Mesh(backGeometry, backMaterial);
+    backMesh.position.set(0, backHeight / 2, -depth * 0.45);
+    backMesh.castShadow = true;
+    backMesh.receiveShadow = true;
+    group.add(backMesh);
+    
+    console.log(`🪑 의자 등받이 추가 완료`);
+  }
+  
+  // 침대의 경우 헤드보드 추가
+  console.log(`🔍 침대 조건 체크: width=${width} > 1.5? ${width > 1.5}, height=${height} < 0.6? ${height < 0.6}, depth=${depth} > 2.0? ${depth > 2.0}`);
+  if (width > 1.5 && height < 0.6 && depth > 2.0) { // 침대로 간주
+    const headboardHeight = height * 1.5;
+    const headboardGeometry = new THREE.BoxGeometry(width, headboardHeight, depth * 0.1);
+    const headboardMaterial = new THREE.MeshPhongMaterial({ 
+      color: Math.floor(color * 0.8),
+      shininess: 25,
+      specular: 0x111111
+    });
+    const headboardMesh = new THREE.Mesh(headboardGeometry, headboardMaterial);
+    headboardMesh.position.set(0, headboardHeight / 2, -depth * 0.45);
+    headboardMesh.castShadow = true;
+    headboardMesh.receiveShadow = true;
+    group.add(headboardMesh);
+    
+    console.log(`🛏️ 침대 헤드보드 추가 완료`);
+  }
+  
+  console.log(`✅ 가구 모델 생성 완료: ${group.children.length}개 컴포넌트`);
   return group;
 }

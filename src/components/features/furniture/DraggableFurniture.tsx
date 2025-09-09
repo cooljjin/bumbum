@@ -4,7 +4,7 @@ import { Box } from '@react-three/drei';
 import { Vector3, Euler, Group, Raycaster, Plane, Vector2 } from 'three';
 import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
-import { createFallbackModel, createFurnitureModel, loadModel, compareModelWithFootprint } from '../../../utils/modelLoader';
+import { createFallbackModel, createFurnitureModel, createClockFallbackModel, loadModel, compareModelWithFootprint } from '../../../utils/modelLoader';
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
 import { constrainFurnitureToRoom } from '../../../utils/roomBoundary';
@@ -516,13 +516,13 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
           return;
         }
 
-        console.info(`🎯 가구 모델 로딩 시작: ${furniture.nameKo} (${furniture.category})`);
-        console.info(`📁 모델 경로: ${furniture.modelPath}`);
-        console.info(`🆔 가구 ID: ${furniture.id}`);
-        console.info(`📏 크기: ${furniture.footprint.width}x${furniture.footprint.height}x${furniture.footprint.depth}`);
+        console.log(`🎯 가구 모델 로딩 시작: ${furniture.nameKo} (ID: ${item.id})`);
+        console.log(`📁 모델 경로: ${furniture.modelPath}`);
+        console.log(`📏 크기: ${furniture.footprint.width}x${furniture.footprint.height}x${furniture.footprint.depth}`);
 
         // 실제 GLTF 모델 로드 시도
         if (furniture.modelPath) {
+          console.log(`🔄 GLTF 모델 로딩 시작: ${furniture.modelPath}`);
           try {
             const gltfModel = await loadModel(furniture.modelPath, {
               useCache: true,
@@ -531,59 +531,88 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
             
             if (gltfModel) {
               console.info(`✅ GLTF 모델 로드 성공: ${furniture.nameKo}`);
+              console.log(`📦 로드된 모델 정보:`, {
+                childrenCount: gltfModel.children.length,
+                position: gltfModel.position,
+                rotation: gltfModel.rotation,
+                scale: gltfModel.scale
+              });
               
               // 원본 모델과 footprint 크기 비교
               compareModelWithFootprint(gltfModel, furniture.footprint, furniture.nameKo);
               
               // 모델 크기를 footprint에 맞게 조정
               const adjustedModel = adjustModelToFootprint(gltfModel, furniture.footprint);
+              console.log(`🔧 크기 조정 완료:`, {
+                originalChildren: gltfModel.children.length,
+                adjustedChildren: adjustedModel.children.length
+              });
               setModel(adjustedModel);
               setIsLoading(false);
               return;
+            } else {
+              console.warn(`⚠️ GLTF 모델이 null입니다: ${furniture.nameKo}`);
             }
           } catch (gltfError) {
             console.warn(`⚠️ GLTF 모델 로드 실패, 폴백 모델 사용: ${furniture.nameKo}`);
             console.warn(`❌ 오류 상세:`, gltfError);
             console.warn(`📁 시도한 경로: ${furniture.modelPath}`);
           }
+        } else {
+          console.warn(`⚠️ 모델 경로가 없습니다: ${furniture.nameKo}`);
         }
 
         // GLTF 로드 실패 시 폴백 모델 생성
         console.info(`폴백 모델 생성: ${furniture.nameKo}`);
         
-        // 카테고리별 색상 선택
+        // 카테고리별 색상 선택 (더 현실적인 색상으로 개선)
         const getCategoryColor = (category: string, subcategory?: string) => {
           switch (category) {
             case 'living':
               if (subcategory === 'sofa') return 0x8B4513; // 갈색
-              if (subcategory === 'table') return 0xDEB887; // 버건디
+              if (subcategory === 'table') return 0xD2691E; // 초콜릿색
               if (subcategory === 'chair') return 0x8B4513; // 갈색
               return 0x8B4513;
             case 'bedroom':
               if (subcategory === 'bed') return 0x8B4513; // 갈색
-              if (subcategory === 'storage') return 0xDEB887; // 버건디
+              if (subcategory === 'storage') return 0xD2691E; // 초콜릿색
               return 0x8B4513;
             case 'kitchen':
-              return 0xDEB887; // 버건디
+              return 0xD2691E; // 초콜릿색
             case 'office':
               return 0x696969; // 회색
             case 'storage':
-              return 0xDEB887; // 버건디
+              return 0xD2691E; // 초콜릿색
             case 'decorative':
               if (subcategory === 'clock') return 0xFFFFFF; // 흰색
-              return 0xDEB887; // 버건디
+              return 0xD2691E; // 초콜릿색
             default:
               return 0x8B4513; // 기본 갈색
           }
         };
         
-        const fallbackModel = createFurnitureModel(
-          furniture.footprint.width,
-          furniture.footprint.height,
-          furniture.footprint.depth,
-          getCategoryColor(furniture.category, furniture.subcategory)
-        );
+        // 시계는 전용 모델 사용
+        let fallbackModel;
+        if (furniture.subcategory === 'clock') {
+          console.log(`🕐 시계 전용 모델 생성: ${furniture.nameKo}`);
+          fallbackModel = createClockFallbackModel();
+        } else {
+          console.log(`🪑 가구 모델 생성: ${furniture.nameKo} (${furniture.category}/${furniture.subcategory})`);
+          console.log(`📏 크기: ${furniture.footprint.width}x${furniture.footprint.height}x${furniture.footprint.depth}`);
+          const color = getCategoryColor(furniture.category, furniture.subcategory);
+          console.log(`🎨 색상: 0x${color.toString(16)}`);
+          
+          fallbackModel = createFurnitureModel(
+            furniture.footprint.width,
+            furniture.footprint.height,
+            furniture.footprint.depth,
+            color
+          );
+          
+          console.log(`✅ 폴백 모델 생성 완료:`, fallbackModel);
+        }
         setModel(fallbackModel);
+        console.log(`✅ 폴백 모델 설정 완료: ${furniture.nameKo}`);
         setIsLoading(false);
       } catch (error) {
         console.error('Failed to load furniture model:', error);
@@ -674,6 +703,20 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
           itemId: item.id,
         };
       } catch {}
+    }
+  }, [model, item.id]);
+
+  // 모델 분석 및 디버깅
+  useEffect(() => {
+    if (model) {
+      console.log(`🔍 모델 분석: ${item.id}, 자식 요소 수: ${model.children.length}`);
+      
+      // 모델의 바운딩 박스 확인
+      const box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      console.log(`📐 모델 크기: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`);
+      console.log(`🎯 모델 중심: (${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)})`);
     }
   }, [model, item.id]);
 
@@ -771,16 +814,26 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       >
         {/* 3D 모델 */}
         {model && (
-          <primitive
-            object={model}
-        onPointerDown={(e: any) => { /* e.stopPropagation(); */ handlePointerDown(e); }}
-        onPointerMove={(e: any) => { /* e.stopPropagation(); */ handlePointerMove(e); }}
-        onPointerUp={(e: any) => { /* e.stopPropagation(); */ handlePointerUp(e); }}
-        onPointerCancel={(e: any) => { /* e.stopPropagation(); */ handlePointerCancel(e); }}
-        onPointerOver={(_e: any) => { /* e.stopPropagation() */ }}
-        onPointerOut={(_e: any) => { /* e.stopPropagation() */ }}
-        onWheel={(_e: any) => { /* e.stopPropagation() */ }}
-          />
+          <>
+            {console.log(`🎨 모델 렌더링: ${item.id}, 컴포넌트 수: ${model.children.length}`)}
+            <primitive
+              object={model}
+              onPointerDown={(e: any) => { /* e.stopPropagation(); */ handlePointerDown(e); }}
+              onPointerMove={(e: any) => { /* e.stopPropagation(); */ handlePointerMove(e); }}
+              onPointerUp={(e: any) => { /* e.stopPropagation(); */ handlePointerUp(e); }}
+              onPointerCancel={(e: any) => { /* e.stopPropagation(); */ handlePointerCancel(e); }}
+              onPointerOver={(_e: any) => { /* e.stopPropagation() */ }}
+              onPointerOut={(_e: any) => { /* e.stopPropagation() */ }}
+              onWheel={(_e: any) => { /* e.stopPropagation() */ }}
+            />
+          </>
+        )}
+        
+        {/* 폴백 모델이 없을 때 기본 박스 표시 */}
+        {!model && !isLoading && !loadError && (
+          <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
+            <meshPhongMaterial color="#8B4513" />
+          </Box>
         )}
 
         {/* 드래그/선택 히트박스 확장 - 모바일 터치 신뢰성 향상 */}

@@ -32,8 +32,30 @@ function Floor() {
 function LightRig() {
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 8, 5]} intensity={0.9} castShadow />
+      <ambientLight intensity={0.4} color="#ffffff" />
+      <hemisphereLight
+        args={['#87CEEB', '#C0C0C0', 0.6]}
+      />
+      <directionalLight 
+        position={[5, 8, 5]} 
+        intensity={1.2} 
+        color="#ffffff"
+        castShadow 
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-near={0.1}
+        shadow-camera-far={50}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
+        shadow-camera-top={10}
+        shadow-camera-bottom={-10}
+      />
+      {/* 추가 조명 - 더 부드러운 그림자 */}
+      <directionalLight
+        position={[-5, 6, -5]}
+        intensity={0.3}
+        color="#ffffff"
+      />
     </>
   );
 }
@@ -279,17 +301,17 @@ export default function MiniRoom({
       <Canvas
         shadows
         camera={{ position: [4, 3, 6], fov: 45 }}
-        gl={{ 
-          antialias: true,
-          alpha: false,
-          preserveDrawingBuffer: false,
-          powerPreference: 'high-performance',
-          depth: true,
-          stencil: false,
-          logarithmicDepthBuffer: false,
-          outputColorSpace: THREE.SRGBColorSpace,
-          precision: 'highp' // 고정밀도 렌더링
-        }}
+          gl={{ 
+            antialias: true,
+            alpha: false,
+            preserveDrawingBuffer: false,
+            powerPreference: 'high-performance',
+            depth: true,
+            stencil: false,
+            logarithmicDepthBuffer: false,
+            outputColorSpace: THREE.SRGBColorSpace,
+            precision: 'highp' // 고정밀도 렌더링
+          }}
         dpr={[minDpr, maxDpr]} // DPR 범위 설정
         style={{ touchAction: "none" }} // 터치 이벤트 활성화
         onCreated={({ gl, size }) => {
@@ -300,6 +322,9 @@ export default function MiniRoom({
           // 렌더링 품질 최적화
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.0;
+          
+          // 물리적으로 정확한 조명 활성화
+          gl.physicallyCorrectLights = true;
           
           console.log(`🎨 MiniRoom 렌더링 품질 설정:`, {
             devicePixelRatio: window.devicePixelRatio,

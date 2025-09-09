@@ -918,18 +918,30 @@ const Real3DRoomComponent = React.memo(({
         {/* 배경색 설정 */}
         <color attach="background" args={['#f8fafc']} />
 
-        {/* 조명 */}
-        <ambientLight intensity={0.6} color="#ffffff" />
+        {/* 조명 (개선된 설정) */}
+        <ambientLight intensity={0.4} color="#ffffff" />
         <hemisphereLight
-          args={['#87CEEB', '#C0C0C0', 0.4]}
+          args={['#87CEEB', '#C0C0C0', 0.6]}
         />
         <directionalLight
           castShadow
           position={[5, 10, 5]}
-          intensity={0.8}
+          intensity={1.2}
           color="#ffffff"
           shadow-mapSize-width={isMobile ? 1024 : 2048}
           shadow-mapSize-height={isMobile ? 1024 : 2048}
+          shadow-camera-near={0.1}
+          shadow-camera-far={50}
+          shadow-camera-left={-10}
+          shadow-camera-right={10}
+          shadow-camera-top={10}
+          shadow-camera-bottom={-10}
+        />
+        {/* 추가 조명 - 더 부드러운 그림자 */}
+        <directionalLight
+          position={[-5, 8, -5]}
+          intensity={0.3}
+          color="#ffffff"
         />
 
         {/* 3D 룸 */}

@@ -109,6 +109,9 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
             gl.toneMapping = THREE.ACESFilmicToneMapping;
             gl.toneMappingExposure = 1.0;
             
+            // 물리적으로 정확한 조명 활성화
+            gl.physicallyCorrectLights = true;
+            
             // 카메라 초기화 - 뿌옇게 보이는 문제 방지
             camera.updateProjectionMatrix();
             camera.updateMatrixWorld();
@@ -137,14 +140,14 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
           {/* 환경 맵핑 - 크롬 재질 반사를 위해 추가 */}
           <Environment preset="apartment" />
 
-          {/* 조명 */}
-          <ambientLight intensity={0.6} color="#ffffff" />
-          <hemisphereLight args={['#87CEEB', '#C0C0C0', 0.4]} />
+          {/* 조명 (개선된 설정) */}
+          <ambientLight intensity={0.4} color="#ffffff" />
+          <hemisphereLight args={['#87CEEB', '#C0C0C0', 0.6]} />
           <directionalLight
             name="directional-light"
             castShadow
             position={[5, 10, 5]}
-            intensity={0.8}
+            intensity={1.2}
             color="#ffffff"
             shadow-mapSize-width={isMobile ? 1024 : 2048}
             shadow-mapSize-height={isMobile ? 1024 : 2048}
@@ -155,6 +158,12 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
             shadow-camera-top={10}
             shadow-camera-bottom={-10}
             shadow-bias={-0.0001}
+          />
+          {/* 추가 조명 - 더 부드러운 그림자 */}
+          <directionalLight
+            position={[-5, 8, -5]}
+            intensity={0.3}
+            color="#ffffff"
           />
 
           {/* 렌더링 품질 일정 유지 컴포넌트 */}
