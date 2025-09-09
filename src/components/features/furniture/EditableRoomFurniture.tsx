@@ -6,6 +6,7 @@ import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
 import { constrainFurnitureToRoom, isFurnitureInRoom } from '../../../utils/roomBoundary';
+import { getMobileHtmlStyle, getMobileDistanceFactor, getMobileZIndexRange } from '../../../utils/mobileHtmlConstraints';
 
 interface EditableRoomFurnitureProps {
   item: PlacedItem;
@@ -206,13 +207,9 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
         <Html
           position={[0, (item.footprint?.height || 0) + 0.5, 0]}
           center
-          distanceFactor={8}
-          zIndexRange={[100, 0]}
-          style={{
-            // 화면 경계를 벗어나지 않도록 제한
-            maxWidth: '200px',
-            wordWrap: 'break-word'
-          }}
+          distanceFactor={getMobileDistanceFactor(8)}
+          zIndexRange={getMobileZIndexRange([100, 0])}
+          style={getMobileHtmlStyle(200)}
         >
           <div className={`
             px-3 py-2 rounded-lg font-medium text-sm shadow-lg border-2
@@ -223,6 +220,7 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
             backdrop-blur-sm
             max-w-[200px]
             break-words
+            mobile-text-constraint
           `}>
             <div className="text-center">
               <div className="font-bold">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Html } from '@react-three/drei';
 import { Vector3 } from 'three';
+import { getMobileHtmlStyle, getMobileDistanceFactor, getMobileZIndexRange } from '../../utils/mobileHtmlConstraints';
 
 interface FloatingControlsProps {
   position: Vector3;
@@ -31,15 +32,11 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
     <Html
       position={[position.x, position.y + 1.5, position.z]}
       center
-      distanceFactor={8}
-      zIndexRange={[200, 0]}
-      style={{
-        // 화면 경계를 벗어나지 않도록 제한
-        maxWidth: '400px',
-        wordWrap: 'break-word'
-      }}
+      distanceFactor={getMobileDistanceFactor(8)}
+      zIndexRange={getMobileZIndexRange([200, 0])}
+      style={getMobileHtmlStyle(400)}
     >
-      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200 p-3 flex items-center gap-2 max-w-[400px] flex-wrap">
+      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200 p-3 flex items-center gap-2 flex-wrap mobile-floating-ui" style={getMobileHtmlStyle(400)}>
         {/* 실행 취소 */}
         <button
           onClick={onUndo}
