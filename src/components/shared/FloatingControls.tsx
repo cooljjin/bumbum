@@ -33,8 +33,13 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
       center
       distanceFactor={8}
       zIndexRange={[200, 0]}
+      style={{
+        // 화면 경계를 벗어나지 않도록 제한
+        maxWidth: '400px',
+        wordWrap: 'break-word'
+      }}
     >
-      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200 p-3 flex items-center gap-2">
+      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200 p-3 flex items-center gap-2 max-w-[400px] flex-wrap">
         {/* 실행 취소 */}
         <button
           onClick={onUndo}

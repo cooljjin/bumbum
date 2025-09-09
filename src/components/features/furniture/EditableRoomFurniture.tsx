@@ -208,6 +208,11 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
           center
           distanceFactor={8}
           zIndexRange={[100, 0]}
+          style={{
+            // 화면 경계를 벗어나지 않도록 제한
+            maxWidth: '200px',
+            wordWrap: 'break-word'
+          }}
         >
           <div className={`
             px-3 py-2 rounded-lg font-medium text-sm shadow-lg border-2
@@ -216,6 +221,8 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
               : 'bg-white/90 text-gray-800 border-gray-300'
             }
             backdrop-blur-sm
+            max-w-[200px]
+            break-words
           `}>
             <div className="text-center">
               <div className="font-bold">

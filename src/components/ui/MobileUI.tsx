@@ -28,7 +28,6 @@ export const MobileUI: React.FC<MobileUIProps> = ({
 }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [showToolPanel, setShowToolPanel] = useState(false);
-  const [showFurnitureControls, setShowFurnitureControls] = useState(false);
   const [showFurnitureSelector, setShowFurnitureSelector] = useState(false);
   
   const placedItems = usePlacedItems();
@@ -132,11 +131,17 @@ export const MobileUI: React.FC<MobileUIProps> = ({
       <AnimatePresence>
         {showToolPanel && (
           <motion.div
-            className="fixed bottom-24 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 z-35 overflow-hidden"
+            className="fixed bottom-24 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 z-35 overflow-hidden max-w-[calc(100vw-2rem)]"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            style={{
+              // 화면 경계를 벗어나지 않도록 보장
+              maxWidth: 'calc(100vw - 2rem)',
+              left: '1rem',
+              right: '1rem'
+            }}
           >
             <div className="p-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">편집 도구</h3>
@@ -153,7 +158,12 @@ export const MobileUI: React.FC<MobileUIProps> = ({
                 </motion.button>
 
                 <motion.button
-                  onClick={() => setShowFurnitureControls(true)}
+                  onClick={() => {
+                    // 가구가 선택된 경우 편집 모드 토글
+                    if (selectedItemId) {
+                      console.log('가구 편집 모드 토글');
+                    }
+                  }}
                   disabled={!selectedItemId}
                   className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors min-w-[64px] min-h-[64px] ${
                     selectedItemId

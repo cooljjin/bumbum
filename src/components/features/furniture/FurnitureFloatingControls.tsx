@@ -27,13 +27,41 @@ export const FurnitureFloatingControls: React.FC<FurnitureFloatingControlsProps>
 }) => {
   if (!isVisible) return null;
 
+  // 화면 경계를 체크하여 위치 조정
+  const getConstrainedPosition = () => {
+    const panelWidth = 320; // 패널의 대략적인 너비
+    const panelHeight = 80; // 패널의 대략적인 높이
+    const margin = 16; // 화면 가장자리에서의 여백
+
+    let x = position.x;
+    let y = position.y;
+
+    // X축 경계 체크
+    if (x - panelWidth / 2 < margin) {
+      x = margin + panelWidth / 2;
+    } else if (x + panelWidth / 2 > window.innerWidth - margin) {
+      x = window.innerWidth - margin - panelWidth / 2;
+    }
+
+    // Y축 경계 체크 (패널이 위쪽에 표시되므로)
+    if (y - panelHeight < margin) {
+      y = margin + panelHeight;
+    } else if (y > window.innerHeight - margin) {
+      y = window.innerHeight - margin;
+    }
+
+    return { x, y };
+  };
+
+  const constrainedPosition = getConstrainedPosition();
+
   return (
     <AnimatePresence>
       <motion.div
         className="fixed z-40 pointer-events-auto"
         style={{
-          left: position.x,
-          top: position.y,
+          left: constrainedPosition.x,
+          top: constrainedPosition.y,
           transform: 'translate(-50%, -100%)'
         }}
         initial={{ opacity: 0, scale: 0.8, y: 20 }}
