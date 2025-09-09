@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { IconButton } from '../ui/IconButton';
+import { getSafeTouchArea, isMobile } from '../../utils/mobileHtmlConstraints';
 
 interface BottomNavigationProps {
   onShowSettings: () => void;
@@ -10,25 +11,25 @@ interface BottomNavigationProps {
 export function BottomNavigation({
   onShowSettings
 }: BottomNavigationProps) {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
-      setIsMobile(mobileRegex.test(navigator.userAgent) || window.innerWidth <= 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // 모바일에서는 MobileUI가 표시되므로 BottomNavigation은 숨김
-  if (isMobile) return null;
+  // 모바일에서도 중요한 기능은 표시
+  const isMobileDevice = isMobile();
+  const safeArea = getSafeTouchArea();
 
   return (
-    <nav className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-30">
-      <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg border border-gray-200/50">
+    <nav
+      className={`fixed left-1/2 transform -translate-x-1/2 z-30 ${
+        isMobileDevice ? 'bottom-6' : 'bottom-4'
+      }`}
+      style={{
+        // 모바일에서 안전 영역 하단 고려
+        ...(isMobileDevice && {
+          bottom: `${Math.max(safeArea.bottom + 24, 24)}px`
+        })
+      }}
+    >
+      <div className={`flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg border border-gray-200/50 ${
+        isMobileDevice ? 'px-6 py-3' : 'px-4 py-2'
+      }`}>
 
 
         <div className="flex items-center gap-2">
@@ -37,7 +38,7 @@ export function BottomNavigation({
             onClick={onShowSettings}
             title="설정"
             variant="default"
-            className="px-4 py-2 rounded-full"
+            className={`${isMobileDevice ? 'px-6 py-3 min-w-[48px] min-h-[48px]' : 'px-4 py-2'} rounded-full`}
           />
           <span className="hidden sm:inline text-gray-700 ml-1">설정</span>
         </div>

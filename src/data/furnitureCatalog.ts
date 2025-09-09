@@ -295,6 +295,88 @@ export const sampleFurniture: FurnitureItem[] = [
       rotationSnap: 15,
       collisionGroup: 'furniture'
     }
+  },
+
+  // === Wooden Floor ===
+  {
+    id: 'floor-wooden',
+    name: 'Wooden Floor',
+    nameKo: '나무 바닥',
+    category: 'floor',
+    subcategory: 'wood',
+    modelPath: '/models/floor/floor_wooden.png', // 바닥 텍스처 경로
+    thumbnailPath: '/thumbnails/floor/floor_wooden.png',
+    footprint: {
+      width: 10,  // 방 크기에 맞춰 큰 값으로 설정
+      depth: 10,  // 방 크기에 맞춰 큰 값으로 설정
+      height: 0.02 // 바닥 두께
+    },
+    placement: {
+      canRotate: false,  // 바닥은 회전하지 않음
+      canScale: true,    // 크기 조절 가능
+      floorOffset: 0     // 바닥에 바로 배치
+    },
+    metadata: {
+      brand: 'FloorMaster',
+      model: 'FM-WF-001',
+      price: 150000,
+      description: '고급스러운 나무 질감의 바닥재로 따뜻하고 아늑한 분위기를 연출합니다',
+      tags: ['바닥', '나무', '우드', '따뜻한', '아늑한', '고급스러운'],
+      materials: ['나무', '라미네이트'],
+      colors: ['라이트우드', '다크우드', '메디엄우드']
+    },
+    renderSettings: {
+      castShadow: false,     // 바닥은 그림자를 생성하지 않음
+      receiveShadow: true,   // 바닥은 그림자를 받음
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 0,  // 회전하지 않으므로 0
+      collisionGroup: 'floor'
+    }
+  },
+
+  // === 벽 카테고리 ===
+  {
+    id: 'wall_beige',
+    name: 'Beige Wall',
+    nameKo: '베이지 벽',
+    category: 'wall',
+    subcategory: 'interior_wall',
+    modelPath: '/models/wall/wall_beige.png', // 텍스처 기반 벽 모델
+    thumbnailPath: '/thumbnails/wall/wall_beige.svg',
+    footprint: {
+      width: 3.0,  // 벽의 기본 너비
+      depth: 0.1,  // 벽의 두께
+      height: 2.5  // 벽의 높이
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0 // 벽은 바닥에 붙어서 배치
+    },
+    metadata: {
+      brand: 'WallDecor',
+      model: 'WD-WALL-BEIGE',
+      price: 50000,
+      description: '따뜻한 베이지톤의 인테리어 벽',
+      tags: ['벽', '베이지', '인테리어', '따뜻한', '모던'],
+      materials: ['벽지', '페인트'],
+      colors: ['베이지', '크림']
+    },
+    renderSettings: {
+      castShadow: false,  // 벽은 그림자를 드리우지 않음
+      receiveShadow: true, // 하지만 그림자를 받음
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, Math.PI / 2, 0) // 벽을 세로로 세우기
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 90, // 벽은 90도 단위로 회전
+      collisionGroup: 'wall'
+    }
   }
 ];
 
@@ -345,11 +427,23 @@ export const furnitureCatalog: FurnitureCatalog = {
       description: '공간을 아름답게 만드는 장식품들',
       items: sampleFurniture.filter(item => item.category === 'decorative')
     },
+    wall: {
+      name: 'Walls',
+      nameKo: '벽',
+      description: '벽면 장식과 인테리어 벽재',
+      items: sampleFurniture.filter(item => item.category === 'wall')
+    },
     storage: {
       name: 'Storage',
       nameKo: '수납',
       description: '공간을 효율적으로 활용할 수 있는 수납 가구들',
       items: []
+    },
+    floor: {
+      name: 'Floor',
+      nameKo: '바닥',
+      description: '방의 바닥을 아름답게 꾸밀 수 있는 바닥재들',
+      items: sampleFurniture.filter(item => item.category === 'floor')
     }
   }
 };

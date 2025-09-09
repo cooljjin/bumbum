@@ -111,6 +111,9 @@ export interface EditorState {
 
   // 스크롤 락 설정 (모바일 편집모드용)
   scrollLockEnabled: boolean;
+
+  // 바닥 텍스처 설정
+  currentFloorTexture: string; // 현재 적용된 바닥 텍스처 경로
 }
 
 // 편집 액션 타입
@@ -196,6 +199,9 @@ export interface EditorActions {
   // 🔒 스크롤 락 관리 (모바일 편집모드용)
   toggleScrollLock: () => void;
   setScrollLockEnabled: (enabled: boolean) => void;
+
+  // 바닥 텍스처 관리
+  setFloorTexture: (texturePath: string) => void;
 }
 
 // 편집 스토어 타입

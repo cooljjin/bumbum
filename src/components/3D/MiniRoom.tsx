@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useCallback } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 // import { useGesture } from "@use-gesture/react"; // 직접 이벤트 리스너 사용으로 변경
 import { create } from "zustand";
+import { useEditorStore } from "../../store/editorStore";
 
 // ---------- Helpers: simple store for camera transforms ----------
 type CamState = {
@@ -92,7 +93,7 @@ function CameraController() {
 // ---------- 렌더링 품질 일정 유지 컴포넌트 (최적화됨) ----------
 function RenderQualityStabilizer() {
   const { gl } = useThree();
-  
+
   useFrame(() => {
     // DPR이 1보다 작으면 최소값으로 설정 (뿌옇게 보이는 문제 방지)
     const currentPixelRatio = gl.getPixelRatio();
@@ -102,6 +103,122 @@ function RenderQualityStabilizer() {
   });
 
   return null;
+}
+
+// ---------- 빈 공간 클릭 핸들러 ----------
+function EmptySpaceHandler() {
+  const { selectItem, selectedItemId } = useEditorStore();
+  const { camera, gl, scene } = useThree();
+  const raycaster = useRef(new THREE.Raycaster());
+  const lastClickTime = useRef(0);
+
+  const handleEmptySpaceClick = useCallback((e: React.PointerEvent) => {
+    // 더블 클릭 방지 (200ms 이내 클릭 무시)
+    const now = Date.now();
+    if (now - lastClickTime.current < 200) {
+      return;
+    }
+    lastClickTime.current = now;
+
+    console.log('🎯 빈 공간 핸들러 클릭 감지:', { clientX: e.clientX, clientY: e.clientY });
+
+    // Canvas 요소 확인
+    const canvas = gl?.domElement;
+    if (!canvas) return;
+
+    // 클릭 위치를 정규화된 디바이스 좌표로 변환
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+    console.log('🎯 변환된 좌표:', { mouseX, mouseY });
+
+    // 레이캐스터 설정
+    raycaster.current.setFromCamera(new THREE.Vector2(mouseX, mouseY), camera);
+
+    // 씬의 모든 객체와의 교차점 찾기 (더 깊게 검색)
+    const intersects = raycaster.current.intersectObjects(scene.children, true);
+
+    console.log('🎯 교차점 개수:', intersects.length);
+
+    // 가구 객체와의 충돌 확인 (더 정확하게)
+    let isFurnitureHit = false;
+    let closestDistance = Infinity;
+
+    for (const intersect of intersects) {
+      const object = intersect.object;
+      console.log('🎯 검사 중인 객체:', {
+        name: object.name,
+        type: object.type,
+        userData: object.userData,
+        distance: intersect.distance
+      });
+
+      // 가구 객체인지 확인 (여러 방법으로)
+      if (object.userData?.isFurniture ||
+          object.parent?.userData?.isFurniture ||
+          object.name?.includes('furniture') ||
+          object.name?.includes('DraggableFurniture')) {
+        if (intersect.distance < closestDistance) {
+          closestDistance = intersect.distance;
+          isFurnitureHit = true;
+          console.log('🎯 가구 객체 감지됨:', object.name || 'unnamed');
+        }
+      }
+    }
+
+    console.log('🎯 최종 판정:', { isFurnitureHit, selectedItemId });
+
+    // 가구 객체와 충돌하지 않았다면 빈 공간 클릭으로 처리
+    if (!isFurnitureHit) {
+      // 빈 공간 클릭 시 선택된 객체 해제
+      if (selectedItemId) {
+        console.log('✅ 빈 공간 클릭: 객체 선택 해제');
+        selectItem(null);
+      } else {
+        console.log('ℹ️ 빈 공간 클릭: 선택된 객체 없음');
+      }
+    } else {
+      console.log('❌ 가구 객체 클릭: 빈 공간 처리 무시');
+    }
+
+    // 이벤트 전파 중단 (중요!)
+    e.stopPropagation();
+    e.preventDefault();
+  }, [camera, gl, scene, selectedItemId, selectItem]);
+
+  // 터치 이벤트 처리
+  const handleEmptySpaceTouch = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return; // 싱글 터치만 처리
+
+    const touch = e.touches[0];
+    const simulatedEvent = {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      pointerType: 'touch',
+      button: 0,
+    } as React.PointerEvent;
+
+    handleEmptySpaceClick(simulatedEvent);
+  }, [handleEmptySpaceClick]);
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 1, // 더 낮은 z-index로 3D 객체 이벤트 우선
+        cursor: 'default',
+        pointerEvents: 'auto'
+      }}
+      onPointerDown={handleEmptySpaceClick}
+      onTouchStart={handleEmptySpaceTouch}
+      data-empty-space-handler
+    />
+  );
 }
 
 // ---------- Gesture Overlay ----------
@@ -280,7 +397,7 @@ interface MiniRoomProps {
   maxDpr?: number;
 }
 
-export default function MiniRoom({ 
+export default function MiniRoom({
   children,
   className = "",
   style = {},
@@ -288,12 +405,49 @@ export default function MiniRoom({
   maxDpr = 2
 }: MiniRoomProps) {
   // 편집 모드 토글은 메뉴바에서 처리
+  const { selectItem, selectedItemId } = useEditorStore();
+
+  // 빈 공간 클릭 핸들러 - 전역 플래그 기반
+  const handleEmptySpaceClick = React.useCallback((event: React.MouseEvent) => {
+    console.log('🎯 MiniRoom 빈 공간 클릭 감지됨 (DOM 이벤트):', {
+      eventType: event.type,
+      selectedItemId,
+      lastFurnitureClickTime: (window as any).lastFurnitureClickTime,
+      timestamp: Date.now()
+    });
+
+    // 이벤트가 3D 객체에서 온 것인지 확인
+    const target = event.target as HTMLElement;
+    console.log('🎯 이벤트 타겟:', target.tagName, target.className);
+
+    // 최근 가구 클릭으로부터 충분한 시간이 지났는지 확인
+    const now = Date.now();
+    const lastClickTime = (window as any).lastFurnitureClickTime || 0;
+    const timeDiff = now - lastClickTime;
+
+    console.log('🎯 시간 차이:', timeDiff, 'ms');
+
+    // 200ms 이내에 가구 클릭이 있었으면 빈 공간 클릭으로 처리하지 않음
+    if (timeDiff < 200) {
+      console.log('❌ 최근 가구 클릭으로 인해 무시됨');
+      return;
+    }
+
+    // 빈 공간 클릭 처리
+    if (selectedItemId) {
+      console.log('✅ 빈 공간 클릭: 객체 선택 해제 (DOM 이벤트)');
+      selectItem(null);
+    } else {
+      console.log('ℹ️ 빈 공간 클릭: 선택된 객체 없음');
+    }
+  }, [selectedItemId, selectItem]);
 
 
   return (
-    <div 
+    <div
       style={{ width: "100%", height: "100%", position: "relative", ...style }}
       className={className}
+      onClick={handleEmptySpaceClick}
     >
       {/* 편집 모드 토글 버튼은 메뉴바에서 처리 */}
 
@@ -301,7 +455,7 @@ export default function MiniRoom({
       <Canvas
         shadows
         camera={{ position: [4, 3, 6], fov: 45 }}
-          gl={{ 
+          gl={{
             antialias: true,
             alpha: false,
             preserveDrawingBuffer: false,
@@ -318,19 +472,67 @@ export default function MiniRoom({
           // 초기 렌더링 품질 설정
           gl.setClearColor(0x0e1116);
           gl.outputColorSpace = THREE.SRGBColorSpace;
-          
+
           // 렌더링 품질 최적화
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.0;
-          
+
           // 물리적으로 정확한 조명 활성화
           gl.physicallyCorrectLights = true;
-          
+
           console.log(`🎨 MiniRoom 렌더링 품질 설정:`, {
             devicePixelRatio: window.devicePixelRatio,
             pixelRatio: gl.getPixelRatio(),
             canvasSize: size,
             antialias: true
+          });
+
+          // Canvas에 빈 공간 클릭 이벤트 추가
+          const handleCanvasClick = (event: MouseEvent) => {
+            console.log('🎯 Canvas 클릭 감지');
+            // 이벤트 전파를 잠시 지연시켜 3D 객체 이벤트가 먼저 처리되도록 함
+            setTimeout(() => {
+              console.log('🎯 지연 처리: 빈 공간 클릭 확인');
+              const currentSelectedItemId = selectItem ? null : selectedItemId; // 현재 상태 확인
+              if (selectedItemId) {
+                console.log('✅ 빈 공간 클릭: 객체 선택 해제 (Canvas 이벤트)');
+                selectItem(null);
+              }
+            }, 50); // 지연 시간을 늘려서 3D 이벤트가 완전히 처리되도록 함
+          };
+
+          gl.domElement.addEventListener('click', handleCanvasClick);
+        }}
+        onPointerMissed={(event) => {
+          // React Three Fiber의 onPointerMissed 이벤트 사용
+          // 3D 객체를 클릭하지 않았을 때 호출됨
+          console.log('🎯 3D 객체 미스 - 빈 공간 클릭 감지됨');
+          console.log('🎯 포인터 미스 이벤트 상세:', {
+            type: event.type,
+            pointerType: event.pointerType,
+            clientX: event.clientX,
+            clientY: event.clientY,
+            selectedItemId,
+            timestamp: Date.now()
+          });
+
+          if (selectedItemId) {
+            console.log('✅ 빈 공간 클릭: 객체 선택 해제 실행');
+            selectItem(null);
+            console.log('✅ selectItem(null) 호출 완료');
+          } else {
+            console.log('ℹ️ 빈 공간 클릭: 선택된 객체 없음');
+          }
+        }}
+        onPointerDown={(event) => {
+          // 3D 객체가 아닌 빈 공간을 클릭했을 때도 처리
+          console.log('🎯 Canvas 포인터 다운 이벤트:', {
+            type: event.type,
+            pointerType: event.pointerType,
+            clientX: event.clientX,
+            clientY: event.clientY,
+            selectedItemId,
+            timestamp: Date.now()
           });
         }}
       >
@@ -363,6 +565,9 @@ export default function MiniRoom({
         {/* Custom children (for existing 3D content) */}
         {children}
       </Canvas>
+
+      {/* 빈 공간 클릭 핸들러 - Canvas의 onPointerMissed로 대체 */}
+      {/* <EmptySpaceHandler /> */}
 
       {/* Full-screen transparent overlay to capture gestures - 외부 컨트롤 사용 시 비활성화 */}
       {/* <GestureOverlay /> */}

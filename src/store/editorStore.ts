@@ -74,7 +74,13 @@ const initialState: EditorState = {
   },
 
   // 스크롤 락 설정 (모바일 편집모드용)
-  scrollLockEnabled: false
+  scrollLockEnabled: false,
+
+  // 바닥 텍스처 설정
+  currentFloorTexture: '/models/floor/floor_wooden.png',
+
+  // 벽 텍스처 설정
+  currentWallTexture: '/models/wall/wall_beige.png'
 };
 
 // 성능 최적화를 위한 유틸리티 함수들
@@ -850,6 +856,27 @@ export const useEditorStore = create<EditorStore>()(
         }
       },
 
+      // 바닥 텍스처 설정
+      setFloorTexture: (texturePath: string) => {
+        const currentTexture = get().currentFloorTexture;
+        if (currentTexture === texturePath) return; // 불필요한 업데이트 방지
+
+        set({ currentFloorTexture: texturePath });
+      },
+
+      // 벽 텍스처 설정
+      setWallTexture: (texturePath: string) => {
+        const currentTexture = get().currentWallTexture;
+        if (currentTexture === texturePath) return; // 불필요한 업데이트 방지
+
+        set({ currentWallTexture: texturePath });
+        console.log('🖼️ 벽 텍스처 변경:', {
+          from: currentTexture,
+          to: texturePath,
+          timestamp: new Date().toISOString()
+        });
+      },
+
       // 스크롤 락 토글 (최적화)
       toggleScrollLock: () => {
         const currentScrollLock = get().scrollLockEnabled;
@@ -886,6 +913,8 @@ export const useSnapStrength = () => useEditorStore(state => state.snapStrength)
 export const useAutoLock = () => useEditorStore(state => state.autoLock);
 export const useSelectedCategory = () => useEditorStore(state => state.selectedCategory);
 export const useScrollLockEnabled = () => useEditorStore(state => state.scrollLockEnabled);
+export const useCurrentFloorTexture = () => useEditorStore(state => state.currentFloorTexture);
+export const useCurrentWallTexture = () => useEditorStore(state => state.currentWallTexture);
 
 // 액션 함수들
 export const {
@@ -931,6 +960,8 @@ export const {
   getStorageUsage,
   cleanupStorage,
   setSelectedCategory,
+  setFloorTexture,
+  setWallTexture,
   toggleScrollLock,
   setScrollLockEnabled
 } = useEditorStore.getState();

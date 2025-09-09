@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import React, { useRef, useMemo } from 'react';
+import { useFrame, useThree, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getCurrentRoomDimensions } from '../../../utils/roomBoundary';
 
 interface RoomProps {
   receiveShadow?: boolean;
+  floorTexturePath?: string;
+  wallTexturePath?: string;
 }
 
-export default function Room({ receiveShadow = false }: RoomProps) {
+export default function Room({ receiveShadow = false, floorTexturePath, wallTexturePath }: RoomProps) {
   const roomRef = useRef<THREE.Group>(null);
   const dims = getCurrentRoomDimensions();
   const wallThickness = dims.wallThickness; // 벽 두께 (미터)
@@ -114,37 +116,141 @@ export default function Room({ receiveShadow = false }: RoomProps) {
     applyFade('ceiling', ceilingRef.current, ceilingMatRef.current);
   });
 
+  // 바닥 텍스처 로드
+  const defaultFloorTexture = useLoader(THREE.TextureLoader, '/models/floor/floor_wooden.png');
+  const customFloorTexture = floorTexturePath && floorTexturePath !== '/models/floor/floor_wooden.png'
+    ? useLoader(THREE.TextureLoader, floorTexturePath)
+    : null;
+
+  // 실제 사용할 바닥 텍스처 선택
+  const floorTexture = customFloorTexture || defaultFloorTexture;
+
+  // 벽 텍스처 로드
+  const defaultWallTexture = useLoader(THREE.TextureLoader, '/models/wall/wall_beige.png');
+  const customWallTexture = wallTexturePath && wallTexturePath !== '/models/wall/wall_beige.png'
+    ? useLoader(THREE.TextureLoader, wallTexturePath)
+    : null;
+
+  // 실제 사용할 벽 텍스처 선택
+  const wallTexture = customWallTexture || defaultWallTexture;
+
+  // 각 벽면에 맞는 텍스처 생성
+  const wallTextures = useMemo(() => {
+    if (!wallTexture) return null;
+
+    // 각 벽면에 맞는 텍스처 복제본 생성
+    const createWallTexture = (width: number, height: number) => {
+      const clonedTexture = wallTexture.clone();
+
+      // 텍스처 반복을 정수로 맞춰서 경계 자연스럽게 연결
+      clonedTexture.wrapS = THREE.RepeatWrapping;
+      clonedTexture.wrapT = THREE.RepeatWrapping;
+
+      // 더 세밀한 반복으로 경계 자연스럽게 연결
+      const baseRepeatSize = 1.0; // 더 작은 기본 반복 크기
+      const horizontalRepeat = Math.max(2, Math.round(width / baseRepeatSize));
+      const verticalRepeat = Math.max(2, Math.round(height / baseRepeatSize));
+
+      clonedTexture.repeat.set(horizontalRepeat, verticalRepeat);
+
+      // 아주 미세한 랜덤 오프셋으로 반복 경계 시각적으로 숨기기
+      const randomOffsetX = (Math.random() - 0.5) * 0.01; // -0.005 ~ 0.005
+      const randomOffsetY = (Math.random() - 0.5) * 0.01; // -0.005 ~ 0.005
+      clonedTexture.offset.set(randomOffsetX, randomOffsetY);
+
+      // 텍스처 필터링 개선 (경계 부드럽게)
+      clonedTexture.magFilter = THREE.LinearFilter;
+      clonedTexture.minFilter = THREE.LinearMipmapLinearFilter;
+      clonedTexture.generateMipmaps = true;
+      clonedTexture.needsUpdate = true;
+
+      return clonedTexture;
+    };
+
+    return {
+      back: createWallTexture(dims.width, dims.height),    // 뒤쪽 벽
+      front: createWallTexture(dims.width, dims.height),   // 앞쪽 벽
+      left: createWallTexture(dims.depth, dims.height),    // 왼쪽 벽
+      right: createWallTexture(dims.depth, dims.height)    // 오른쪽 벽
+    };
+  }, [wallTexture, dims.width, dims.depth, dims.height]);
+
+  // 텍스처 반복 설정 (방 크기에 맞게 반복)
+  useMemo(() => {
+    if (floorTexture) {
+      floorTexture.wrapS = THREE.RepeatWrapping;
+      floorTexture.wrapT = THREE.RepeatWrapping;
+      // 방 크기에 따라 반복 횟수 설정 (예: 10x10 방에 4x4 반복)
+      const repeatCount = Math.max(1, Math.floor(dims.width / 2.5));
+      floorTexture.repeat.set(repeatCount, repeatCount);
+      floorTexture.needsUpdate = true;
+    }
+  }, [floorTexture, dims.width, dims.depth]);
+
   return (
     <group ref={roomRef}>
-      {/* 바닥 - 두께가 있는 박스 형태 (상단 면이 y=0) */}
+      {/* 바닥 - 텍스처 적용된 평면 형태 */}
       <mesh position={[0, -floorThickness / 2, 0]} receiveShadow={receiveShadow} castShadow={false}>
         <boxGeometry args={[dims.width, floorThickness, dims.depth]} />
-        <meshStandardMaterial color="#103B57" roughness={0.8} metalness={0.1} />
+        <meshStandardMaterial
+          map={floorTexture}
+          roughness={0.8}
+          metalness={0.1}
+          color="#ffffff" // 텍스처에 색상 적용하지 않음
+        />
       </mesh>
 
-      {/* 벽들 - 흰색, 바닥에 완전히 붙여서 배치 */}
+      {/* 벽들 - 평면 지오메트리로 정확한 UV 매핑 및 개별 텍스처 적용 */}
       {/* 뒤쪽 벽 */}
-      <mesh ref={backWallRef} position={[0, height / 2, -halfDepth - wallThickness / 2]} receiveShadow={receiveShadow}>
-        <boxGeometry args={[dims.width, height, wallThickness]} />
-        <meshStandardMaterial ref={backMatRef} color="#ffffff" roughness={0.7} metalness={0.05} transparent opacity={1} />
+      <mesh ref={backWallRef} position={[0, height / 2, -halfDepth]} receiveShadow={receiveShadow}>
+        <planeGeometry args={[dims.width, height]} />
+        <meshStandardMaterial
+          ref={backMatRef}
+          map={wallTextures?.back}
+          roughness={0.7}
+          metalness={0.05}
+          transparent
+          opacity={1}
+        />
       </mesh>
 
       {/* 왼쪽 벽 */}
-      <mesh ref={leftWallRef} position={[-halfWidth - wallThickness / 2, height / 2, 0]} receiveShadow={receiveShadow}>
-        <boxGeometry args={[wallThickness, height, dims.depth]} />
-        <meshStandardMaterial ref={leftMatRef} color="#ffffff" roughness={0.7} metalness={0.05} transparent opacity={1} />
+      <mesh ref={leftWallRef} position={[-halfWidth, height / 2, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow={receiveShadow}>
+        <planeGeometry args={[dims.depth, height]} />
+        <meshStandardMaterial
+          ref={leftMatRef}
+          map={wallTextures?.left}
+          roughness={0.7}
+          metalness={0.05}
+          transparent
+          opacity={1}
+        />
       </mesh>
 
       {/* 오른쪽 벽 */}
-      <mesh ref={rightWallRef} position={[halfWidth + wallThickness / 2, height / 2, 0]} receiveShadow={receiveShadow}>
-        <boxGeometry args={[wallThickness, height, dims.depth]} />
-        <meshStandardMaterial ref={rightMatRef} color="#ffffff" roughness={0.7} metalness={0.05} transparent opacity={1} />
+      <mesh ref={rightWallRef} position={[halfWidth, height / 2, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow={receiveShadow}>
+        <planeGeometry args={[dims.depth, height]} />
+        <meshStandardMaterial
+          ref={rightMatRef}
+          map={wallTextures?.right}
+          roughness={0.7}
+          metalness={0.05}
+          transparent
+          opacity={1}
+        />
       </mesh>
 
       {/* 앞쪽 벽 (입구 쪽) */}
-      <mesh ref={frontWallRef} position={[0, height / 2, halfDepth + wallThickness / 2]} receiveShadow={receiveShadow}>
-        <boxGeometry args={[dims.width, height, wallThickness]} />
-        <meshStandardMaterial ref={frontMatRef} color="#ffffff" roughness={0.7} metalness={0.05} transparent opacity={1} />
+      <mesh ref={frontWallRef} position={[0, height / 2, halfDepth]} rotation={[0, Math.PI, 0]} receiveShadow={receiveShadow}>
+        <planeGeometry args={[dims.width, height]} />
+        <meshStandardMaterial
+          ref={frontMatRef}
+          map={wallTextures?.front}
+          roughness={0.7}
+          metalness={0.05}
+          transparent
+          opacity={1}
+        />
       </mesh>
 
       {/* 천장 */}

@@ -76,7 +76,7 @@ const UnifiedCameraControls = dynamic(() => import('./3D/UnifiedCameraControls')
 
 import { updateRoomDimensions, isFurnitureInRoom, constrainFurnitureToRoom, getRoomBoundaries } from '../utils/roomBoundary';
 import '../utils/modelSizeAnalyzer'; // 모델 크기 분석기 로드
-import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, selectItem, addItem, clearAllItems, useIsDragging } from '../store/editorStore';
+import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, selectItem, addItem, clearAllItems, useIsDragging, useCurrentFloorTexture, setFloorTexture } from '../store/editorStore';
 import { 
   enableScrollLock, 
   disableScrollLock, 
@@ -246,6 +246,7 @@ const Real3DRoomComponent = React.memo(({
   const placedItems = usePlacedItems();
   const selectedItemId = useSelectedItemId();
   const isDragging = useIsDragging();
+  const currentFloorTexture = useCurrentFloorTexture();
 
   // 시점 고정 전환 중 입력 락 상태
   const [isTransitionInputLocked, setIsTransitionInputLocked] = useState(false);
@@ -612,6 +613,15 @@ const Real3DRoomComponent = React.memo(({
 
   const handleFurnitureSelect = (item: FurnitureItem) => {
     console.log('가구 선택됨:', item);
+
+    // 바닥 카테고리의 경우 텍스처 변경 처리
+    if (item.category === 'floor') {
+      console.log('🏠 바닥 텍스처 변경:', item);
+      // 바닥 텍스처 변경 (modelPath에 텍스처 경로가 저장됨)
+      const floorTexturePath = item.modelPath || '/models/floor/floor_wooden.png';
+      setFloorTexture(floorTexturePath);
+      return; // 바닥은 배치하지 않음
+    }
 
     // 메모리 사용량 확인 제거
     // if ('memory' in performance) {
@@ -1041,7 +1051,10 @@ const Real3DRoomComponent = React.memo(({
         />
 
         {/* 3D 룸 */}
-        <Room receiveShadow={shadowMode === 'realtime'} />
+        <Room
+          receiveShadow={shadowMode === 'realtime'}
+          floorTexturePath={currentFloorTexture}
+        />
 
         {/* 그리드 시스템 - 항상 렌더링하되 편집모드에서만 표시 (최적화) */}
         {isClientReady && (

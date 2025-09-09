@@ -42,6 +42,61 @@ function getGLTFLoader(): GLTFLoader {
 }
 
 /**
+ * 벽 모델을 생성합니다 (텍스처 기반)
+ */
+export function createWallModel(
+  texturePath: string,
+  width: number = 3.0,
+  height: number = 2.5,
+  depth: number = 0.1
+): THREE.Group {
+  const wallGroup = new THREE.Group();
+
+  // 벽 재질 생성
+  const wallMaterial = new THREE.MeshLambertMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.95
+  });
+
+  // 텍스처 로드 시도
+  const textureLoader = new THREE.TextureLoader();
+  textureLoader.load(
+    texturePath,
+    (texture) => {
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(width, height);
+
+      wallMaterial.map = texture;
+      wallMaterial.needsUpdate = true;
+
+      console.log('🎨 벽 텍스처 로드 성공:', texturePath);
+    },
+    undefined,
+    (error) => {
+      console.warn('⚠️ 벽 텍스처 로드 실패, 기본 재질 사용:', texturePath, error);
+      // 텍스처 로드 실패 시 기본 베이지 색상 사용
+      wallMaterial.color.setHex(0xF5F5DC);
+    }
+  );
+
+  // 벽 geometry 생성 (평면)
+  const wallGeometry = new THREE.PlaneGeometry(width, height);
+  const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
+
+  // 벽을 세로로 세우기 (Y축 회전으로 벽면에 세우기)
+  wallMesh.rotation.y = Math.PI / 2; // Y축으로 90도 회전
+
+  wallGroup.add(wallMesh);
+  wallGroup.userData = { isWall: true, texturePath };
+
+  console.log('🏗️ 벽 모델 생성 완료:', { width, height, depth, texturePath });
+
+  return wallGroup;
+}
+
+/**
  * 모델을 로드합니다 (캐시 우선)
  */
 export async function loadModel(

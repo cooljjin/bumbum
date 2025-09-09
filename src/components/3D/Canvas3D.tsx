@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { AdaptiveEvents, Environment } from '@react-three/drei';
 import * as THREE from 'three';
@@ -12,6 +12,69 @@ interface Canvas3DProps {
   maxDpr: number;
   children: React.ReactNode;
   onClick?: () => void;
+}
+
+// ---------- Raycasting 핸들러 컴포넌트 ----------
+function RaycastingHandler({ onEmptySpaceClick }: { onEmptySpaceClick?: () => void }) {
+  const { camera, scene, gl } = useThree();
+
+  useEffect(() => {
+    const handlePointerDown = (event: any) => {
+      console.log('🎯 RaycastingHandler onPointerDown 이벤트:', {
+        type: event.type,
+        pointerType: event.pointerType,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        timestamp: Date.now()
+      });
+
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      // 마우스 좌표를 정규화된 장치 좌표로 변환
+      const rect = gl.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      // 카메라와 마우스 위치로부터 광선 생성
+      raycaster.setFromCamera(mouse, camera);
+
+      // 씬의 모든 객체들과 교차점 계산
+      const intersects = raycaster.intersectObjects(scene.children, true);
+
+      console.log('🎯 Raycasting 결과:', {
+        mousePosition: { x: mouse.x, y: mouse.y },
+        intersectsCount: intersects.length,
+        cameraType: camera.type,
+        intersects: intersects.map(i => ({
+          objectName: i.object.name || 'unnamed',
+          distance: i.distance,
+          point: i.point ? [i.point.x, i.point.y, i.point.z] : null
+        }))
+      });
+
+      // 교차점이 없으면 빈 공간으로 간주
+      if (intersects.length === 0) {
+        console.log('🎯 빈 공간 감지됨 (Raycasting - 교차점 없음)');
+        if (onEmptySpaceClick) {
+          console.log('🎯 빈 공간 onClick 핸들러 호출 (Raycasting)');
+          onEmptySpaceClick();
+        }
+      } else {
+        console.log('🎯 객체와 교차됨:', intersects[0].object.name || 'unnamed');
+      }
+    };
+
+    // Canvas에 pointerdown 이벤트 리스너 추가
+    gl.domElement.addEventListener('pointerdown', handlePointerDown);
+
+    // 클린업
+    return () => {
+      gl.domElement.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [camera, scene, gl, onEmptySpaceClick]);
+
+  return null; // 이 컴포넌트는 렌더링하지 않음, 이벤트만 처리
 }
 
 // ---------- 초기 렌더링 강제 실행 컴포넌트 제거됨 ----------
@@ -40,6 +103,22 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
   onClick
 }) => {
   const [isMounted, setIsMounted] = useState(false);
+
+  // 빈 공간 클릭 핸들러
+  const handleEmptySpaceClick = (event: any) => {
+    console.log('🎯 Canvas3D 빈 공간 클릭 감지됨:', {
+      type: event.type,
+      pointerType: event.pointerType,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      timestamp: Date.now()
+    });
+
+    // 외부 onClick 핸들러 호출
+    if (onClick) {
+      onClick();
+    }
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -91,6 +170,7 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
             background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
             touchAction: 'auto'  // 카메라 컨트롤을 위해 터치 이벤트 허용
           }}
+          onPointerMissed={handleEmptySpaceClick}
           onCreated={({ gl, scene, size, camera }: { gl: any; scene: any; size: any; camera: any }) => {
             // 초기 렌더링 품질 설정
             gl.setClearColor('#f8fafc', 1);
@@ -100,22 +180,55 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
 
             // 색상 공간 설정
             gl.outputColorSpace = THREE.SRGBColorSpace;
-            
+
             // 텍스처 품질 설정
             const maxAnisotropy = gl.capabilities.getMaxAnisotropy();
             THREE.Texture.DEFAULT_ANISOTROPY = Math.min(4, maxAnisotropy);
-            
+
             // 톤 매핑 설정
             gl.toneMapping = THREE.ACESFilmicToneMapping;
             gl.toneMappingExposure = 1.0;
-            
+
             // 물리적으로 정확한 조명 활성화
             gl.physicallyCorrectLights = true;
-            
+
             // 카메라 초기화 - 뿌옇게 보이는 문제 방지
             camera.updateProjectionMatrix();
             camera.updateMatrixWorld();
-            
+
+            // Canvas DOM 요소에 직접 클릭 이벤트 리스너 추가 (더 강력한 방법)
+            const handleCanvasClick = (event: MouseEvent) => {
+              console.log('🎯 Canvas DOM 직접 클릭 이벤트 감지됨:', {
+                target: (event.target as HTMLElement).tagName,
+                currentTarget: (event.currentTarget as HTMLElement).tagName,
+                eventType: event.type,
+                clientX: event.clientX,
+                clientY: event.clientY,
+                timestamp: Date.now()
+              });
+
+              // 이벤트가 캔버스에서 발생했는지 확인
+              if (event.target === gl.domElement) {
+                console.log('🎯 캔버스에서 직접 클릭 이벤트 발생');
+                // 외부 onClick 핸들러 호출
+                if (onClick) {
+                  console.log('🎯 외부 onClick 핸들러 호출');
+                  onClick();
+                } else {
+                  console.log('⚠️ 외부 onClick 핸들러가 없음');
+                }
+              } else {
+                console.log('🎯 다른 요소에서 클릭 이벤트 발생');
+              }
+            };
+
+            // 여러 이벤트 타입에 리스너 추가
+            gl.domElement.addEventListener('click', handleCanvasClick);
+            gl.domElement.addEventListener('pointerdown', handleCanvasClick);
+            gl.domElement.addEventListener('mousedown', handleCanvasClick);
+
+            console.log('🎯 Canvas 이벤트 리스너 등록 완료');
+
             console.log(`🎨 3D 품질 설정 완료:`, {
               anisotropy: THREE.Texture.DEFAULT_ANISOTROPY,
               shadowMapSize: isMobile ? '1024x1024' : '2048x2048',
@@ -174,6 +287,9 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
             <AdaptiveDpr pixelated={false} />
           )} */}
           <AdaptiveEvents />
+
+          {/* Raycasting을 사용한 빈 공간 클릭 핸들러 */}
+          <RaycastingHandler onEmptySpaceClick={onClick} />
 
           {children}
         </Canvas>

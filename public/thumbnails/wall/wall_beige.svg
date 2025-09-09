@@ -1,0 +1,24 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Wall background -->
+  <rect x="5" y="10" width="70" height="60" fill="#F5F5DC" stroke="#D2B48C" stroke-width="1"/>
+  <!-- Wall texture lines -->
+  <line x1="15" y1="15" x2="65" y2="15" stroke="#DEB887" stroke-width="0.5"/>
+  <line x1="15" y1="25" x2="65" y2="25" stroke="#DEB887" stroke-width="0.5"/>
+  <line x1="15" y1="35" x2="65" y2="35" stroke="#DEB887" stroke-width="0.5"/>
+  <line x1="15" y1="45" x2="65" y2="45" stroke="#DEB887" stroke-width="0.5"/>
+  <line x1="15" y1="55" x2="65" y2="55" stroke="#DEB887" stroke-width="0.5"/>
+  <line x1="15" y1="65" x2="65" y2="65" stroke="#DEB887" stroke-width="0.5"/>
+  <!-- Wall border -->
+  <rect x="5" y="10" width="70" height="60" fill="none" stroke="#8B7355" stroke-width="2"/>
+  <!-- Wall title -->
+  <text x="40" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#8B7355">Beige Wall</text>
+</svg>
+
+
+
+
+
+
+
+
+

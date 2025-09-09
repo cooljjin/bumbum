@@ -1,7 +1,14 @@
 import React from 'react';
 import { Html } from '@react-three/drei';
 import { Vector3 } from 'three';
-import { getMobileHtmlStyle, getMobileDistanceFactor, getMobileZIndexRange } from '../../utils/mobileHtmlConstraints';
+import {
+  getMobileHtmlStyle,
+  getMobileDistanceFactor,
+  getMobileZIndexRange,
+  constrainHtmlPosition,
+  getOptimalFloatingSize,
+  isMobile
+} from '../../utils/mobileHtmlConstraints';
 
 interface FloatingControlsProps {
   position: Vector3;
@@ -28,19 +35,33 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
 }) => {
   if (!isVisible) return null;
 
+  // 모바일에서 최적화된 크기 계산
+  const optimalSize = getOptimalFloatingSize(400, 60);
+  const elementWidth = optimalSize.width;
+  const elementHeight = optimalSize.height;
+
+  // 모바일에서 위치 제약 적용
+  const basePosition: [number, number, number] = [position.x, position.y + 1.5, position.z];
+  const constrainedPosition = constrainHtmlPosition(basePosition, elementWidth, elementHeight);
+
   return (
     <Html
-      position={[position.x, position.y + 1.5, position.z]}
+      position={constrainedPosition}
       center
       distanceFactor={getMobileDistanceFactor(8)}
       zIndexRange={getMobileZIndexRange([200, 0])}
-      style={getMobileHtmlStyle(400)}
+      style={getMobileHtmlStyle(elementWidth)}
     >
-      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200 p-3 flex items-center gap-2 flex-wrap mobile-floating-ui" style={getMobileHtmlStyle(400)}>
+      <div
+        className={`bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200 p-3 flex items-center gap-2 flex-wrap mobile-floating-ui ${
+          isMobile() ? 'max-w-full overflow-x-auto' : ''
+        }`}
+        style={getMobileHtmlStyle(elementWidth)}
+      >
         {/* 실행 취소 */}
         <button
           onClick={onUndo}
-          className="w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 border border-gray-300"
+          className={`${isMobile() ? 'w-12 h-12' : 'w-10 h-10'} bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 border border-gray-300`}
           title="실행 취소"
         >
           <svg
@@ -61,7 +82,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
         {/* 다시 실행 */}
         <button
           onClick={onRedo}
-          className="w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 border border-gray-300"
+          className={`${isMobile() ? 'w-12 h-12' : 'w-10 h-10'} bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 border border-gray-300`}
           title="다시 실행"
         >
           <svg
@@ -84,7 +105,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
         {/* 좌회전 버튼 */}
         <button
           onClick={onRotateLeft}
-          className="w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105"
+          className={`${isMobile() ? 'w-12 h-12' : 'w-10 h-10'} bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105`}
           title="좌회전 (90°)"
         >
           <svg
@@ -105,7 +126,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
         {/* 우회전 버튼 */}
         <button
           onClick={onRotateRight}
-          className="w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105"
+          className={`${isMobile() ? 'w-12 h-12' : 'w-10 h-10'} bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105`}
           title="우회전 (90°)"
         >
           <svg
@@ -129,7 +150,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
         {/* 복제 버튼 */}
         <button
           onClick={onDuplicate}
-          className="w-10 h-10 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105"
+          className={`${isMobile() ? 'w-12 h-12' : 'w-10 h-10'} bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105`}
           title="복제"
         >
           <svg
@@ -150,7 +171,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
         {/* 삭제 버튼 */}
         <button
           onClick={onDelete}
-          className="w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105"
+          className={`${isMobile() ? 'w-12 h-12' : 'w-10 h-10'} bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105`}
           title="삭제"
         >
           <svg
@@ -176,7 +197,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
         {/* 닫기 버튼 */}
         <button
           onClick={onClose}
-          className="w-10 h-10 bg-gray-500 hover:bg-gray-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105"
+          className={`${isMobile() ? 'w-12 h-12' : 'w-10 h-10'} bg-gray-500 hover:bg-gray-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105`}
           title="닫기"
         >
           <svg

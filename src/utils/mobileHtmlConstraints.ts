@@ -56,29 +56,88 @@ export const constrainHtmlPosition = (
   const [x, y, z] = position;
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
-  
+
+  // 모바일에서는 더 큰 여백 사용
+  const margin = Math.max(16, screenWidth * 0.05); // 최소 16px 또는 화면 너비의 5%
+
   // X축 제한 (화면 중앙을 기준으로)
   const halfWidth = elementWidth / 2;
-  const margin = 16;
   let constrainedX = x;
-  
+
   if (x - halfWidth < -screenWidth / 2 + margin) {
     constrainedX = -screenWidth / 2 + margin + halfWidth;
   } else if (x + halfWidth > screenWidth / 2 - margin) {
     constrainedX = screenWidth / 2 - margin - halfWidth;
   }
-  
+
   // Y축 제한 (화면 상단/하단 고려)
   let constrainedY = y;
   const halfHeight = elementHeight / 2;
-  
+
   if (y + halfHeight > screenHeight / 2 - margin) {
     constrainedY = screenHeight / 2 - margin - halfHeight;
   } else if (y - halfHeight < -screenHeight / 2 + margin) {
     constrainedY = -screenHeight / 2 + margin + halfHeight;
   }
-  
+
   return [constrainedX, constrainedY, z];
+};
+
+/**
+ * 모바일 환경에서 플로팅 요소의 최적 크기 계산
+ */
+export const getOptimalFloatingSize = (
+  defaultWidth: number = 320,
+  defaultHeight: number = 80
+): { width: number; height: number } => {
+  if (!isMobile()) {
+    return { width: defaultWidth, height: defaultHeight };
+  }
+
+  const screenWidth = window.innerWidth;
+  const screenHeight = window.innerHeight;
+
+  // 모바일에서는 화면의 80-90%를 최대 크기로 사용
+  const maxWidth = Math.min(defaultWidth, screenWidth * 0.9);
+  const maxHeight = Math.min(defaultHeight, screenHeight * 0.15); // 화면 높이의 15%를 최대 높이로
+
+  return {
+    width: Math.max(maxWidth, 280), // 최소 너비 보장
+    height: Math.max(maxHeight, 60)  // 최소 높이 보장
+  };
+};
+
+/**
+ * 모바일 환경에서 안전한 터치 영역 계산
+ */
+export const getSafeTouchArea = (): {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+} => {
+  if (!isMobile()) {
+    return { top: 0, bottom: 0, left: 0, right: 0 };
+  }
+
+  const screenWidth = window.innerWidth;
+  const screenHeight = window.innerHeight;
+
+  // 상단 안전 영역 (노치, 상태바 등 고려)
+  const topSafe = Math.max(44, screenHeight * 0.08);
+
+  // 하단 안전 영역 (홈 인디케이터 등 고려)
+  const bottomSafe = Math.max(34, screenHeight * 0.06);
+
+  // 좌우 안전 영역
+  const sideSafe = Math.max(16, screenWidth * 0.04);
+
+  return {
+    top: topSafe,
+    bottom: bottomSafe,
+    left: sideSafe,
+    right: sideSafe
+  };
 };
 
 /**

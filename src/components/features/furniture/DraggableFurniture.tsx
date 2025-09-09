@@ -4,7 +4,7 @@ import { Box } from '@react-three/drei';
 import { Vector3, Euler, Group, Raycaster, Plane, Vector2 } from 'three';
 import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
-import { createFallbackModel, createFurnitureModel, createClockFallbackModel, loadModel, compareModelWithFootprint } from '../../../utils/modelLoader';
+import { createFallbackModel, createFurnitureModel, createClockFallbackModel, createWallModel, loadModel, compareModelWithFootprint } from '../../../utils/modelLoader';
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
 import { constrainFurnitureToRoom } from '../../../utils/roomBoundary';
@@ -120,47 +120,55 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         // console.log(`📁 모델 경로: ${furniture.modelPath}`);
         // console.log(`📏 크기: ${furniture.footprint.width}x${furniture.footprint.height}x${furniture.footprint.depth}`);
 
-        // 실제 GLTF 모델 로드 시도
-        if (furniture.modelPath) {
-          // console.log(`🔄 GLTF 모델 로딩 시작: ${furniture.modelPath}`);
-          try {
-            const gltfModel = await loadModel(furniture.modelPath, {
-              useCache: false,
-              priority: 'normal'
-            });
-            
-            if (gltfModel) {
-              console.info(`✅ GLTF 모델 로드 성공: ${furniture.nameKo}`);
-              console.log(`📦 로드된 모델 정보:`, {
-                childrenCount: gltfModel.children.length,
-                position: gltfModel.position,
-                rotation: gltfModel.rotation,
-                scale: gltfModel.scale
-              });
-              
-              // 원본 모델과 footprint 크기 비교
-              compareModelWithFootprint(gltfModel, furniture.footprint, furniture.nameKo);
-              
-              // 모델 크기를 footprint에 맞게 조정
-              const adjustedModel = adjustModelToFootprint(gltfModel, furniture.footprint);
-              // console.log(`🔧 크기 조정 완료:`, {
-              //   originalChildren: gltfModel.children.length,
-              //   adjustedChildren: adjustedModel.children.length
-              // });
-              setModel(adjustedModel);
-            } else {
-              throw new Error('GLTF 모델 로드 실패');
-            }
-          } catch (gltfError) {
-            console.warn('GLTF 모델 로드 실패, 폴백 모델 사용:', gltfError);
-            const fallbackModel = createFallbackModel();
-            setModel(fallbackModel);
-          }
+        // 벽 카테고리는 GLB 로드 시도하지 않고 바로 폴백 모델 생성
+        if (furniture.category === 'wall') {
+          console.log(`🏗️ 벽 카테고리 감지, GLB 로드 생략 및 폴백 모델 생성: ${furniture.nameKo}`);
+          // 바로 폴백 모델 생성으로 넘어가기
         } else {
-          // 모델 경로가 없는 경우 폴백 모델 사용
-          const fallbackModel = createFallbackModel();
-          setModel(fallbackModel);
+          // 벽이 아닌 경우에만 GLTF 로드 시도
+          if (furniture.modelPath) {
+            // console.log(`🔄 GLTF 모델 로딩 시작: ${furniture.modelPath}`);
+            try {
+              const gltfModel = await loadModel(furniture.modelPath, {
+                useCache: false,
+                priority: 'normal'
+              });
+
+              if (gltfModel) {
+                console.info(`✅ GLTF 모델 로드 성공: ${furniture.nameKo}`);
+                console.log(`📦 로드된 모델 정보:`, {
+                  childrenCount: gltfModel.children.length,
+                  position: gltfModel.position,
+                  rotation: gltfModel.rotation,
+                  scale: gltfModel.scale
+                });
+
+                // 원본 모델과 footprint 크기 비교
+                compareModelWithFootprint(gltfModel, furniture.footprint, furniture.nameKo);
+
+                // 모델 크기를 footprint에 맞게 조정
+                const adjustedModel = adjustModelToFootprint(gltfModel, furniture.footprint);
+                // console.log(`🔧 크기 조정 완료:`, {
+                //   originalChildren: gltfModel.children.length,
+                //   adjustedChildren: adjustedModel.children.length
+                // });
+                setModel(adjustedModel);
+                setIsLoading(false);
+                return; // 성공적으로 로드했으므로 여기서 종료
+              } else {
+                throw new Error('GLTF 모델 로드 실패');
+              }
+            } catch (gltfError) {
+              console.warn('GLTF 모델 로드 실패, 폴백 모델 사용:', gltfError);
+              // GLTF 로드 실패 시 폴백 모델 생성으로 넘어감
+            }
+          } else {
+            // 모델 경로가 없는 경우 폴백 모델 생성으로 넘어감
+          }
         }
+
+        // GLTF 로드 실패 또는 벽 카테고리인 경우 폴백 모델 생성
+        console.info(`폴백 모델 생성: ${furniture.nameKo}`);
         setIsLoading(false);
       } catch (error) {
         console.error('Failed to create furniture model:', error);
@@ -302,9 +310,9 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
     setDragStartMousePosition(new Vector2(mouseX, mouseY));
 
-    // 드래그 의도 설정 (단순화)
+    // 드래그 의도 설정 및 클릭 억제 초기화
     dragIntentRef.current = { active: true, startX: clientX, startY: clientY };
-    suppressClickRef.current = false;
+    suppressClickRef.current = false; // 드래그 시작 시점에서는 클릭 허용
 
     console.log('✅ 드래그 시작 완료:', { clientX, clientY, mouseX, mouseY });
 
@@ -341,8 +349,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       if (dist > threshold) {
         console.log('✅ 실제 드래그 시작! (카메라는 이미 고정됨)');
         setIsDragging(true);
-        // setDragging(true); // 이미 handleDragStart에서 호출됨
-        suppressClickRef.current = true;
+        suppressClickRef.current = true; // 실제 드래그 시작 시에만 클릭 억제
+        console.log('🔒 클릭 억제 활성화 (드래그 중)');
       } else {
         return; // 아직 드래그 시작 전이면 무시
       }
@@ -463,8 +471,9 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       }
     }
 
-    // 짧은 지연 후 클릭 억제 플래그 해제 (모바일에서 click 발생 방지)
-    setTimeout(() => { suppressClickRef.current = false; }, 0);
+    // 드래그 종료 즉시 클릭 억제 플래그 해제
+    suppressClickRef.current = false;
+    console.log('🔓 클릭 억제 해제 (드래그 종료)');
     
     console.log('✅ DraggableFurniture 드래그 종료 완료:', {
       itemId: item.id,
@@ -703,40 +712,53 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     };
   }, [handlePointerMove, handlePointerUp, handlePointerCancel]);
 
-  // 클릭 이벤트 처리
-  const handleClick = useCallback((_event: any) => {
+  // 클릭 이벤트 처리 - 개선된 버전
+  const handleClick = useCallback((event: any) => {
     console.log('🎯 handleClick 호출:', {
       itemId: item.id,
       itemName: item.name,
-      suppressClick: suppressClickRef.current,
       isDragging,
       isLocked: item.isLocked,
       isEditMode,
       isSelected,
+      suppressClick: suppressClickRef.current,
       timestamp: new Date().toISOString()
     });
-    
-    // event.stopPropagation(); // 이벤트 전파 허용
-    // 드래그 후 클릭 이벤트 억제
-    if (suppressClickRef.current || isDragging) {
-      console.log('🎯 클릭 무시됨:', { suppressClick: suppressClickRef.current, isDragging });
+
+    // 드래그 중이거나 클릭이 억제된 상태라면 무시
+    if (isDragging || suppressClickRef.current) {
+      console.log('❌ 클릭 무시됨 (드래그 중 또는 억제 상태):', {
+        isDragging,
+        suppressClick: suppressClickRef.current
+      });
       return;
     }
+
+    // 고정된 객체는 선택할 수 없음
     if (item.isLocked) {
-      console.log('고정된 객체는 선택할 수 없습니다:', item.id);
+      console.log('❌ 고정된 객체 선택 불가:', item.id);
       return;
     }
-    
-    // 단일 선택만 허용 - 이미 선택된 객체를 다시 클릭해도 선택 유지
-    // 다른 객체를 클릭하면 이전 선택이 자동으로 해제됨
-    console.log(`🎯 가구 클릭: ${item.id} (현재 선택됨: ${isSelected})`);
-    onSelect(item.id);
-    
+
+    // 가구 클릭 시간 기록 (빈 공간 클릭 판별용)
+    if (typeof window !== 'undefined') {
+      (window as any).lastFurnitureClickTime = Date.now();
+    }
+
+    // 이벤트 전파는 허용하되, 가구 선택은 지연 처리
+    console.log(`✅ 가구 선택 처리: ${item.id} (현재 선택됨: ${isSelected})`);
+
+    // 선택 처리 - 약간의 지연을 주어 이벤트 순서 보장
+    setTimeout(() => {
+      onSelect(item.id);
+      console.log(`✅ 가구 선택 완료: ${item.id}`);
+    }, 10);
+
     // 선택 시 호버 효과 활성화
     if (isEditMode && !item.isLocked) {
       setIsHovered(true);
     }
-  }, [isSelected, item.id, item.isLocked, onSelect, isDragging, isEditMode]);
+  }, [isDragging, item.id, item.isLocked, isEditMode, isSelected, onSelect]);
 
   // 모델 로딩 - 강제 실행
   useEffect(() => {
@@ -767,46 +789,51 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         console.log(`📁 모델 경로: ${furniture.modelPath}`);
         console.log(`📏 크기: ${furniture.footprint.width}x${furniture.footprint.height}x${furniture.footprint.depth}`);
 
-        // 실제 GLTF 모델 로드 시도
-        if (furniture.modelPath) {
-          // console.log(`🔄 GLTF 모델 로딩 시작: ${furniture.modelPath}`);
-          try {
-            const gltfModel = await loadModel(furniture.modelPath, {
-              useCache: false,
-              priority: 'normal'
-            });
-            
-            if (gltfModel) {
-              console.info(`✅ GLTF 모델 로드 성공: ${furniture.nameKo}`);
-              console.log(`📦 로드된 모델 정보:`, {
-                childrenCount: gltfModel.children.length,
-                position: gltfModel.position,
-                rotation: gltfModel.rotation,
-                scale: gltfModel.scale
-              });
-              
-              // 원본 모델과 footprint 크기 비교
-              compareModelWithFootprint(gltfModel, furniture.footprint, furniture.nameKo);
-              
-              // 모델 크기를 footprint에 맞게 조정
-              const adjustedModel = adjustModelToFootprint(gltfModel, furniture.footprint);
-              // console.log(`🔧 크기 조정 완료:`, {
-              //   originalChildren: gltfModel.children.length,
-              //   adjustedChildren: adjustedModel.children.length
-              // });
-              setModel(adjustedModel);
-              setIsLoading(false);
-              return;
-            } else {
-              console.warn(`⚠️ GLTF 모델이 null입니다: ${furniture.nameKo}`);
-            }
-          } catch (gltfError) {
-            console.warn(`⚠️ GLTF 모델 로드 실패, 폴백 모델 사용: ${furniture.nameKo}`);
-            console.warn(`❌ 오류 상세:`, gltfError);
-            console.warn(`📁 시도한 경로: ${furniture.modelPath}`);
-          }
+        // 벽 카테고리는 GLB 로드 시도하지 않고 바로 폴백 모델 생성
+        if (furniture.category === 'wall') {
+          console.log(`🏗️ 벽 카테고리 감지, GLB 로드 생략 및 폴백 모델 생성: ${furniture.nameKo}`);
         } else {
-          console.warn(`⚠️ 모델 경로가 없습니다: ${furniture.nameKo}`);
+          // 벽이 아닌 경우에만 GLB 로드 시도
+          if (furniture.modelPath) {
+            // console.log(`🔄 GLTF 모델 로딩 시작: ${furniture.modelPath}`);
+            try {
+              const gltfModel = await loadModel(furniture.modelPath, {
+                useCache: false,
+                priority: 'normal'
+              });
+
+              if (gltfModel) {
+                console.info(`✅ GLTF 모델 로드 성공: ${furniture.nameKo}`);
+                console.log(`📦 로드된 모델 정보:`, {
+                  childrenCount: gltfModel.children.length,
+                  position: gltfModel.position,
+                  rotation: gltfModel.rotation,
+                  scale: gltfModel.scale
+                });
+
+                // 원본 모델과 footprint 크기 비교
+                compareModelWithFootprint(gltfModel, furniture.footprint, furniture.nameKo);
+
+                // 모델 크기를 footprint에 맞게 조정
+                const adjustedModel = adjustModelToFootprint(gltfModel, furniture.footprint);
+                // console.log(`🔧 크기 조정 완료:`, {
+                //   originalChildren: gltfModel.children.length,
+                //   adjustedChildren: adjustedModel.children.length
+                // });
+                setModel(adjustedModel);
+                setIsLoading(false);
+                return;
+              } else {
+                console.warn(`⚠️ GLTF 모델이 null입니다: ${furniture.nameKo}`);
+              }
+            } catch (gltfError) {
+              console.warn(`⚠️ GLTF 모델 로드 실패, 폴백 모델 사용: ${furniture.nameKo}`);
+              console.warn(`❌ 오류 상세:`, gltfError);
+              console.warn(`📁 시도한 경로: ${furniture.modelPath}`);
+            }
+          } else {
+            console.warn(`⚠️ 모델 경로가 없습니다: ${furniture.nameKo}`);
+          }
         }
 
         // GLTF 로드 실패 시 폴백 모델 생성
@@ -833,14 +860,28 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
             case 'decorative':
               if (subcategory === 'clock') return 0xFFFFFF; // 흰색
               return 0xD2691E; // 초콜릿색
+            case 'wall':
+              return 0xF5F5DC; // 베이지 (벽 기본 색상)
             default:
               return 0x8B4513; // 기본 갈색
           }
         };
         
-        // 시계는 전용 모델 사용
+        // 벽이나 시계는 전용 모델 사용
         let fallbackModel;
-        if (furniture.subcategory === 'clock') {
+        if (furniture.category === 'wall') {
+          console.log(`🏗️ 벽 모델 생성: ${furniture.nameKo}`);
+          // 벽 텍스처 경로 사용 (이미 PNG 경로로 설정됨)
+          const texturePath = furniture.modelPath;
+          console.log(`🖼️ 벽 텍스처 경로: ${texturePath}`);
+
+          fallbackModel = createWallModel(
+            texturePath,
+            furniture.footprint.width,
+            furniture.footprint.height,
+            furniture.footprint.depth
+          );
+        } else if (furniture.subcategory === 'clock') {
           console.log(`🕐 시계 전용 모델 생성: ${furniture.nameKo}`);
           fallbackModel = createClockFallbackModel();
         } else {

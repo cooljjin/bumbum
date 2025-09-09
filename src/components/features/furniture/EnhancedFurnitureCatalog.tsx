@@ -4,6 +4,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiSearch, FiFilter, FiGrid, FiList, FiHeart, FiShoppingCart } from 'react-icons/fi';
 import { FurnitureItem } from '../../../types/furniture';
+import { setFloorTexture } from '../../../store/editorStore';
 
 interface EnhancedFurnitureCatalogProps {
   furnitureData: FurnitureItem[];
