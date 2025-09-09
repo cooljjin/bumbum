@@ -204,6 +204,15 @@ textarea {
   user-select: none !important;
   width: 100% !important;
   height: 100% !important;
+  /* 핀치 줌 방지 */
+  -webkit-touch-callout: none !important;
+  -webkit-text-size-adjust: none !important;
+  -ms-text-size-adjust: none !important;
+  text-size-adjust: none !important;
+  /* 줌 방지 */
+  zoom: 1 !important;
+  min-zoom: 1 !important;
+  max-zoom: 1 !important;
 }
 
 /* iOS Safari 전용 스크롤 락 */

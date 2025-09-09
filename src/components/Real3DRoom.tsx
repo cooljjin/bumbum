@@ -80,6 +80,8 @@ import {
   enableScrollLock, 
   disableScrollLock, 
   preventKeyScroll,
+  preventWheelScroll,
+  preventTouchScroll,
   // isIOSSafari,
   isMobile as isMobileDevice
 } from '../utils/scrollLock';
@@ -285,11 +287,27 @@ const Real3DRoomComponent = React.memo(({
   useEffect(() => {
     if (externalEditMode) {
       enableScrollLock();
-      document.addEventListener('keydown', preventKeyScroll, { passive: false, capture: true });
+      
+      // 모든 스크롤 관련 이벤트 리스너 등록
+      const eventOptions = { passive: false, capture: true } as AddEventListenerOptions;
+      
+      document.addEventListener('keydown', preventKeyScroll, eventOptions);
+      document.addEventListener('wheel', preventWheelScroll, eventOptions);
+      document.addEventListener('touchstart', preventTouchScroll, eventOptions);
+      document.addEventListener('touchmove', preventTouchScroll, eventOptions);
+      document.addEventListener('touchend', preventTouchScroll, eventOptions);
+      
       console.log('🔒 편집 모드 진입: 스크롤 락 활성화');
     } else {
       disableScrollLock();
+      
+      // 모든 이벤트 리스너 제거
       document.removeEventListener('keydown', preventKeyScroll, { capture: true });
+      document.removeEventListener('wheel', preventWheelScroll, { capture: true });
+      document.removeEventListener('touchstart', preventTouchScroll, { capture: true });
+      document.removeEventListener('touchmove', preventTouchScroll, { capture: true });
+      document.removeEventListener('touchend', preventTouchScroll, { capture: true });
+      
       console.log('🔓 편집 모드 종료: 스크롤 락 해제');
     }
 
@@ -297,6 +315,10 @@ const Real3DRoomComponent = React.memo(({
       // 컴포넌트 언마운트 시 정리
       disableScrollLock();
       document.removeEventListener('keydown', preventKeyScroll, { capture: true });
+      document.removeEventListener('wheel', preventWheelScroll, { capture: true });
+      document.removeEventListener('touchstart', preventTouchScroll, { capture: true });
+      document.removeEventListener('touchmove', preventTouchScroll, { capture: true });
+      document.removeEventListener('touchend', preventTouchScroll, { capture: true });
     };
   }, [externalEditMode]);
 

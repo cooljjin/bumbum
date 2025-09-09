@@ -170,12 +170,12 @@ export const preventTouchScroll = (e: Event): void => {
     return;
   }
 
-  // 다른 영역에서는 터치 이벤트 방지 (카메라 컨트롤을 위해 주석 처리)
-  // if (e.type === 'touchmove' || e.type === 'touchstart' || e.type === 'touchend') {
-  //   e.preventDefault();
-  //   e.stopPropagation();
-  //   console.log('🔒 터치 스크롤 방지됨');
-  // }
+  // 다른 영역에서는 터치 이벤트 방지
+  if (e.type === 'touchmove' || e.type === 'touchstart' || e.type === 'touchend') {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('🔒 터치 스크롤 방지됨');
+  }
 };
 
 /**

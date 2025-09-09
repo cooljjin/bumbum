@@ -4,7 +4,7 @@ import React, { useState, Suspense, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { useEditorActions } from '../../hooks/useEditorStore';
-import { enableScrollLock, disableScrollLock, preventKeyScroll } from '../../utils/scrollLock';
+import { enableScrollLock, disableScrollLock, preventKeyScroll, preventWheelScroll, preventTouchScroll } from '../../utils/scrollLock';
 
 // Real3DRoom 컴포넌트를 동적으로 로드
 const Real3DRoom = dynamic(() => import('../../components/Real3DRoom'), {
@@ -41,11 +41,27 @@ export default function CleanUIPage() {
   useEffect(() => {
     if (isEditMode) {
       enableScrollLock();
-      document.addEventListener('keydown', preventKeyScroll, { passive: false, capture: true });
+      
+      // 모든 스크롤 관련 이벤트 리스너 등록
+      const eventOptions = { passive: false, capture: true } as AddEventListenerOptions;
+      
+      document.addEventListener('keydown', preventKeyScroll, eventOptions);
+      document.addEventListener('wheel', preventWheelScroll, eventOptions);
+      document.addEventListener('touchstart', preventTouchScroll, eventOptions);
+      document.addEventListener('touchmove', preventTouchScroll, eventOptions);
+      document.addEventListener('touchend', preventTouchScroll, eventOptions);
+      
       console.log('🔒 편집 모드 진입: 스크롤 락 활성화');
     } else {
       disableScrollLock();
+      
+      // 모든 이벤트 리스너 제거
       document.removeEventListener('keydown', preventKeyScroll, { capture: true });
+      document.removeEventListener('wheel', preventWheelScroll, { capture: true });
+      document.removeEventListener('touchstart', preventTouchScroll, { capture: true });
+      document.removeEventListener('touchmove', preventTouchScroll, { capture: true });
+      document.removeEventListener('touchend', preventTouchScroll, { capture: true });
+      
       console.log('🔓 편집 모드 종료: 스크롤 락 해제');
     }
 
@@ -53,6 +69,10 @@ export default function CleanUIPage() {
       // 컴포넌트 언마운트 시 정리
       disableScrollLock();
       document.removeEventListener('keydown', preventKeyScroll, { capture: true });
+      document.removeEventListener('wheel', preventWheelScroll, { capture: true });
+      document.removeEventListener('touchstart', preventTouchScroll, { capture: true });
+      document.removeEventListener('touchmove', preventTouchScroll, { capture: true });
+      document.removeEventListener('touchend', preventTouchScroll, { capture: true });
     };
   }, [isEditMode]);
 
