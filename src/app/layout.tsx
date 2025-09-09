@@ -3,7 +3,15 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Bondidi - bumbum',
-  description: '3D 미니룸을 체험해보세요'
+  description: '3D 미니룸을 체험해보세요',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', sizes: 'any' },
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.png', type: 'image/png' }
+    ],
+    apple: '/favicon.png'
+  }
 };
 
 // iOS Safari에서 페이지 핀치줌이 캔버스 제스처를 가로채지 않도록 방지

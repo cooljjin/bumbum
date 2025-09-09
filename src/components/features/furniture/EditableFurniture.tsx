@@ -4,11 +4,59 @@ import { TransformControls, Box } from '@react-three/drei';
 import { Vector3, Euler, Group } from 'three';
 import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
-import { createFallbackModel, createFurnitureModel } from '../../../utils/modelLoader';
+import { createFallbackModel, createFurnitureModel, loadModel } from '../../../utils/modelLoader';
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
 import MobileTouchHandler from '../../ui/MobileTouchHandler';
 import { constrainFurnitureToRoom, isFurnitureInRoom } from '../../../utils/roomBoundary';
+import * as THREE from 'three';
+
+/**
+ * 모델을 footprint 크기에 맞게 조정하는 함수
+ * 벽 통과 방지를 위해 정확한 크기 매칭 구현
+ */
+const adjustModelToFootprint = (model: THREE.Group, footprint: { width: number; height: number; depth: number }): THREE.Group => {
+  // 모델의 바운딩 박스 계산
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  
+  console.log(`📐 원본 모델 크기: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`);
+  console.log(`📏 목표 footprint: ${footprint.width} x ${footprint.height} x ${footprint.depth}`);
+  console.log(`🎯 원본 모델 중심점: (${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)})`);
+  
+  // 스케일 비율 계산 (각 축별로 정확히 맞춤)
+  const scaleX = footprint.width / size.x;
+  const scaleY = footprint.height / size.y;
+  const scaleZ = footprint.depth / size.z;
+  
+  const scale = new THREE.Vector3(scaleX, scaleY, scaleZ);
+  
+  console.log(`🔧 적용할 스케일: ${scale.x.toFixed(3)} x ${scale.y.toFixed(3)} x ${scale.z.toFixed(3)}`);
+  
+  // 모델 복사 및 스케일 적용
+  const adjustedModel = model.clone();
+  adjustedModel.scale.copy(scale);
+  
+  // 스케일 적용 후 새로운 바운딩 박스 계산
+  const adjustedBox = new THREE.Box3().setFromObject(adjustedModel);
+  const adjustedSize = adjustedBox.getSize(new THREE.Vector3());
+  const adjustedCenter = adjustedBox.getCenter(new THREE.Vector3());
+  
+  console.log(`📐 스케일 적용 후 크기: ${adjustedSize.x.toFixed(2)} x ${adjustedSize.y.toFixed(2)} x ${adjustedSize.z.toFixed(2)}`);
+  console.log(`🎯 스케일 적용 후 중심점: (${adjustedCenter.x.toFixed(2)}, ${adjustedCenter.y.toFixed(2)}, ${adjustedCenter.z.toFixed(2)})`);
+  
+  // 모델을 바닥에 정확히 맞춤 (Y축 위치 조정)
+  // 바닥이 Y=0이 되도록 모델의 하단이 Y=0에 위치하도록 조정
+  const bottomY = adjustedCenter.y - adjustedSize.y / 2;
+  adjustedModel.position.y = -bottomY;
+  
+  // X, Z축도 중심을 원점으로 맞춤 (선택적)
+  adjustedModel.position.x = -adjustedCenter.x;
+  adjustedModel.position.z = -adjustedCenter.z;
+  
+  return adjustedModel;
+};
 
 interface EditableFurnitureProps {
   item: PlacedItem;
@@ -38,6 +86,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
   const [model, setModel] = useState<Group | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
   const lastUpdateTime = useRef<number>(0);
 
 
@@ -90,10 +139,42 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
           return;
         }
 
-        // 실제 3D 모델 생성 함수를 우선적으로 사용
-        console.info(`가구 모델 생성: ${furniture.nameKo} (${furniture.category})`);
-        const realModel = createFurnitureModel(furniture);
-        setModel(realModel);
+        // 실제 GLTF 모델 로드 시도
+        console.info(`가구 모델 로딩: ${furniture.nameKo} (${furniture.category})`);
+        console.log(`📁 모델 경로: ${furniture.modelPath}`);
+        console.log(`📏 크기: ${furniture.footprint.width}x${furniture.footprint.height}x${furniture.footprint.depth}`);
+
+        if (furniture.modelPath) {
+          console.log(`🔄 GLTF 모델 로딩 시작: ${furniture.modelPath}`);
+          try {
+            const gltfModel = await loadModel(furniture.modelPath, {
+              useCache: false,
+              priority: 'normal'
+            });
+            
+            if (gltfModel) {
+              console.info(`✅ GLTF 모델 로드 성공: ${furniture.nameKo}`);
+              
+              // 모델 크기를 footprint에 맞게 조정
+              const adjustedModel = adjustModelToFootprint(gltfModel, furniture.footprint);
+              console.log(`🔧 크기 조정 완료:`, {
+                originalChildren: gltfModel.children.length,
+                adjustedChildren: adjustedModel.children.length
+              });
+              setModel(adjustedModel);
+            } else {
+              throw new Error('GLTF 모델 로드 실패');
+            }
+          } catch (gltfError) {
+            console.warn('GLTF 모델 로드 실패, 폴백 모델 사용:', gltfError);
+            const fallbackModel = createFallbackModel(furniture);
+            setModel(fallbackModel);
+          }
+        } else {
+          // 모델 경로가 없는 경우 폴백 모델 사용
+          const fallbackModel = createFallbackModel(furniture);
+          setModel(fallbackModel);
+        }
         setIsLoading(false);
       } catch (error) {
         console.error('Failed to create furniture model:', error);
@@ -233,6 +314,9 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     // 최소 16ms (약 60fps) 간격으로 업데이트 제한
     if (now - lastUpdateTime.current < 16) return;
     lastUpdateTime.current = now;
+    
+    // TransformControls 사용 중에는 호버 효과 제거
+    setIsHovered(false);
 
     try {
       let currentPosition = meshRef.current.position.clone();
@@ -307,6 +391,9 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     if (!isSelected || item.isLocked) return;
 
     console.log('🎯 드래그 종료 - 객체 위치 조정 완료:', item.id);
+    
+    // TransformControls 종료 시 호버 효과 복원
+    setIsHovered(true);
 
     // 자동 고정 설정 확인
     const { autoLock } = useEditorStore.getState();
@@ -380,6 +467,17 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     }
   }, [item.isLocked, isSelected, isEditMode, item.id]);
 
+  // 호버 이벤트 처리
+  const handlePointerEnter = useCallback(() => {
+    if (isEditMode && !item.isLocked && isSelected) {
+      setIsHovered(true);
+    }
+  }, [isEditMode, item.isLocked, isSelected]);
+
+  const handlePointerLeave = useCallback(() => {
+    setIsHovered(false);
+  }, []);
+
   // 클릭 이벤트 처리 - 선택/해제 토글 (고정된 객체는 선택 불가)
   const handleClick = (event: any) => {
     // event.stopPropagation(); // 이벤트 전파 허용
@@ -394,6 +492,11 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     // 이미 선택된 객체를 다시 클릭해도 선택 유지
     console.log(`🎯 가구 클릭: ${item.id} (현재 선택됨: ${isSelected})`);
     onSelect(item.id);
+    
+    // 선택 시 호버 효과 활성화
+    if (isEditMode && !item.isLocked) {
+      setIsHovered(true);
+    }
   };
 
   // 키보드 단축키 처리 - 이벤트 리스너 중복 등록 방지
@@ -728,8 +831,8 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
         onPointerDown={(e) => { /* e.stopPropagation() */ }}
         onPointerMove={(e) => { /* e.stopPropagation() */ }}
         onPointerUp={(e) => { /* e.stopPropagation() */ }}
-        onPointerOver={(e) => { /* e.stopPropagation() */ }}
-        onPointerOut={(e) => { /* e.stopPropagation() */ }}
+        onPointerOver={handlePointerEnter}
+        onPointerOut={handlePointerLeave}
         onWheel={(e) => { /* e.stopPropagation() */ }}
         visible={isVisible}
       >
@@ -757,6 +860,13 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
 
         {/* 고정 표시기 */}
         {renderLockIndicator()}
+        
+        {/* 호버 효과 */}
+        {isHovered && !isPlacementMode && (
+          <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
+            <meshBasicMaterial color="#ffff00" transparent opacity={0.2} />
+          </Box>
+        )}
       </group>
 
       {/* 모바일 터치 핸들러 - 모바일 환경에서만 활성화 */}

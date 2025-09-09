@@ -27,14 +27,15 @@ export const FurnitureFloatingControls: React.FC<FurnitureFloatingControlsProps>
 }) => {
   if (!isVisible) return null;
 
-  // 화면 경계를 체크하여 위치 조정
+  // 화면 경계를 체크하여 위치 조정 - 가구 바로 위에 표시
   const getConstrainedPosition = () => {
     const panelWidth = 320; // 패널의 대략적인 너비
     const panelHeight = 80; // 패널의 대략적인 높이
     const margin = 16; // 화면 가장자리에서의 여백
+    const offsetY = 20; // 가구 위쪽 여백
 
     let x = position.x;
-    let y = position.y;
+    let y = position.y - offsetY; // 가구 바로 위에 표시
 
     // X축 경계 체크
     if (x - panelWidth / 2 < margin) {
@@ -111,7 +112,7 @@ export const FurnitureFloatingControls: React.FC<FurnitureFloatingControlsProps>
           </div>
         </div>
 
-        {/* 화살표 포인터 */}
+        {/* 화살표 포인터 - 가구를 가리키도록 */}
         <div className="flex justify-center">
           <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white/95"></div>
         </div>

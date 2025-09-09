@@ -12,6 +12,7 @@ import { AdaptiveEvents } from '@react-three/drei';
 // });
 import { motion } from 'framer-motion';
 import { Vector3, Euler } from 'three';
+import * as THREE from 'three';
 // 클라이언트 사이드에서만 실행되는 컴포넌트들
 const Room = dynamic(() => import('./features/room/Room'), { 
   ssr: false,
@@ -206,6 +207,7 @@ const Real3DRoomComponent = React.memo(({
   
   // 클라이언트 사이드 준비 상태
   const isClientReady = useClientSideReady();
+  
   const searchParams = typeof window !== 'undefined' ? useSearchParams() : (null as any);
   // const debugFreeCam = !!(searchParams && searchParams.get('freecam') === '1');
   const gestureFixScope = (searchParams && searchParams.get('gfix')) || 'canvas'; // 'canvas' | 'global'
@@ -231,7 +233,6 @@ const Real3DRoomComponent = React.memo(({
   const [selectedFurniture, setSelectedFurniture] = useState<FurnitureItem | null>(null);
   
   // 플로팅 컨트롤 상태
-  const [showFloatingControls, setShowFloatingControls] = useState(false);
   const [floatingControlsPosition, setFloatingControlsPosition] = useState({ x: 0, y: 0 });
   
 
@@ -249,13 +250,101 @@ const Real3DRoomComponent = React.memo(({
   // 시점 고정 전환 중 입력 락 상태
   const [isTransitionInputLocked, setIsTransitionInputLocked] = useState(false);
 
-  // 드래그 상태 변화 감지 - 드래그가 끝나면 플로팅 컨트롤 다시 표시
-  useEffect(() => {
-    if (!isDragging && selectedItemId && !showFloatingControls) {
-      // 드래그가 끝나고 가구가 선택되어 있으면 플로팅 컨트롤 다시 표시
-      setShowFloatingControls(true);
+  // 카메라 컨트롤러 ref
+  const cameraControlsRef = useRef<import('camera-controls').default>(null);
+
+  // 3D 위치를 화면 좌표로 변환하는 함수
+  const worldToScreen = useCallback((worldPosition: { x: number; y: number; z: number }) => {
+    if (typeof window === 'undefined') return { x: 0, y: 0 };
+    
+    const vector = new THREE.Vector3(worldPosition.x, worldPosition.y, worldPosition.z);
+    // 카메라 컨트롤러를 통해 카메라에 접근
+    const camera = cameraControlsRef.current?.camera;
+    
+    // console.log('🎯 worldToScreen 호출:', {
+    //   worldPosition,
+    //   cameraExists: !!camera,
+    //   cameraControlsRefExists: !!cameraControlsRef.current,
+    //   windowSize: { width: window.innerWidth, height: window.innerHeight },
+    //   userAgent: navigator.userAgent,
+    //   isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    // });
+    
+    if (!camera) {
+      console.log('⚠️ 카메라가 없음 - 기본 위치 반환');
+      // 카메라가 없을 때도 플로팅 컨트롤이 보이도록 화면 중앙에 위치
+      return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     }
-  }, [isDragging, selectedItemId, showFloatingControls]);
+    
+    vector.project(camera);
+    
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    
+    const x = (vector.x * 0.5 + 0.5) * width;
+    const y = (vector.y * -0.5 + 0.5) * height;
+    
+    console.log('🎯 worldToScreen 결과:', {
+      worldPosition,
+      projectedVector: { x: vector.x, y: vector.y, z: vector.z },
+      screenPosition: { x, y },
+      windowSize: { width, height }
+    });
+    
+    return { x, y };
+  }, [cameraControlsRef]);
+
+  // 드래그 상태 변화 감지
+  useEffect(() => {
+    // console.log('🎯 드래그 상태 변화 감지:', {
+    //   isDragging,
+    //   selectedItemId,
+    //   timestamp: new Date().toISOString()
+    // });
+  }, [isDragging, selectedItemId]);
+
+  // 선택된 가구가 있을 때 플로팅 컨트롤 위치 업데이트
+  useEffect(() => {
+    if (selectedItemId) {
+      const selectedItem = placedItems.find(item => item.id === selectedItemId);
+      if (selectedItem) {
+        // console.log('🎯 선택된 가구 플로팅 컨트롤 업데이트:', {
+        //   itemId: selectedItem.id,
+        //   itemName: selectedItem.name,
+        //   position: selectedItem.position,
+        //   isDragging
+        // });
+        
+        // 가구의 상단 위치 계산 (Y축에 가구 높이 추가)
+        const furnitureTopPosition = {
+          x: selectedItem.position.x,
+          y: selectedItem.position.y + selectedItem.footprint.height,
+          z: selectedItem.position.z
+        };
+        
+        // 3D 위치를 화면 좌표로 변환
+        const screenPosition = worldToScreen(furnitureTopPosition);
+        
+        setFloatingControlsPosition(screenPosition);
+        // showFloatingControls 상태는 제거하고 selectedItemId만으로 제어
+      }
+    }
+  }, [selectedItemId, placedItems, worldToScreen]);
+
+  // 웹 환경에서의 대안: 카메라가 없을 때도 플로팅 컨트롤을 표시
+  useEffect(() => {
+    if (selectedItemId && !isDragging) {
+      // 카메라가 없을 때는 화면 중앙에 플로팅 컨트롤 표시
+      const camera = cameraControlsRef.current?.camera;
+      if (!camera) {
+        // console.log('🎯 카메라 없음 - 화면 중앙에 플로팅 컨트롤 표시');
+        setFloatingControlsPosition({ 
+          x: window.innerWidth / 2, 
+          y: window.innerHeight / 2 
+        });
+      }
+    }
+  }, [selectedItemId, isDragging]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -372,9 +461,6 @@ const Real3DRoomComponent = React.memo(({
     };
   }, [isTransitionInputLocked]);
 
-  // 카메라 컨트롤러 ref
-  const cameraControlsRef = useRef<import('camera-controls').default>(null);
-
   // 템플릿 적용 핸들러
   const handleTemplateSelect = async (template: RoomTemplate) => {
     try {
@@ -452,6 +538,7 @@ const Real3DRoomComponent = React.memo(({
       }
     }
   }, [externalEditMode, storeEditMode]);
+
 
   // 메모리 관리 및 정리
   useEffect(() => {
@@ -773,24 +860,34 @@ const Real3DRoomComponent = React.memo(({
   // 가구 선택 핸들러 - 단일 선택만 허용
   const handleFurnitureSelectInScene = (id: string | null) => {
     console.log(`🎯 가구 선택 요청: ${id} (현재 선택됨: ${selectedItemId})`);
+    console.log(`📊 선택 상태:`, {
+      requestedId: id,
+      currentSelectedId: selectedItemId,
+      isEditMode,
+      placedItemsCount: placedItems.length
+    });
     
     if (id === null) {
       // 선택 해제
       selectItem(null);
-      setShowFloatingControls(false);
     } else {
       // 단일 선택 - 다른 가구를 선택하면 이전 선택이 자동으로 해제됨
       selectItem(id);
       
-      // 선택된 가구의 화면 위치 계산하여 플로팅 컨트롤 표시
+      // 선택된 가구의 3D 위치를 화면 좌표로 변환하여 플로팅 컨트롤 표시
       const selectedItem = placedItems.find(item => item.id === id);
       if (selectedItem) {
-        // 화면 우측에 플로팅 컨트롤 표시
-        setFloatingControlsPosition({
-          x: window.innerWidth - 200,
-          y: Math.max(100, Math.min(window.innerHeight - 200, 200))
-        });
-        setShowFloatingControls(true);
+        // 가구의 상단 위치 계산 (Y축에 가구 높이 추가)
+        const furnitureTopPosition = {
+          x: selectedItem.position.x,
+          y: selectedItem.position.y + selectedItem.footprint.height,
+          z: selectedItem.position.z
+        };
+        
+        // 3D 위치를 화면 좌표로 변환
+        const screenPosition = worldToScreen(furnitureTopPosition);
+        
+        setFloatingControlsPosition(screenPosition);
       }
     }
   };
@@ -857,7 +954,7 @@ const Real3DRoomComponent = React.memo(({
   const handleDelete = () => {
     if (selectedItemId) {
       handleFurnitureDelete(selectedItemId);
-      setShowFloatingControls(false); // 삭제 후에만 컨트롤 닫기
+ // 삭제 후에만 컨트롤 닫기
     }
   };
 
@@ -900,7 +997,6 @@ const Real3DRoomComponent = React.memo(({
           // 빈 공간 클릭 시 선택 해제 및 플로팅 컨트롤 닫기
           if (selectedItemId) {
             selectItem(null);
-            setShowFloatingControls(false);
           }
         }}
       >
@@ -976,8 +1072,6 @@ const Real3DRoomComponent = React.memo(({
                 isEditMode={isEditMode}
                 onSelect={handleFurnitureSelectInScene}
                 onUpdate={handleFurnitureUpdate}
-                onDelete={handleFurnitureDelete}
-                onDuplicate={handleFurnitureDuplicate}
               />
             ))}
           </OutlineEffect>
@@ -992,8 +1086,6 @@ const Real3DRoomComponent = React.memo(({
             isEditMode={isEditMode}
             onSelect={handleFurnitureSelectInScene}
             onUpdate={handleFurnitureUpdate}
-            onDelete={handleFurnitureDelete}
-            onDuplicate={handleFurnitureDuplicate}
           />
         ))}
 
@@ -1159,10 +1251,19 @@ const Real3DRoomComponent = React.memo(({
         </div>
       )}
 
-      {/* 플로팅 컨트롤 - 드래그 중이 아닐 때만 표시 */}
-      {showFloatingControls && selectedItemId && !isDragging && (
+      {/* 플로팅 컨트롤 - 가구가 선택되면 무조건 표시 */}
+      {(() => {
+        const shouldShow = selectedItemId && !isDragging;
+        // console.log('🎯 플로팅 컨트롤 렌더링 조건:', {
+        //   selectedItemId,
+        //   isDragging,
+        //   shouldShow,
+        //   floatingControlsPosition
+        // });
+        return shouldShow;
+      })() && (
         <FurnitureFloatingControls
-          isVisible={showFloatingControls}
+          isVisible={true}
           onRotateLeft={handleRotateLeft}
           onRotateRight={handleRotateRight}
           onDuplicate={handleDuplicate}
@@ -1170,6 +1271,28 @@ const Real3DRoomComponent = React.memo(({
           position={floatingControlsPosition}
         />
       )}
+
+      {/* 디버깅용 고정 플로팅 컨트롤 - 웹 환경 테스트용 */}
+      {/*
+      {selectedItemId && !isDragging && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 9999,
+            background: 'red',
+            color: 'white',
+            padding: '10px',
+            borderRadius: '5px',
+            fontSize: '12px'
+          }}
+        >
+          DEBUG: 플로팅 컨트롤 테스트
+        </div>
+      )}
+      */}
 
       {/* 모바일 전용 편집/보기 토글은 MiniRoom 내부에서 처리됨 */}
 

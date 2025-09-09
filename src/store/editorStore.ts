@@ -28,7 +28,7 @@ const PERFORMANCE_CONSTANTS = {
 // 초기 상태 정의
 const initialState: EditorState = {
   // 기본 상태
-  mode: 'view',
+  mode: 'edit',  // 기본적으로 편집 모드 활성화
   tool: 'select',
 
   // 가구 관리
