@@ -14,67 +14,47 @@ interface Canvas3DProps {
   onClick?: () => void;
 }
 
-// ---------- Raycasting 핸들러 컴포넌트 ----------
-function RaycastingHandler({ onEmptySpaceClick }: { onEmptySpaceClick?: () => void }) {
+// 빈 공간 판정을 보강하기 위한 Raycasting 핸들러
+function EmptySpaceRaycast({ onEmptySpaceClick }: { onEmptySpaceClick?: () => void }) {
   const { camera, scene, gl } = useThree();
 
   useEffect(() => {
-    const handlePointerDown = (event: any) => {
-      console.log('🎯 RaycastingHandler onPointerDown 이벤트:', {
-        type: event.type,
-        pointerType: event.pointerType,
-        clientX: event.clientX,
-        clientY: event.clientY,
-        timestamp: Date.now()
-      });
+    if (!gl?.domElement) return;
 
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
+    const handler = (event: PointerEvent) => {
+      try {
+        const rect = gl.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+          ((event.clientX - rect.left) / rect.width) * 2 - 1,
+          -((event.clientY - rect.top) / rect.height) * 2 + 1
+        );
 
-      // 마우스 좌표를 정규화된 장치 좌표로 변환
-      const rect = gl.domElement.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(scene.children, true);
 
-      // 카메라와 마우스 위치로부터 광선 생성
-      raycaster.setFromCamera(mouse, camera);
+        // 가구(userData.isFurniture)만 필터링
+        const furnitureHits = intersects.filter(i => {
+          let obj: any = i.object;
+          while (obj) {
+            if (obj.userData?.isFurniture) return true;
+            obj = obj.parent;
+          }
+          return false;
+        });
 
-      // 씬의 모든 객체들과 교차점 계산
-      const intersects = raycaster.intersectObjects(scene.children, true);
-
-      console.log('🎯 Raycasting 결과:', {
-        mousePosition: { x: mouse.x, y: mouse.y },
-        intersectsCount: intersects.length,
-        cameraType: camera.type,
-        intersects: intersects.map(i => ({
-          objectName: i.object.name || 'unnamed',
-          distance: i.distance,
-          point: i.point ? [i.point.x, i.point.y, i.point.z] : null
-        }))
-      });
-
-      // 교차점이 없으면 빈 공간으로 간주
-      if (intersects.length === 0) {
-        console.log('🎯 빈 공간 감지됨 (Raycasting - 교차점 없음)');
-        if (onEmptySpaceClick) {
-          console.log('🎯 빈 공간 onClick 핸들러 호출 (Raycasting)');
-          onEmptySpaceClick();
+        if (furnitureHits.length === 0) {
+          // 가구 히트가 없으면 빈 공간으로 처리
+          onEmptySpaceClick?.();
         }
-      } else {
-        console.log('🎯 객체와 교차됨:', intersects[0].object.name || 'unnamed');
-      }
+      } catch {}
     };
 
-    // Canvas에 pointerdown 이벤트 리스너 추가
-    gl.domElement.addEventListener('pointerdown', handlePointerDown);
-
-    // 클린업
-    return () => {
-      gl.domElement.removeEventListener('pointerdown', handlePointerDown);
-    };
+    gl.domElement.addEventListener('pointerdown', handler, { passive: true });
+    return () => gl.domElement.removeEventListener('pointerdown', handler as any);
   }, [camera, scene, gl, onEmptySpaceClick]);
 
-  return null; // 이 컴포넌트는 렌더링하지 않음, 이벤트만 처리
+  return null;
 }
 
 // ---------- 초기 렌더링 강제 실행 컴포넌트 제거됨 ----------
@@ -196,39 +176,6 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
             camera.updateProjectionMatrix();
             camera.updateMatrixWorld();
 
-            // Canvas DOM 요소에 직접 클릭 이벤트 리스너 추가 (더 강력한 방법)
-            const handleCanvasClick = (event: MouseEvent) => {
-              console.log('🎯 Canvas DOM 직접 클릭 이벤트 감지됨:', {
-                target: (event.target as HTMLElement).tagName,
-                currentTarget: (event.currentTarget as HTMLElement).tagName,
-                eventType: event.type,
-                clientX: event.clientX,
-                clientY: event.clientY,
-                timestamp: Date.now()
-              });
-
-              // 이벤트가 캔버스에서 발생했는지 확인
-              if (event.target === gl.domElement) {
-                console.log('🎯 캔버스에서 직접 클릭 이벤트 발생');
-                // 외부 onClick 핸들러 호출
-                if (onClick) {
-                  console.log('🎯 외부 onClick 핸들러 호출');
-                  onClick();
-                } else {
-                  console.log('⚠️ 외부 onClick 핸들러가 없음');
-                }
-              } else {
-                console.log('🎯 다른 요소에서 클릭 이벤트 발생');
-              }
-            };
-
-            // 여러 이벤트 타입에 리스너 추가
-            gl.domElement.addEventListener('click', handleCanvasClick);
-            gl.domElement.addEventListener('pointerdown', handleCanvasClick);
-            gl.domElement.addEventListener('mousedown', handleCanvasClick);
-
-            console.log('🎯 Canvas 이벤트 리스너 등록 완료');
-
             console.log(`🎨 3D 품질 설정 완료:`, {
               anisotropy: THREE.Texture.DEFAULT_ANISOTROPY,
               shadowMapSize: isMobile ? '1024x1024' : '2048x2048',
@@ -243,7 +190,7 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
           onWheel={() => {
             // e.stopPropagation(); // 이벤트 전파 허용
           }}
-          onClick={onClick}
+          // onClick 제거: 빈 공간 해제는 onPointerMissed 또는 DOM raycast로 처리
         >
           {/* 카메라 컨트롤은 UnifiedCameraControls에서 처리됨 */}
 
@@ -288,8 +235,8 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
           )} */}
           <AdaptiveEvents />
 
-          {/* Raycasting을 사용한 빈 공간 클릭 핸들러 */}
-          <RaycastingHandler onEmptySpaceClick={onClick} />
+          {/* 빈 공간 처리는 onPointerMissed + 레이캐스트 보강 */}
+          <EmptySpaceRaycast onEmptySpaceClick={onClick} />
 
           {children}
         </Canvas>

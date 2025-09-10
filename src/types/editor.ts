@@ -114,6 +114,9 @@ export interface EditorState {
 
   // 바닥 텍스처 설정
   currentFloorTexture: string; // 현재 적용된 바닥 텍스처 경로
+
+  // 벽 텍스처 설정
+  currentWallTexture: string; // 현재 적용된 벽 텍스처 경로
 }
 
 // 편집 액션 타입
@@ -202,6 +205,9 @@ export interface EditorActions {
 
   // 바닥 텍스처 관리
   setFloorTexture: (texturePath: string) => void;
+
+  // 벽 텍스처 관리
+  setWallTexture: (texturePath: string) => void;
 }
 
 // 편집 스토어 타입

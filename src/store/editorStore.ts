@@ -173,7 +173,7 @@ export const useEditorStore = create<EditorStore>()(
           const originalItem = placedItems.find(item => item.id === compressedItem.id);
 
           if (!originalItem) {
-            console.warn(`히스토리 복원 중 원본 아이템을 찾을 수 없음: ${compressedItem.id}`);
+            console.warn(`⚠️ 성능: 히스토리 복원 중 원본 아이템을 찾을 수 없음 - ${compressedItem.id}`);
             return null;
           }
 
@@ -202,14 +202,12 @@ export const useEditorStore = create<EditorStore>()(
             rotationSnap: { ...rotationSnap, enabled: true },
             scrollLockEnabled: true // 편집 모드 진입 시 스크롤 락 활성화
           });
-          console.log('🎯 편집 모드 진입: 그리드 및 스냅 자동 활성화, 스크롤 락 적용');
         } else {
           set({
             mode,
             tool: mode === 'view' ? 'select' : get().tool,
             scrollLockEnabled: false // 뷰 모드 진입 시 스크롤 락 해제
           });
-          console.log('👁️ 뷰 모드 진입: 스크롤 락 해제');
         }
       },
 
@@ -232,20 +230,18 @@ export const useEditorStore = create<EditorStore>()(
         // 가구가 방 안에 있는지 검증하고, 벽 밖에 있다면 자동으로 이동
         let validatedItem = item;
         if (!isFurnitureInRoom(item)) {
-          console.log(`🚨 가구가 벽 밖에 배치됨: ${item.name || item.id}`);
+          console.warn(`⚠️ 성능: 가구가 벽 밖에 배치됨 - ${item.name || item.id}`);
           validatedItem = constrainFurnitureToRoom(item);
-          console.log(`✅ 가구를 방 안으로 이동: ${validatedItem.position.x.toFixed(2)}, ${validatedItem.position.y.toFixed(2)}, ${validatedItem.position.z.toFixed(2)}`);
         }
 
         // 가구 간 충돌 검사 및 해결
         const collisionCheck = checkCollisionWithOthers(validatedItem, placedItems);
         if (collisionCheck.hasCollision) {
-          console.log(`🚨 가구 충돌 감지: ${validatedItem.name || validatedItem.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
-          console.log(`   충돌하는 가구들: ${collisionCheck.collidingItems.map(item => item.name || item.id).join(', ')}`);
+          console.warn(`⚠️ 성능: 가구 충돌 감지 - ${validatedItem.name || validatedItem.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
           
           // 충돌을 피할 수 있는 안전한 위치로 이동
           validatedItem = moveToSafePosition(validatedItem, placedItems);
-          console.log(`✅ 충돌 해결: ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
+          console.log(`✅ 성능: 충돌 해결 - ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
         }
 
         const newItems = [...placedItems, validatedItem];
@@ -279,29 +275,21 @@ export const useEditorStore = create<EditorStore>()(
         const affectsBounds = !!(updates.position || updates.rotation || updates.scale);
         if (affectsBounds) {
           const isInRoom = isFurnitureInRoom(updatedItem);
-          console.log(`🔍 editorStore updateItem: ${updatedItem.name || updatedItem.id}`, {
-            새위치: `(${updatedItem.position.x.toFixed(2)}, ${updatedItem.position.y.toFixed(2)}, ${updatedItem.position.z.toFixed(2)})`,
-            새회전: `(${updatedItem.rotation.x.toFixed(2)}, ${updatedItem.rotation.y.toFixed(2)}, ${updatedItem.rotation.z.toFixed(2)})`,
-            새스케일: `(${updatedItem.scale.x.toFixed(2)}, ${updatedItem.scale.y.toFixed(2)}, ${updatedItem.scale.z.toFixed(2)})`,
-            방안에있음: isInRoom ? '✅ 예' : '❌ 아니오'
-          });
 
           if (!isInRoom) {
-            console.log(`🚨 가구 변경으로 벽 밖 조건 발생: ${updatedItem.name || updatedItem.id}`);
+            console.warn(`⚠️ 성능: 가구 변경으로 벽 밖 조건 발생 - ${updatedItem.name || updatedItem.id}`);
             validatedItem = constrainFurnitureToRoom(updatedItem);
-            console.log(`✅ 가구를 방 안으로 보정: ${validatedItem.position.x.toFixed(2)}, ${validatedItem.position.y.toFixed(2)}, ${validatedItem.position.z.toFixed(2)}`);
           }
 
           // 가구 간 충돌 검사 (위치/회전/스케일 변경 시에만)
           const otherItems = placedItems.filter(item => item.id !== id);
           const collisionCheck = checkCollisionWithOthers(validatedItem, otherItems);
           if (collisionCheck.hasCollision) {
-            console.log(`🚨 가구 업데이트 시 충돌 감지: ${validatedItem.name || validatedItem.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
-            console.log(`   충돌하는 가구들: ${collisionCheck.collidingItems.map(item => item.name || item.id).join(', ')}`);
+            console.warn(`⚠️ 성능: 가구 업데이트 시 충돌 감지 - ${validatedItem.name || validatedItem.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
             
             // 충돌을 피할 수 있는 안전한 위치로 이동
             validatedItem = moveToSafePosition(validatedItem, otherItems);
-            console.log(`✅ 충돌 해결: ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
+            console.log(`✅ 성능: 충돌 해결 - ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
           }
         }
 
@@ -367,7 +355,6 @@ export const useEditorStore = create<EditorStore>()(
         if (currentSelectedId === id) return; // 불필요한 업데이트 방지
         
         // 단일 선택만 허용 - 이전 선택을 명시적으로 해제
-        console.log(`🎯 가구 선택 변경: ${currentSelectedId} → ${id}`);
         set({ selectedItemId: id });
       },
 
@@ -395,7 +382,6 @@ export const useEditorStore = create<EditorStore>()(
 
         set({ placedItems: updatedItems });
         requestAnimationFrame(() => captureHistory(`item_locked_${id}`));
-        console.log('객체 고정됨 (스냅 설정 저장):', id);
       },
 
       unlockItem: (id: string) => {
@@ -412,7 +398,6 @@ export const useEditorStore = create<EditorStore>()(
 
         set({ placedItems: updatedItems });
         requestAnimationFrame(() => captureHistory(`item_unlocked_${id}`));
-        console.log('객체 고정 해제됨:', id);
       },
 
       // 최적화된 그리드 설정 함수들
@@ -532,7 +517,7 @@ export const useEditorStore = create<EditorStore>()(
           }
         });
 
-        console.log('↩️ 실행 취소됨');
+        console.log('✅ 성능: 실행 취소됨');
       },
 
       redo: () => {
@@ -562,7 +547,7 @@ export const useEditorStore = create<EditorStore>()(
           }
         });
 
-        console.log('↪️ 재실행됨');
+        console.log('✅ 성능: 재실행됨');
       },
 
       clearHistory: () => {
@@ -581,17 +566,7 @@ export const useEditorStore = create<EditorStore>()(
         const currentDragging = get().isDragging;
         if (currentDragging === isDragging) return;
         
-        console.log('🎯 editorStore 드래그 상태 변경:', {
-          from: currentDragging,
-          to: isDragging,
-          timestamp: new Date().toISOString()
-        });
-        
         set({ isDragging });
-        
-        console.log('✅ editorStore 드래그 상태 업데이트 완료:', {
-          newState: isDragging
-        });
       },
 
       toggleGrid: () => {
@@ -636,7 +611,7 @@ export const useEditorStore = create<EditorStore>()(
           };
 
           localStorage.setItem('bondidi_room_state', JSON.stringify(saveData));
-          console.log('🗂️ 룸 상태가 저장되었습니다');
+          console.log('✅ 성능: 룸 상태가 저장되었습니다');
         } catch (error) {
           console.error('룸 상태 저장 실패:', error);
         }
@@ -670,7 +645,7 @@ export const useEditorStore = create<EditorStore>()(
             selectedItemId: null
           });
 
-          console.log('🗂️ 룸 상태가 불러와졌습니다');
+          console.log('✅ 성능: 룸 상태가 불러와졌습니다');
         } catch (error) {
           console.error('룸 상태 불러오기 실패:', error);
         }
@@ -690,7 +665,7 @@ export const useEditorStore = create<EditorStore>()(
             enabled: !autoLock.enabled
           }
         });
-        console.log(`🔒 자동 고정 ${!autoLock.enabled ? '활성화' : '비활성화'}`);
+        console.log(`✅ 성능: 자동 고정 ${!autoLock.enabled ? '활성화' : '비활성화'}`);
       },
 
       // 자동 고정 지연 시간 설정 (최적화)
@@ -704,7 +679,7 @@ export const useEditorStore = create<EditorStore>()(
             delay
           }
         });
-        console.log(`⏱️ 자동 고정 지연 시간: ${delay}ms`);
+        console.log(`✅ 성능: 자동 고정 지연 시간 - ${delay}ms`);
       },
 
       // 레이아웃 저장 (최적화)
@@ -713,7 +688,7 @@ export const useEditorStore = create<EditorStore>()(
           const { placedItems } = get();
           const layoutId = storageManager.saveLayout(name, placedItems, description, tags);
 
-          console.log('✅ 레이아웃 저장 완료:', { name, layoutId, itemCount: placedItems.length });
+          console.log('✅ 성능: 레이아웃 저장 완료 -', { name, layoutId, itemCount: placedItems.length });
           return layoutId;
         } catch (error) {
           console.error('❌ 레이아웃 저장 실패:', error);
@@ -737,7 +712,7 @@ export const useEditorStore = create<EditorStore>()(
             selectedItemId: null
           });
 
-          console.log('✅ 레이아웃 불러오기 완료:', { layoutId, itemCount: items.length });
+          console.log('✅ 성능: 레이아웃 불러오기 완료 -', { layoutId, itemCount: items.length });
           return items;
         } catch (error) {
           console.error('❌ 레이아웃 불러오기 실패:', error);
@@ -760,7 +735,7 @@ export const useEditorStore = create<EditorStore>()(
         try {
           const success = storageManager.deleteLayout(layoutId);
           if (success) {
-            console.log('✅ 레이아웃 삭제 완료:', layoutId);
+            console.log('✅ 성능: 레이아웃 삭제 완료 -', layoutId);
           }
           return success;
         } catch (error) {
@@ -785,7 +760,7 @@ export const useEditorStore = create<EditorStore>()(
             selectedItemId: null
           });
 
-          console.log('✅ 자동 저장 레이아웃 복구 완료:', { itemCount: items.length });
+          console.log('✅ 성능: 자동 저장 레이아웃 복구 완료 -', { itemCount: items.length });
           return items;
         } catch (error) {
           console.error('❌ 자동 저장 레이아웃 복구 실패:', error);
@@ -844,11 +819,7 @@ export const useEditorStore = create<EditorStore>()(
 
           set({ selectedCategory: category });
 
-          console.log('🏷️ 카테고리 변경:', {
-            from: prevCategory,
-            to: category,
-            timestamp: new Date().toISOString()
-          });
+          console.log('✅ 성능: 카테고리 변경 -', { from: prevCategory, to: category });
 
           requestAnimationFrame(() => get().captureHistory(`카테고리 변경: ${prevCategory} → ${category}`));
         } catch (error) {
@@ -870,18 +841,14 @@ export const useEditorStore = create<EditorStore>()(
         if (currentTexture === texturePath) return; // 불필요한 업데이트 방지
 
         set({ currentWallTexture: texturePath });
-        console.log('🖼️ 벽 텍스처 변경:', {
-          from: currentTexture,
-          to: texturePath,
-          timestamp: new Date().toISOString()
-        });
+        console.log('✅ 성능: 벽 텍스처 변경 -', { from: currentTexture, to: texturePath });
       },
 
       // 스크롤 락 토글 (최적화)
       toggleScrollLock: () => {
         const currentScrollLock = get().scrollLockEnabled;
         set({ scrollLockEnabled: !currentScrollLock });
-        console.log(`🔒 스크롤 락 ${!currentScrollLock ? '활성화' : '비활성화'}`);
+        console.log(`✅ 성능: 스크롤 락 ${!currentScrollLock ? '활성화' : '비활성화'}`);
       },
 
       // 스크롤 락 설정 (최적화)
@@ -889,7 +856,7 @@ export const useEditorStore = create<EditorStore>()(
         const currentScrollLock = get().scrollLockEnabled;
         if (currentScrollLock === enabled) return; // 불필요한 업데이트 방지
         set({ scrollLockEnabled: enabled });
-        console.log(`🔒 스크롤 락 ${enabled ? '활성화' : '비활성화'}`);
+        console.log(`✅ 성능: 스크롤 락 ${enabled ? '활성화' : '비활성화'}`);
       }
     })),
     {

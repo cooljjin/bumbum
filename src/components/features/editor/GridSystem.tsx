@@ -88,6 +88,7 @@ export const GridSystem: React.FC<GridSystemProps> = React.memo(({
         position={[0, 0.01, 0]} // 바닥보다 약간 위에 배치
         rotation={[-Math.PI / 2, 0, 0]} // 바닥과 평행하게
         visible={false} // 투명하게
+        raycast={() => undefined}
         userData={{ type: 'snapPlane' }} // 식별용 데이터
       >
         <meshBasicMaterial transparent opacity={0} />
@@ -101,6 +102,7 @@ export const GridSystem: React.FC<GridSystemProps> = React.memo(({
       <Grid
         ref={gridRef}
         args={[size, divisions]}
+        raycast={() => undefined}
         cellSize={size / divisions}
         cellThickness={0.5}
         cellColor={color}

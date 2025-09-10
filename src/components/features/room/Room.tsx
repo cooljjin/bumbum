@@ -190,7 +190,7 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
   return (
     <group ref={roomRef}>
       {/* 바닥 - 텍스처 적용된 평면 형태 */}
-      <mesh position={[0, -floorThickness / 2, 0]} receiveShadow={receiveShadow} castShadow={false}>
+      <mesh position={[0, -floorThickness / 2, 0]} receiveShadow={receiveShadow} castShadow={false} raycast={() => undefined}>
         <boxGeometry args={[dims.width, floorThickness, dims.depth]} />
         <meshStandardMaterial
           map={floorTexture}
@@ -202,7 +202,7 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
 
       {/* 벽들 - 평면 지오메트리로 정확한 UV 매핑 및 개별 텍스처 적용 */}
       {/* 뒤쪽 벽 */}
-      <mesh ref={backWallRef} position={[0, height / 2, -halfDepth]} receiveShadow={receiveShadow}>
+      <mesh ref={backWallRef} position={[0, height / 2, -halfDepth]} receiveShadow={receiveShadow} raycast={() => undefined}>
         <planeGeometry args={[dims.width, height]} />
         <meshStandardMaterial
           ref={backMatRef}
@@ -215,7 +215,7 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
       </mesh>
 
       {/* 왼쪽 벽 */}
-      <mesh ref={leftWallRef} position={[-halfWidth, height / 2, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow={receiveShadow}>
+      <mesh ref={leftWallRef} position={[-halfWidth, height / 2, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow={receiveShadow} raycast={() => undefined}>
         <planeGeometry args={[dims.depth, height]} />
         <meshStandardMaterial
           ref={leftMatRef}
@@ -228,7 +228,7 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
       </mesh>
 
       {/* 오른쪽 벽 */}
-      <mesh ref={rightWallRef} position={[halfWidth, height / 2, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow={receiveShadow}>
+      <mesh ref={rightWallRef} position={[halfWidth, height / 2, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow={receiveShadow} raycast={() => undefined}>
         <planeGeometry args={[dims.depth, height]} />
         <meshStandardMaterial
           ref={rightMatRef}
@@ -241,7 +241,7 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
       </mesh>
 
       {/* 앞쪽 벽 (입구 쪽) */}
-      <mesh ref={frontWallRef} position={[0, height / 2, halfDepth]} rotation={[0, Math.PI, 0]} receiveShadow={receiveShadow}>
+      <mesh ref={frontWallRef} position={[0, height / 2, halfDepth]} rotation={[0, Math.PI, 0]} receiveShadow={receiveShadow} raycast={() => undefined}>
         <planeGeometry args={[dims.width, height]} />
         <meshStandardMaterial
           ref={frontMatRef}
@@ -259,6 +259,7 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
         position={[0, height, 0]}
         rotation={[Math.PI / 2, 0, 0]}
         receiveShadow={receiveShadow}
+        raycast={() => undefined}
       >
         <planeGeometry args={[dims.width, dims.depth]} />
         <meshStandardMaterial

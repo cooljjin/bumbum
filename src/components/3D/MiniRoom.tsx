@@ -27,7 +27,9 @@ const useCam = create<CamState>((set) => ({
 // ---------- Scene content ----------
 function Floor() {
   const grid = useMemo(() => new THREE.GridHelper(20, 20, 0x888888, 0x444444), []);
-  return <primitive object={grid} position={[0, -0.01, 0]} />;
+  // 빈 공간 클릭을 onPointerMissed로 처리하기 위해 GridHelper는 레이캐스트에서 제외
+  // three@0.179 + r3f@9에서는 raycast에 null을 넣으면 TypeError가 발생할 수 있어 no-op 함수 사용
+  return <primitive object={grid} position={[0, -0.01, 0]} raycast={() => undefined} />;
 }
 
 function LightRig() {
@@ -407,47 +409,10 @@ export default function MiniRoom({
   // 편집 모드 토글은 메뉴바에서 처리
   const { selectItem, selectedItemId } = useEditorStore();
 
-  // 빈 공간 클릭 핸들러 - 전역 플래그 기반
-  const handleEmptySpaceClick = React.useCallback((event: React.MouseEvent) => {
-    console.log('🎯 MiniRoom 빈 공간 클릭 감지됨 (DOM 이벤트):', {
-      eventType: event.type,
-      selectedItemId,
-      lastFurnitureClickTime: (window as any).lastFurnitureClickTime,
-      timestamp: Date.now()
-    });
-
-    // 이벤트가 3D 객체에서 온 것인지 확인
-    const target = event.target as HTMLElement;
-    console.log('🎯 이벤트 타겟:', target.tagName, target.className);
-
-    // 최근 가구 클릭으로부터 충분한 시간이 지났는지 확인
-    const now = Date.now();
-    const lastClickTime = (window as any).lastFurnitureClickTime || 0;
-    const timeDiff = now - lastClickTime;
-
-    console.log('🎯 시간 차이:', timeDiff, 'ms');
-
-    // 200ms 이내에 가구 클릭이 있었으면 빈 공간 클릭으로 처리하지 않음
-    if (timeDiff < 200) {
-      console.log('❌ 최근 가구 클릭으로 인해 무시됨');
-      return;
-    }
-
-    // 빈 공간 클릭 처리
-    if (selectedItemId) {
-      console.log('✅ 빈 공간 클릭: 객체 선택 해제 (DOM 이벤트)');
-      selectItem(null);
-    } else {
-      console.log('ℹ️ 빈 공간 클릭: 선택된 객체 없음');
-    }
-  }, [selectedItemId, selectItem]);
-
-
   return (
     <div
       style={{ width: "100%", height: "100%", position: "relative", ...style }}
       className={className}
-      onClick={handleEmptySpaceClick}
     >
       {/* 편집 모드 토글 버튼은 메뉴바에서 처리 */}
 
@@ -486,22 +451,6 @@ export default function MiniRoom({
             canvasSize: size,
             antialias: true
           });
-
-          // Canvas에 빈 공간 클릭 이벤트 추가
-          const handleCanvasClick = (event: MouseEvent) => {
-            console.log('🎯 Canvas 클릭 감지');
-            // 이벤트 전파를 잠시 지연시켜 3D 객체 이벤트가 먼저 처리되도록 함
-            setTimeout(() => {
-              console.log('🎯 지연 처리: 빈 공간 클릭 확인');
-              const currentSelectedItemId = selectItem ? null : selectedItemId; // 현재 상태 확인
-              if (selectedItemId) {
-                console.log('✅ 빈 공간 클릭: 객체 선택 해제 (Canvas 이벤트)');
-                selectItem(null);
-              }
-            }, 50); // 지연 시간을 늘려서 3D 이벤트가 완전히 처리되도록 함
-          };
-
-          gl.domElement.addEventListener('click', handleCanvasClick);
         }}
         onPointerMissed={(event) => {
           // React Three Fiber의 onPointerMissed 이벤트 사용

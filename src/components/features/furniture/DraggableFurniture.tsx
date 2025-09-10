@@ -19,11 +19,9 @@ const adjustModelToFootprint = (model: THREE.Group, footprint: { width: number; 
   // 모델의 바운딩 박스 계산
   const box = new THREE.Box3().setFromObject(model);
   const size = box.getSize(new THREE.Vector3());
-  const center = box.getCenter(new THREE.Vector3());
-  
+
   // console.log(`📐 원본 모델 크기: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`);
   // console.log(`📏 목표 footprint: ${footprint.width} x ${footprint.height} x ${footprint.depth}`);
-  // console.log(`🎯 원본 모델 중심점: (${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)})`);
   
   // 스케일 비율 계산 (각 축별로 정확히 맞춤)
   const scaleX = footprint.width / size.x;
@@ -58,10 +56,8 @@ const adjustModelToFootprint = (model: THREE.Group, footprint: { width: number; 
   // 최종 검증
   const finalBox = new THREE.Box3().setFromObject(adjustedModel);
   const finalSize = finalBox.getSize(new THREE.Vector3());
-  const finalCenter = finalBox.getCenter(new THREE.Vector3());
-  
+
   // console.log(`✅ 최종 모델 크기: ${finalSize.x.toFixed(2)} x ${finalSize.y.toFixed(2)} x ${finalSize.z.toFixed(2)}`);
-  // console.log(`✅ 최종 모델 중심점: (${finalCenter.x.toFixed(2)}, ${finalCenter.y.toFixed(2)}, ${finalCenter.z.toFixed(2)})`);
   
   // 크기 검증 (허용 오차 1cm)
   const tolerance = 0.01;
@@ -70,9 +66,7 @@ const adjustModelToFootprint = (model: THREE.Group, footprint: { width: number; 
                      Math.abs(finalSize.z - footprint.depth) < tolerance;
   
   if (!sizeMatches) {
-    console.warn(`⚠️ 크기 매칭 실패! 목표: ${footprint.width}x${footprint.height}x${footprint.depth}, 실제: ${finalSize.x.toFixed(2)}x${finalSize.y.toFixed(2)}x${finalSize.z.toFixed(2)}`);
-  } else {
-    console.log(`✅ 크기 매칭 성공!`);
+    console.warn(`⚠️ 성능: 크기 매칭 실패! 목표: ${footprint.width}x${footprint.height}x${footprint.depth}, 실제: ${finalSize.x.toFixed(2)}x${finalSize.y.toFixed(2)}x${finalSize.z.toFixed(2)}`);
   }
   
   return adjustedModel;
@@ -110,7 +104,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         // console.log(`🔍 furniture 정보:`, furniture);
 
         if (!furniture) {
-          console.warn('가구 정보를 찾을 수 없어 기본 박스로 표시합니다:', item);
+          console.warn('⚠️ 성능: 가구 정보를 찾을 수 없어 기본 박스로 표시합니다:', item);
           setLoadError('가구 정보를 찾을 수 없습니다');
           setIsLoading(false);
           return;
@@ -122,7 +116,6 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
         // 벽 카테고리는 GLB 로드 시도하지 않고 바로 폴백 모델 생성
         if (furniture.category === 'wall') {
-          console.log(`🏗️ 벽 카테고리 감지, GLB 로드 생략 및 폴백 모델 생성: ${furniture.nameKo}`);
           // 바로 폴백 모델 생성으로 넘어가기
         } else {
           // 벽이 아닌 경우에만 GLTF 로드 시도
@@ -135,23 +128,13 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
               });
 
               if (gltfModel) {
-                console.info(`✅ GLTF 모델 로드 성공: ${furniture.nameKo}`);
-                console.log(`📦 로드된 모델 정보:`, {
-                  childrenCount: gltfModel.children.length,
-                  position: gltfModel.position,
-                  rotation: gltfModel.rotation,
-                  scale: gltfModel.scale
-                });
+                console.log(`✅ 성능: GLTF 모델 로드 성공 - ${furniture.nameKo}`);
 
                 // 원본 모델과 footprint 크기 비교
                 compareModelWithFootprint(gltfModel, furniture.footprint, furniture.nameKo);
 
                 // 모델 크기를 footprint에 맞게 조정
                 const adjustedModel = adjustModelToFootprint(gltfModel, furniture.footprint);
-                // console.log(`🔧 크기 조정 완료:`, {
-                //   originalChildren: gltfModel.children.length,
-                //   adjustedChildren: adjustedModel.children.length
-                // });
                 setModel(adjustedModel);
                 setIsLoading(false);
                 return; // 성공적으로 로드했으므로 여기서 종료
@@ -159,7 +142,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
                 throw new Error('GLTF 모델 로드 실패');
               }
             } catch (gltfError) {
-              console.warn('GLTF 모델 로드 실패, 폴백 모델 사용:', gltfError);
+              console.warn('⚠️ 성능: GLTF 모델 로드 실패, 폴백 모델 사용:', gltfError);
               // GLTF 로드 실패 시 폴백 모델 생성으로 넘어감
             }
           } else {
@@ -168,10 +151,10 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         }
 
         // GLTF 로드 실패 또는 벽 카테고리인 경우 폴백 모델 생성
-        console.info(`폴백 모델 생성: ${furniture.nameKo}`);
+        console.log(`✅ 성능: 폴백 모델 생성 - ${furniture.nameKo}`);
         setIsLoading(false);
       } catch (error) {
-        console.error('Failed to create furniture model:', error);
+        console.error('❌ 성능: 가구 모델 생성 실패:', error);
         setLoadError(error instanceof Error ? error.message : 'Unknown error');
 
         // 에러 발생 시 폴백 모델 사용
@@ -255,28 +238,19 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       };
 
       disposeObject(modelToDispose);
-      console.log('🧹 3D 모델 메모리 정리 완료:', item.name);
+      console.log('✅ 성능: 3D 모델 메모리 정리 완료 -', item.name);
     } catch (error) {
-      console.warn('3D 모델 dispose 중 오류:', error);
+      console.warn('⚠️ 성능: 3D 모델 dispose 중 오류:', error);
     }
   }, [item.name]);
 
   // 🖱️ 드래그 시작 핸들러 (간소화된 버전)
   const handleDragStart = useCallback((event: any) => {
-    console.log('🎯 드래그 시작 시도 (간소화 버전):', {
-      isEditMode,
-      isLocked: item.isLocked,
-      itemId: item.id,
-      itemName: item.name
-    });
-
     if (!isEditMode || item.isLocked) {
-      console.log('❌ 드래그 시작 실패: 편집 모드가 아니거나 잠긴 객체');
       return;
     }
 
     // 즉시 드래그 모드로 전환
-    console.log('🔄 드래그 모드 즉시 활성화');
     setIsDragging(true);
     setDragging(true);
 
@@ -314,8 +288,6 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     dragIntentRef.current = { active: true, startX: clientX, startY: clientY };
     suppressClickRef.current = false; // 드래그 시작 시점에서는 클릭 허용
 
-    console.log('✅ 드래그 시작 완료:', { clientX, clientY, mouseX, mouseY });
-
   }, [isEditMode, item.isLocked, item.id, item.position, onSelect, gl, setDragging]);
 
   // 🔄 드래그 중 핸들러 (마우스 및 터치 지원)
@@ -344,13 +316,9 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       const isTouch = event.touches || event.pointerType === 'touch';
       const threshold = isTouch ? 10 : 6; // 터치: 10px, 마우스: 6px
 
-      console.log('🎯 드래그 거리 체크:', { dist, threshold, isTouch, isDragging });
-
       if (dist > threshold) {
-        console.log('✅ 실제 드래그 시작! (카메라는 이미 고정됨)');
         setIsDragging(true);
         suppressClickRef.current = true; // 실제 드래그 시작 시에만 클릭 억제
-        console.log('🔒 클릭 억제 활성화 (드래그 중)');
       } else {
         return; // 아직 드래그 시작 전이면 무시
       }
@@ -402,11 +370,10 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     setIsColliding(collisionCheck.hasCollision);
     
     if (collisionCheck.hasCollision) {
-      console.log(`🚨 드래그 중 충돌 감지: ${item.name || item.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
+      console.warn(`⚠️ 성능: 드래그 중 충돌 감지 - ${item.name || item.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
     }
     
     onUpdate(item.id, { position: constrained.position });
-    console.log('🖱️ 드래그 중 위치 업데이트:', newPosition, event.touches ? '(터치)' : '(마우스)', collisionCheck.hasCollision ? '(충돌!)' : '');
   }, [isDragging, dragStartPosition, dragStartMousePosition, camera, grid, item.id, onUpdate, placedItems]);
 
   // ✅ 드래그 종료 핸들러
@@ -418,13 +385,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
     // event.stopPropagation(); // 이벤트 전파 허용
 
-    console.log('🎯 DraggableFurniture 드래그 종료 시작:', {
-      itemId: item.id,
-      itemName: item.name,
-      wasDragging: isDragging,
-      hadDragIntent,
-      timestamp: new Date().toISOString()
-    });
+    // 성능 추적: 드래그 종료
 
     // 로컬 상태와 전역 상태를 동시에 업데이트
     setIsDragging(false);
@@ -437,7 +398,6 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     // 드래그 종료 시 가구 선택 및 호버 효과 복원
     if (isDragging) {
       // 드래그가 완료되면 가구를 선택 상태로 만들기
-      console.log('🎯 드래그 완료 - 가구 선택:', item.id);
       onSelect(item.id);
       setIsHovered(true);
     } else if (isSelected) {
@@ -446,7 +406,6 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
     // 전역 드래그 상태 업데이트 (드래그 의도가 있었던 경우 카메라 시점 해제)
     if (hadDragIntent || isDragging) {
-      console.log('🔓 드래그 종료 - 카메라 시점 해제');
       setDragging(false);
     }
 
@@ -456,16 +415,13 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       const collisionCheck = checkDragCollision(item, otherItems, item.position);
       
       if (collisionCheck.hasCollision) {
-        console.log(`🚨 드래그 종료 시 충돌 감지: ${item.name || item.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
-        console.log(`   충돌하는 가구들: ${collisionCheck.collidingItems.map(collidingItem => collidingItem.name || collidingItem.id).join(', ')}`);
+        console.warn(`⚠️ 성능: 드래그 종료 시 충돌 감지 - ${item.name || item.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
         
         // 충돌을 피할 수 있는 안전한 위치로 자동 이동
         const safeItem = moveToSafePosition(item, otherItems);
         
         if (safeItem.position !== item.position) {
-          console.log(`✅ 충돌 해결: ${item.name || item.id}을(를) 안전한 위치로 자동 이동`);
-          console.log(`   원래 위치: (${item.position.x.toFixed(2)}, ${item.position.y.toFixed(2)}, ${item.position.z.toFixed(2)})`);
-          console.log(`   새 위치: (${safeItem.position.x.toFixed(2)}, ${safeItem.position.y.toFixed(2)}, ${safeItem.position.z.toFixed(2)})`);
+          console.log(`✅ 성능: 충돌 해결 - ${item.name || item.id}을(를) 안전한 위치로 자동 이동`);
           onUpdate(item.id, { position: safeItem.position });
         }
       }
@@ -473,77 +429,27 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
     // 드래그 종료 즉시 클릭 억제 플래그 해제
     suppressClickRef.current = false;
-    console.log('🔓 클릭 억제 해제 (드래그 종료)');
-    
-    console.log('✅ DraggableFurniture 드래그 종료 완료:', {
-      itemId: item.id,
-      itemName: item.name,
-      localDragging: false,
-      globalDragging: false
-    });
   }, [isDragging, item, setDragging, placedItems, onUpdate]);
 
   // 🖱️ 마우스 이벤트 핸들러
   // 포인터 다운(마우스/터치 공통)
   const handlePointerDown = useCallback((event: any) => {
-    console.log('🖱️ 포인터 다운 이벤트 - 시작:', {
-      target: event.target?.tagName || 'unknown',
-      currentTarget: event.currentTarget?.tagName || 'unknown',
-      pointerType: event.pointerType,
-      button: event.button,
-      touches: !!event.touches,
-      itemId: item.id,
-      itemName: item.name,
-      isEditMode,
-      isLocked: item.isLocked,
-      eventType: event.type,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      bubbles: event.bubbles,
-      cancelable: event.cancelable
-    });
-    
     const isTouch = event.pointerType === 'touch' || !!event.touches;
     const isLeft = event.button === 0 || event.button === undefined;
 
-    console.log('🎯 포인터 다운 조건 체크:', {
-      isTouch,
-      isLeft,
-      pointerType: event.pointerType,
-      button: event.button,
-      touches: !!event.touches
-    });
-
     if (isTouch || isLeft) {
-      console.log('✅ 드래그 조건 만족 - handleDragStart 호출');
       try {
-        console.log('🎯 포인터 캡처 시도:', {
-          pointerId: event.pointerId,
-          currentTarget: !!event.currentTarget,
-          setPointerCapture: !!event.currentTarget?.setPointerCapture
-        });
         event.currentTarget?.setPointerCapture?.(event.pointerId);
-        console.log('✅ 포인터 캡처 성공');
       } catch (e) {
-        console.log('❌ 포인터 캡처 실패:', e);
+        // 포인터 캡처 실패 무시
       }
 
       // handleDragStart 직접 호출
-      console.log('🎯 handleDragStart 호출 시도...');
       handleDragStart(event);
-      console.log('🎯 handleDragStart 호출 완료');
-    } else {
-      console.log('❌ 포인터 다운 무시: 터치나 왼쪽 버튼이 아님');
     }
   }, [handleDragStart, item.id]);
 
   const handlePointerMove = useCallback((event: any) => {
-    console.log('🖱️ 포인터 무브 이벤트:', { 
-      isDragging, 
-      dragIntentActive: dragIntentRef.current?.active,
-      itemId: item.id 
-    });
-    
     if (isDragging) {
       if (event?.touches || event?.type === 'touchmove' || event?.nativeEvent?.touches) {
         safePreventDefault(event);
@@ -555,18 +461,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   }, [isDragging, handleDrag, item.id]);
 
   const handlePointerUp = useCallback((event: any) => {
-    console.log('🎯 DraggableFurniture 포인터 업 이벤트:', {
-      isDragging,
-      itemId: item.id,
-      eventType: event.type,
-      button: event.button,
-      timestamp: new Date().toISOString()
-    });
     if (isDragging) {
-      console.log('🎯 드래그 중이므로 handleDragEnd 호출');
       handleDragEnd(event);
-    } else {
-      console.log('🎯 드래그 중이 아니므로 handleDragEnd 호출하지 않음');
     }
   }, [isDragging, handleDragEnd, item.id]);
 
@@ -590,7 +486,6 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   // 전역 마우스 및 터치 이벤트 리스너
   useEffect((): (() => void) | void => {
     if (isDragging) {
-      console.log('🎯 전역 이벤트 리스너 등록:', item.id);
       // 마우스/포인터 이벤트
       window.addEventListener('pointermove', handlePointerMove as any, { passive: false });
       window.addEventListener('pointerup', handlePointerUp as any, { passive: false });
@@ -603,7 +498,6 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       window.addEventListener('touchend', handlePointerUp as any, { passive: false });
 
       return () => {
-        console.log('🧹 전역 이벤트 리스너 정리:', item.id);
         window.removeEventListener('pointermove', handlePointerMove as any);
         window.removeEventListener('pointerup', handlePointerUp as any);
         window.removeEventListener('pointercancel', handlePointerCancel as any);
@@ -625,29 +519,17 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       const canvas = gl?.domElement;
       if (!canvas || !canvas.contains(event.target as Node)) return;
 
-      console.log('🎯 DOM 포인터 다운 감지:', {
-        target: (event.target as Element)?.tagName,
-        clientX: event.clientX,
-        clientY: event.clientY,
-        pointerType: event.pointerType,
-        button: event.button
-      });
-
       // 가구 위에서의 이벤트인지 확인 (간단한 히트 테스트)
       const rect = canvas.getBoundingClientRect();
       const mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       const mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
       // 레이캐스터로 가구 히트 테스트
+      if (!meshRef.current) return;
       raycaster.current.setFromCamera(new Vector2(mouseX, mouseY), camera);
       const intersects = raycaster.current.intersectObject(meshRef.current, true);
 
       if (intersects.length > 0) {
-        console.log('🎯 가구 히트 감지! 드래그 시작 시도');
-
-        // handleDragStart 직접 호출 (더 간단한 방법)
-        console.log('🎯 handleDragStart 직접 호출 시도');
-
         // 가상 이벤트 객체 생성
         const virtualEvent = {
           clientX: event.clientX,
@@ -662,39 +544,27 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
           preventDefault: () => event.preventDefault()
         };
 
-        // handleDragStart 직접 호출 (더 간단하게)
-        console.log('🎯 handleDragStart 호출 시도...');
+        // handleDragStart 직접 호출
         handleDragStart(virtualEvent);
-        console.log('✅ handleDragStart 호출 완료');
       }
     };
 
-    console.log('🎯 DOM 이벤트 리스너 등록:', item.id);
     window.addEventListener('pointerdown', handleDOMPointerDown, { passive: false });
 
     return () => {
-      console.log('🧹 DOM 이벤트 리스너 정리:', item.id);
       window.removeEventListener('pointerdown', handleDOMPointerDown);
     };
   }, [isEditMode, item.isLocked, camera, gl, handlePointerDown]);
 
   // 드래그 상태 변화 감지 - 드래그가 끝나면 가구 선택
   useEffect(() => {
-    console.log('🎯 드래그 상태 변화 감지:', {
-      isDragging,
-      dragIntentActive: dragIntentRef.current?.active,
-      itemId: item.id
-    });
-    
     // 드래그가 끝났고, 드래그 의도가 있었던 경우 가구 선택
     if (!isDragging && dragIntentRef.current?.active) {
-      console.log('🎯 드래그 완료 감지 - 가구 선택:', item.id);
       onSelect(item.id);
       dragIntentRef.current = null;
     }
     // 드래그가 끝났지만 드래그 의도가 없는 경우도 가구 선택 (웹 환경 대응)
     else if (!isDragging && dragIntentRef.current === null) {
-      console.log('🎯 드래그 완료 감지 (웹 환경) - 가구 선택:', item.id);
       onSelect(item.id);
     }
   }, [isDragging, item.id, onSelect]);
@@ -713,30 +583,14 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   }, [handlePointerMove, handlePointerUp, handlePointerCancel]);
 
   // 클릭 이벤트 처리 - 개선된 버전
-  const handleClick = useCallback((event: any) => {
-    console.log('🎯 handleClick 호출:', {
-      itemId: item.id,
-      itemName: item.name,
-      isDragging,
-      isLocked: item.isLocked,
-      isEditMode,
-      isSelected,
-      suppressClick: suppressClickRef.current,
-      timestamp: new Date().toISOString()
-    });
-
+  const handleClick = useCallback((_event: any) => {
     // 드래그 중이거나 클릭이 억제된 상태라면 무시
     if (isDragging || suppressClickRef.current) {
-      console.log('❌ 클릭 무시됨 (드래그 중 또는 억제 상태):', {
-        isDragging,
-        suppressClick: suppressClickRef.current
-      });
       return;
     }
 
     // 고정된 객체는 선택할 수 없음
     if (item.isLocked) {
-      console.log('❌ 고정된 객체 선택 불가:', item.id);
       return;
     }
 
@@ -745,14 +599,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       (window as any).lastFurnitureClickTime = Date.now();
     }
 
-    // 이벤트 전파는 허용하되, 가구 선택은 지연 처리
-    console.log(`✅ 가구 선택 처리: ${item.id} (현재 선택됨: ${isSelected})`);
-
-    // 선택 처리 - 약간의 지연을 주어 이벤트 순서 보장
-    setTimeout(() => {
-      onSelect(item.id);
-      console.log(`✅ 가구 선택 완료: ${item.id}`);
-    }, 10);
+    // 선택 처리 - 즉시 실행하여 빈 공간 해제와 경합 제거
+    onSelect(item.id);
 
     // 선택 시 호버 효과 활성화
     if (isEditMode && !item.isLocked) {
@@ -779,7 +627,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         console.log(`🔍 furniture 정보:`, furniture);
         
         if (!furniture) {
-          console.warn('가구 정보를 찾을 수 없어 기본 박스로 표시합니다:', item);
+          console.warn('⚠️ 성능: 가구 정보를 찾을 수 없어 기본 박스로 표시합니다:', item);
           setLoadError('가구 정보를 찾을 수 없습니다');
           setIsLoading(false);
           return;
@@ -872,7 +720,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         if (furniture.category === 'wall') {
           console.log(`🏗️ 벽 모델 생성: ${furniture.nameKo}`);
           // 벽 텍스처 경로 사용 (이미 PNG 경로로 설정됨)
-          const texturePath = furniture.modelPath;
+          const texturePath = furniture.modelPath || '/models/wall/wall_beige.png';
           console.log(`🖼️ 벽 텍스처 경로: ${texturePath}`);
 
           fallbackModel = createWallModel(
@@ -1000,11 +848,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       // console.log(`🔍 모델 분석: ${item.id}, 자식 요소 수: ${model.children.length}`);
 
       // 모델의 바운딩 박스 확인
-      const box = new THREE.Box3().setFromObject(model);
-      const size = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-      // console.log(`📐 모델 크기: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`);
-      // console.log(`🎯 모델 중심: (${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)})`);
+      // console.log(`📐 모델 바운딩 박스 확인됨`);
     }
   }, [model, item.id]);
 
@@ -1045,6 +889,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   if (isLoading) {
     return (
       <group
+        name={item.id}
         ref={meshRef}
         position={safePosition(item.position)}
         rotation={safeRotation(item.rotation)}
@@ -1061,6 +906,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   if (loadError && !model) {
     return (
       <group
+        name={item.id}
         ref={meshRef}
         position={safePosition(item.position)}
         rotation={safeRotation(item.rotation)}
@@ -1077,12 +923,12 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     <>
       {/* 실제 오브젝트 그룹 - 드래그 앤 드롭 이벤트 활성화 */}
       <group
+        name={item.id}
         ref={meshRef}
         position={safePosition(item.position)}
         rotation={safeRotation(item.rotation)}
         scale={safeScale(item.scale)}
         onClick={handleClick}
-        onPointerDown={undefined}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
@@ -1132,8 +978,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
           </Box>
         )}
 
-        {/* 드래그/선택 히트박스 확장 - 모바일 터치 신뢰성 향상 */}
-        {isEditMode && !item.isLocked && !isDragging && (
+        {/* 드래그/선택 히트박스 확장 - 조건부 활성화 */}
+        {isEditMode && !item.isLocked && (!isSelected || isDragging) && (
           <Box
             args={[item.footprint.width + 0.6, item.footprint.height + 0.6, item.footprint.depth + 0.6]}
             onPointerDown={handlePointerDown}

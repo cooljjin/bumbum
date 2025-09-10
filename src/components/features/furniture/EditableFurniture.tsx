@@ -75,8 +75,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
   onUpdate,
   onDelete
 }) => {
-  // 컴포넌트 마운트 확인 로그
-  console.log('[EditableFurniture] mounted', item?.id);
+  // 컴포넌트 마운트 확인
 
   const meshRef = useRef<Group>(null);
   const transformControlsRef = useRef<any>(null);

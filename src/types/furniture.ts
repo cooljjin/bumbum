@@ -10,7 +10,8 @@ export type FurnitureCategory =
   | 'outdoor'     // 실외
   | 'decorative'  // 장식품
   | 'storage'     // 수납
-  | 'floor';      // 바닥
+  | 'floor'       // 바닥
+  | 'wall';       // 벽
 
 // 가구 아이템 타입
 export interface FurnitureItem {

@@ -79,12 +79,12 @@ const FurnitureModel: React.FC<FurnitureModelProps> = ({
         }
 
         setIsLoading(false);
-        console.log('Furniture model loaded successfully:', furniture.name);
+        console.log('✅ 성능: 가구 모델 로드 성공 -', furniture.name);
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Unknown error');
         setError(error.message);
         setIsLoading(false);
-        console.error('Error setting up furniture model:', error);
+        console.error('❌ 성능: 가구 모델 설정 실패:', error);
       }
     }
   }, [gltf, furniture, position, rotation, scale]);
