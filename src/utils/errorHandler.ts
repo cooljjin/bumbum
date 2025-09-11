@@ -79,7 +79,7 @@ export class ErrorHandler {
       description: '기본 박스 모델로 대체하여 렌더링 계속',
       action: async () => {
         try {
-          console.log('🔄 모델 로딩 실패 복구: 폴백 모델 사용');
+          // console.log('🔄 모델 로딩 실패 복구: 폴백 모델 사용');
           return true;
         } catch (error) {
           console.error('❌ 폴백 모델 사용 실패:', error);
@@ -96,7 +96,7 @@ export class ErrorHandler {
       description: '성능을 위해 LOD 레벨을 낮춰 메모리 사용량 감소',
       action: async () => {
         try {
-          console.log('🔄 메모리 부족 복구: LOD 레벨 자동 조절');
+          // console.log('🔄 메모리 부족 복구: LOD 레벨 자동 조절');
           // LOD 설정을 더 보수적으로 조정
           return true;
         } catch (error) {
@@ -113,7 +113,7 @@ export class ErrorHandler {
       description: '사용하지 않는 3D 객체와 텍스처를 정리',
       action: async () => {
         try {
-          console.log('🔄 메모리 부족 복구: 오래된 객체 정리');
+          // console.log('🔄 메모리 부족 복구: 오래된 객체 정리');
           // WebGL 컨텍스트 강제 정리
           const canvas = document.querySelector('canvas');
           if (canvas) {
@@ -138,7 +138,7 @@ export class ErrorHandler {
       description: '로컬 캐시된 리소스를 사용하여 오프라인으로 동작',
       action: async () => {
         try {
-          console.log('🔄 네트워크 오류 복구: 오프라인 모드 전환');
+          // console.log('🔄 네트워크 오류 복구: 오프라인 모드 전환');
           // 오프라인 모드 활성화
           return true;
         } catch (error) {
@@ -156,7 +156,7 @@ export class ErrorHandler {
       description: 'WebGL 컨텍스트를 재생성하여 렌더링 복구',
       action: async () => {
         try {
-          console.log('🔄 렌더링 오류 복구: WebGL 컨텍스트 재생성');
+          // console.log('🔄 렌더링 오류 복구: WebGL 컨텍스트 재생성');
           // 캔버스 재생성 및 WebGL 컨텍스트 재설정
           return true;
         } catch (error) {
@@ -234,10 +234,10 @@ export class ErrorHandler {
 
     for (const strategy of automaticStrategies) {
       try {
-        console.log(`🔄 자동 복구 시도: ${strategy.name}`);
+        // console.log(`🔄 자동 복구 시도: ${strategy.name}`);
         const success = strategy.action();
         if (success && typeof success === 'boolean') {
-          console.log(`✅ 자동 복구 성공: ${strategy.name}`);
+          // console.log(`✅ 자동 복구 성공: ${strategy.name}`);
           return true;
         }
       } catch (error) {
@@ -287,7 +287,7 @@ export class ErrorHandler {
         timestamp: new Date().toISOString(),
         errors: this.errorLog.slice(-20) // 최근 20개만 저장
       };
-      localStorage.setItem('bondidi_error_log', JSON.stringify(logData));
+      localStorage.setItem('bumbum_error_log', JSON.stringify(logData));
     } catch (error) {
       console.warn('에러 로그 저장 실패:', error);
     }
@@ -306,7 +306,7 @@ export class ErrorHandler {
   clearErrorLog() {
     this.errorLog = [];
     try {
-      localStorage.removeItem('bondidi_error_log');
+      localStorage.removeItem('bumbum_error_log');
     } catch (error) {
       console.warn('에러 로그 정리 실패:', error);
     }
@@ -458,10 +458,10 @@ export class ErrorHandler {
 
     for (const strategy of strategies) {
       try {
-        console.log(`🔄 복구 시도: ${strategy.name}`);
+        // console.log(`🔄 복구 시도: ${strategy.name}`);
         const success = await strategy.action();
         if (success) {
-          console.log(`✅ 복구 성공: ${strategy.name}`);
+          // console.log(`✅ 복구 성공: ${strategy.name}`);
           return true;
         }
       } catch (error) {

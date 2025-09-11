@@ -70,14 +70,14 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
       // 자동 최적화 이벤트 리스너
       const handleAutoOptimize = (event: CustomEvent) => {
         if (autoOptimize) {
-          console.log('🚀 자동 최적화 실행:', event.type);
+          // console.log('🚀 자동 최적화 실행:', event.type);
           performanceOptimizer.optimizeScene(scene);
         }
       };
 
       // 메모리 누수 감지 이벤트 리스너
       const handleMemoryLeak = (event: CustomEvent) => {
-        console.warn('🚨 메모리 누수 감지:', event.detail);
+        // console.warn('🚨 메모리 누수 감지:', event.detail);
         if (autoOptimize) {
           memoryLeakDetector.performAutoCleanup();
         }
@@ -168,10 +168,10 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
 
       // 성능 경고 로그
       if (avgFps < 30) {
-        console.warn(`⚠️ 성능 경고: FPS가 낮습니다 (${avgFps}fps)`);
+        // console.warn(`⚠️ 성능 경고: FPS가 낮습니다 (${avgFps}fps)`);
       }
       if (memoryUsage > 100) {
-        console.warn(`⚠️ 메모리 경고: 높은 메모리 사용량 (${memoryUsage}MB)`);
+        // console.warn(`⚠️ 메모리 경고: 높은 메모리 사용량 (${memoryUsage}MB)`);
       }
 
       // 카운터 리셋
@@ -226,7 +226,7 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
               compact={compact}
               showHistory={true}
               onOptimizationSuggestion={(suggestion) => {
-                console.log('최적화 제안:', suggestion);
+                // console.log('최적화 제안:', suggestion);
                 if (autoOptimize && suggestion.autoFixable && suggestion.fixFunction) {
                   suggestion.fixFunction();
                 }

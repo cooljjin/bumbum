@@ -131,7 +131,7 @@ export function resetCameraControlsRotation(controls: CameraControls) {
       false // 즉시 적용
     );
     
-    console.log('🔄 카메라 회전 상태 완전 초기화 완료');
+    // console.log('🔄 카메라 회전 상태 완전 초기화 완료');
   } catch (error) {
     console.warn('CameraControls 회전 상태 리셋 실패:', error);
   }
@@ -184,7 +184,7 @@ export function forceResetCameraRotation(controls: CameraControls) {
       false
     );
     
-    console.log('🔄 카메라 회전 상태 강제 초기화 완료');
+    // console.log('🔄 카메라 회전 상태 강제 초기화 완료');
   } catch (error) {
     console.warn('카메라 회전 상태 강제 초기화 실패:', error);
   }

@@ -51,7 +51,7 @@ export default function CleanUIPage() {
       document.addEventListener('touchmove', preventTouchScroll, eventOptions);
       document.addEventListener('touchend', preventTouchScroll, eventOptions);
       
-      console.log('🔒 편집 모드 진입: 스크롤 락 활성화');
+      // console.log('🔒 편집 모드 진입: 스크롤 락 활성화');
     } else {
       disableScrollLock();
       
@@ -62,7 +62,7 @@ export default function CleanUIPage() {
       document.removeEventListener('touchmove', preventTouchScroll, { capture: true });
       document.removeEventListener('touchend', preventTouchScroll, { capture: true });
       
-      console.log('🔓 편집 모드 종료: 스크롤 락 해제');
+      // console.log('🔓 편집 모드 종료: 스크롤 락 해제');
     }
 
     return () => {
@@ -84,7 +84,7 @@ export default function CleanUIPage() {
     // editorStore의 mode도 함께 변경
     setMode(newEditMode ? 'edit' : 'view');
     
-    console.log('🎯 편집 모드 토글:', { newEditMode, mode: newEditMode ? 'edit' : 'view' });
+    // console.log('🎯 편집 모드 토글:', { newEditMode, mode: newEditMode ? 'edit' : 'view' });
   };
 
   return (

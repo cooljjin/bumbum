@@ -243,7 +243,7 @@ export const ExportShareTools: React.FC<ExportShareToolsProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" data-testid="export-modal">
         <motion.div
           className={`bg-white rounded-2xl shadow-2xl overflow-hidden ${
             isMobile ? 'w-full max-h-[90vh]' : 'w-full max-w-lg max-h-[80vh]'
@@ -256,7 +256,7 @@ export const ExportShareTools: React.FC<ExportShareToolsProps> = ({
           {/* 헤더 */}
           <div className="bg-gradient-to-r from-green-500 to-blue-600 p-6 text-white">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
+              <h2 className="text-2xl font-bold flex items-center gap-2" data-testid="export-title">
                 <FiDownload size={24} />
                 내보내기 및 공유
               </h2>
@@ -264,6 +264,7 @@ export const ExportShareTools: React.FC<ExportShareToolsProps> = ({
                 onClick={onClose}
                 className="p-2 rounded-full hover:bg-white/20 transition-colors"
                 aria-label="내보내기 창 닫기"
+                data-testid="export-close"
               >
                 ✕
               </button>
@@ -282,6 +283,7 @@ export const ExportShareTools: React.FC<ExportShareToolsProps> = ({
                 disabled={isExporting}
                 className="flex flex-col items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-xl border-2 border-blue-200 hover:border-blue-300 transition-colors disabled:opacity-50"
                 whileTap={{ scale: 0.95 }}
+                data-testid="export-image"
               >
                 <FiImage size={32} className="text-blue-600" />
                 <span className="font-medium text-blue-800">이미지</span>
@@ -294,6 +296,7 @@ export const ExportShareTools: React.FC<ExportShareToolsProps> = ({
                 disabled={isExporting}
                 className="flex flex-col items-center gap-3 p-4 bg-red-50 hover:bg-red-100 rounded-xl border-2 border-red-200 hover:border-red-300 transition-colors disabled:opacity-50"
                 whileTap={{ scale: 0.95 }}
+                data-testid="export-pdf"
               >
                 <FiFileText size={32} className="text-red-600" />
                 <span className="font-medium text-red-800">PDF</span>
@@ -306,6 +309,7 @@ export const ExportShareTools: React.FC<ExportShareToolsProps> = ({
                 disabled={isExporting}
                 className="flex flex-col items-center gap-3 p-4 bg-purple-50 hover:bg-purple-100 rounded-xl border-2 border-purple-200 hover:border-purple-300 transition-colors disabled:opacity-50"
                 whileTap={{ scale: 0.95 }}
+                data-testid="export-json"
               >
                 <FiDownload size={32} className="text-purple-600" />
                 <span className="font-medium text-purple-800">데이터</span>
@@ -318,6 +322,7 @@ export const ExportShareTools: React.FC<ExportShareToolsProps> = ({
                 disabled={isExporting}
                 className="flex flex-col items-center gap-3 p-4 bg-green-50 hover:bg-green-100 rounded-xl border-2 border-green-200 hover:border-green-300 transition-colors disabled:opacity-50"
                 whileTap={{ scale: 0.95 }}
+                data-testid="export-share"
               >
                 <FiShare2 size={32} className="text-green-600" />
                 <span className="font-medium text-green-800">공유</span>
@@ -364,11 +369,13 @@ export const ExportShareTools: React.FC<ExportShareToolsProps> = ({
                       value={shareUrl}
                       readOnly
                       className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm"
+                      data-testid="share-url-input"
                     />
                     <motion.button
                       onClick={() => navigator.clipboard.writeText(shareUrl)}
                       className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                       whileTap={{ scale: 0.95 }}
+                      data-testid="share-copy"
                     >
                       <FiCopy size={16} />
                     </motion.button>
@@ -379,6 +386,7 @@ export const ExportShareTools: React.FC<ExportShareToolsProps> = ({
                       onClick={() => shareToSocial('kakao')}
                       className="flex-1 py-2 px-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-medium"
                       whileTap={{ scale: 0.95 }}
+                      data-testid="share-kakao"
                     >
                       카카오톡
                     </motion.button>
@@ -386,6 +394,7 @@ export const ExportShareTools: React.FC<ExportShareToolsProps> = ({
                       onClick={() => shareToSocial('facebook')}
                       className="flex-1 py-2 px-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                       whileTap={{ scale: 0.95 }}
+                      data-testid="share-facebook"
                     >
                       페이스북
                     </motion.button>
@@ -393,6 +402,7 @@ export const ExportShareTools: React.FC<ExportShareToolsProps> = ({
                       onClick={() => shareToSocial('twitter')}
                       className="flex-1 py-2 px-3 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors text-sm font-medium"
                       whileTap={{ scale: 0.95 }}
+                      data-testid="share-twitter"
                     >
                       트위터
                     </motion.button>
@@ -402,8 +412,8 @@ export const ExportShareTools: React.FC<ExportShareToolsProps> = ({
             </AnimatePresence>
 
             {/* 디자인 정보 */}
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-              <h3 className="font-medium text-gray-800 mb-2">현재 디자인 정보</h3>
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200" data-testid="export-info">
+              <h3 className="font-medium text-gray-800 mb-2" data-testid="export-info-title">현재 디자인 정보</h3>
               <div className="text-sm text-gray-600 space-y-1">
                 <p>• 가구 개수: {placedItems.length}개</p>
                 <p>• 내보내기 형식: PNG, JPG, PDF, JSON</p>

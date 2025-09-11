@@ -6,10 +6,10 @@ import { analyzeAllModelSizes } from '../../utils/modelSizeAnalyzer';
 export default function ModelTestPage() {
   useEffect(() => {
     // 페이지 로드 시 모든 모델 크기 분석
-    console.log('🔍 모델 크기 분석 페이지 로드됨');
-    console.log('💡 브라우저 콘솔에서 다음 명령어를 사용하세요:');
-    console.log('   - analyzeAllModelSizes(): 모든 모델 크기 분석');
-    console.log('   - analyzeModelSize("sofa-001"): 특정 모델 크기 분석');
+    // console.log('🔍 모델 크기 분석 페이지 로드됨');
+    // console.log('💡 브라우저 콘솔에서 다음 명령어를 사용하세요:');
+    // console.log('   - analyzeAllModelSizes(): 모든 모델 크기 분석');
+    // console.log('   - analyzeModelSize("sofa-001"): 특정 모델 크기 분석');
     
     // 자동으로 모든 모델 분석 실행
     analyzeAllModelSizes().catch(console.error);

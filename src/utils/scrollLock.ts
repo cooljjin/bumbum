@@ -130,7 +130,7 @@ export const enableScrollLock = (): void => {
   `;
 
   scrollLockState.isLocked = true;
-  console.log('🔒 스크롤 락 활성화됨 (iOS Safari:', isIOS, ')');
+  // console.log('🔒 스크롤 락 활성화됨 (iOS Safari:', isIOS, ')');
 };
 
 /**
@@ -151,7 +151,7 @@ export const disableScrollLock = (): void => {
   window.scrollTo(0, scrollLockState.originalScrollY);
 
   scrollLockState.isLocked = false;
-  console.log('🔓 스크롤 락 비활성화됨');
+  // console.log('🔓 스크롤 락 비활성화됨');
 };
 
 /**
@@ -160,13 +160,13 @@ export const disableScrollLock = (): void => {
 export const preventTouchScroll = (e: Event): void => {
   if (e.target && isCanvasArea(e.target)) {
     // 3D 캔버스 영역에서는 터치 허용
-    console.log('🎯 3D 캔버스 영역 터치 허용됨');
+    // console.log('🎯 3D 캔버스 영역 터치 허용됨');
     return;
   }
 
   if (e.target && isClickableElement(e.target)) {
     // 클릭 가능한 요소에서는 터치 허용
-    console.log('🎯 클릭 가능한 요소 터치 허용됨');
+    // console.log('🎯 클릭 가능한 요소 터치 허용됨');
     return;
   }
 
@@ -174,7 +174,7 @@ export const preventTouchScroll = (e: Event): void => {
   if (e.type === 'touchmove' || e.type === 'touchstart' || e.type === 'touchend') {
     e.preventDefault();
     e.stopPropagation();
-    console.log('🔒 터치 스크롤 방지됨');
+    // console.log('🔒 터치 스크롤 방지됨');
   }
 };
 
@@ -184,20 +184,20 @@ export const preventTouchScroll = (e: Event): void => {
 export const preventWheelScroll = (e: WheelEvent): void => {
   if (e.target && isCanvasArea(e.target)) {
     // 3D 캔버스 영역에서는 휠 허용
-    console.log('🎯 3D 캔버스 영역 휠 허용됨');
+    // console.log('🎯 3D 캔버스 영역 휠 허용됨');
     return;
   }
 
   if (e.target && isClickableElement(e.target)) {
     // 클릭 가능한 요소에서는 휠 허용 (드롭다운 등에서 사용)
-    console.log('🎯 클릭 가능한 요소 휠 허용됨');
+    // console.log('🎯 클릭 가능한 요소 휠 허용됨');
     return;
   }
 
   // 다른 영역에서는 휠 이벤트 방지
   e.preventDefault();
   // e.stopPropagation(); // 이벤트 전파 허용
-  console.log('🔒 휠 스크롤 방지됨');
+  // console.log('🔒 휠 스크롤 방지됨');
 };
 
 /**
@@ -209,12 +209,12 @@ export const preventKeyScroll = (e: KeyboardEvent): void => {
   if (scrollKeys.includes(e.code)) {
     // 입력 필드에서는 키보드 스크롤 허용
     if (e.target && isClickableElement(e.target)) {
-      console.log('🎯 클릭 가능한 요소 키보드 허용됨');
+      // console.log('🎯 클릭 가능한 요소 키보드 허용됨');
       return;
     }
     
     e.preventDefault();
-    console.log('🔒 키보드 스크롤 방지됨');
+    // console.log('🔒 키보드 스크롤 방지됨');
   }
 };
 

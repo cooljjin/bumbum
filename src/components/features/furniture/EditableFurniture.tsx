@@ -1,14 +1,15 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 
-import { TransformControls, Box } from '@react-three/drei';
+import { TransformControls, Box, Html, useGLTF } from '@react-three/drei';
 import { Vector3, Euler, Group } from 'three';
 import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
-import { createFallbackModel, createFurnitureModel, loadModel } from '../../../utils/modelLoader';
+import { createFallbackModel, createFurnitureModel, loadModel, adjustModelToFootprint } from '../../../utils/modelLoader';
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
-import MobileTouchHandler from '../../ui/MobileTouchHandler';
+// import MobileTouchHandler from '../ui/MobileTouchHandler';
 import { constrainFurnitureToRoom, isFurnitureInRoom } from '../../../utils/roomBoundary';
+import { FurnitureColorChanger } from '../../../utils/colorChanger';
 import * as THREE from 'three';
 
 /**
@@ -21,9 +22,9 @@ const adjustModelToFootprint = (model: THREE.Group, footprint: { width: number; 
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
   
-  console.log(`📐 원본 모델 크기: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`);
-  console.log(`📏 목표 footprint: ${footprint.width} x ${footprint.height} x ${footprint.depth}`);
-  console.log(`🎯 원본 모델 중심점: (${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)})`);
+  // console.log(`📐 원본 모델 크기: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`);
+  // console.log(`📏 목표 footprint: ${footprint.width} x ${footprint.height} x ${footprint.depth}`);
+  // console.log(`🎯 원본 모델 중심점: (${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)})`);
   
   // 스케일 비율 계산 (각 축별로 정확히 맞춤)
   const scaleX = footprint.width / size.x;
@@ -32,7 +33,7 @@ const adjustModelToFootprint = (model: THREE.Group, footprint: { width: number; 
   
   const scale = new THREE.Vector3(scaleX, scaleY, scaleZ);
   
-  console.log(`🔧 적용할 스케일: ${scale.x.toFixed(3)} x ${scale.y.toFixed(3)} x ${scale.z.toFixed(3)}`);
+  // console.log(`🔧 적용할 스케일: ${scale.x.toFixed(3)} x ${scale.y.toFixed(3)} x ${scale.z.toFixed(3)}`);
   
   // 모델 복사 및 스케일 적용
   const adjustedModel = model.clone();
@@ -43,8 +44,8 @@ const adjustModelToFootprint = (model: THREE.Group, footprint: { width: number; 
   const adjustedSize = adjustedBox.getSize(new THREE.Vector3());
   const adjustedCenter = adjustedBox.getCenter(new THREE.Vector3());
   
-  console.log(`📐 스케일 적용 후 크기: ${adjustedSize.x.toFixed(2)} x ${adjustedSize.y.toFixed(2)} x ${adjustedSize.z.toFixed(2)}`);
-  console.log(`🎯 스케일 적용 후 중심점: (${adjustedCenter.x.toFixed(2)}, ${adjustedCenter.y.toFixed(2)}, ${adjustedCenter.z.toFixed(2)})`);
+  // console.log(`📐 스케일 적용 후 크기: ${adjustedSize.x.toFixed(2)} x ${adjustedSize.y.toFixed(2)} x ${adjustedSize.z.toFixed(2)}`);
+  // console.log(`🎯 스케일 적용 후 중심점: (${adjustedCenter.x.toFixed(2)}, ${adjustedCenter.y.toFixed(2)}, ${adjustedCenter.z.toFixed(2)})`);
   
   // 모델을 바닥에 정확히 맞춤 (Y축 위치 조정)
   // 바닥이 Y=0이 되도록 모델의 하단이 Y=0에 위치하도록 조정
@@ -86,6 +87,11 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isHovered, setIsHovered] = useState(false);
+
+  // useGLTF 훅으로 직접 모델 로드
+  const furniture = getFurnitureFromPlacedItem(item);
+  const gltf = furniture?.modelPath ? useGLTF(furniture.modelPath, true) : null; // draco 옵션 활성화
+  const [currentColor, setCurrentColor] = useState<string>('#FF6B6B');
   const lastUpdateTime = useRef<number>(0);
 
 
@@ -122,75 +128,42 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     onUpdate(item.id, { position, rotation, scale });
   }, [item.id, onUpdate]);
 
-  // 모델 로딩 - item.id를 기준으로 한 번만 실행
+  // 색상 변경 핸들러
+  const handleColorChange = useCallback((color: string) => {
+    if (model) {
+      setCurrentColor(color);
+      FurnitureColorChanger.changeBlanketColor(model, color);
+    }
+  }, [model]);
+
+  // 색상 초기화 핸들러
+  const handleColorReset = useCallback(() => {
+    if (model) {
+      FurnitureColorChanger.resetToOriginalColors(model);
+    }
+  }, [model]);
+
+  // useGLTF로 로드된 모델 처리
   useEffect(() => {
-    const loadModel = async () => {
-      try {
-        setIsLoading(true);
-        setLoadError(null);
-
-        // FurnitureItem 정보 가져오기
-        const furniture = getFurnitureFromPlacedItem(item);
-        if (!furniture) {
-          console.warn('가구 정보를 찾을 수 없어 기본 박스로 표시합니다:', item);
-          setLoadError('가구 정보를 찾을 수 없습니다');
-          setIsLoading(false);
-          return;
-        }
-
-        // 실제 GLTF 모델 로드 시도
-        console.info(`가구 모델 로딩: ${furniture.nameKo} (${furniture.category})`);
-        console.log(`📁 모델 경로: ${furniture.modelPath}`);
-        console.log(`📏 크기: ${furniture.footprint.width}x${furniture.footprint.height}x${furniture.footprint.depth}`);
-
-        if (furniture.modelPath) {
-          console.log(`🔄 GLTF 모델 로딩 시작: ${furniture.modelPath}`);
-          try {
-            const gltfModel = await loadModel(furniture.modelPath, {
-              useCache: false,
-              priority: 'normal'
-            });
-            
-            if (gltfModel) {
-              console.info(`✅ GLTF 모델 로드 성공: ${furniture.nameKo}`);
-              
-              // 모델 크기를 footprint에 맞게 조정
-              const adjustedModel = adjustModelToFootprint(gltfModel, furniture.footprint);
-              console.log(`🔧 크기 조정 완료:`, {
-                originalChildren: gltfModel.children.length,
-                adjustedChildren: adjustedModel.children.length
-              });
-              setModel(adjustedModel);
-            } else {
-              throw new Error('GLTF 모델 로드 실패');
-            }
-          } catch (gltfError) {
-            console.warn('GLTF 모델 로드 실패, 폴백 모델 사용:', gltfError);
-            const fallbackModel = createFallbackModel(furniture);
-            setModel(fallbackModel);
-          }
-        } else {
-          // 모델 경로가 없는 경우 폴백 모델 사용
-          const fallbackModel = createFallbackModel(furniture);
-          setModel(fallbackModel);
-        }
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Failed to create furniture model:', error);
-        setLoadError(error instanceof Error ? error.message : 'Unknown error');
-
-        // 에러 발생 시 폴백 모델 사용
-        const furniture = getFurnitureFromPlacedItem(item);
-        if (furniture) {
-          const fallbackModel = createFallbackModel(furniture);
-          setModel(fallbackModel);
-        }
-        setIsLoading(false);
-      }
-    };
-
-    loadModel();
-  }, [item.id]); // item.id로 변경하여 item 객체 변경 시 불필요한 재실행 방지
+    if (gltf && gltf.scene && furniture) {
+      console.log(`✅ useGLTF로 모델 로드 완료: ${item.name}`);
+      console.log(`📦 모델 자식 요소 수: ${gltf.scene.children.length}`);
+      
+      // 모델 크기를 footprint에 맞게 조정
+      const adjustedModel = adjustModelToFootprint(gltf.scene, furniture.footprint);
+      setModel(adjustedModel);
+      setIsLoading(false);
+      setLoadError(null);
+    } else if (furniture?.modelPath) {
+      console.log(`⏳ 모델 로딩 중: ${furniture.modelPath}`);
+    } else if (!furniture) {
+      console.warn('가구 정보를 찾을 수 없어 기본 박스로 표시합니다:', item);
+      setLoadError('가구 정보를 찾을 수 없습니다');
+      const fallbackModel = createFallbackModel();
+      setModel(fallbackModel);
+      setIsLoading(false);
+    }
+  }, [gltf, furniture, item.name]);
 
   // 위치, 회전, 크기 동기화 - 최적화된 의존성 배열
   useEffect(() => {
@@ -219,14 +192,14 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
       const needsScaleUpdate = !currentScale.equals(itemScale) &&
         Math.abs(currentScale.distanceTo(itemScale)) > TOLERANCE;
 
-      if (needsPositionUpdate) {
-        meshRef.current.position.copy(itemPosition);
-        console.log(`📍 가구 ${item.id} 위치 동기화:`, {
-          x: itemPosition.x.toFixed(3),
-          y: itemPosition.y.toFixed(3),
-          z: itemPosition.z.toFixed(3)
-        });
-      }
+          if (needsPositionUpdate) {
+            meshRef.current.position.copy(itemPosition);
+            // console.log(`📍 가구 ${item.id} 위치 동기화:`, {
+            //   x: itemPosition.x.toFixed(3),
+            //   y: itemPosition.y.toFixed(3),
+            //   z: itemPosition.z.toFixed(3)
+            // });
+          }
       if (needsRotationUpdate) {
         meshRef.current.rotation.copy(itemRotation);
       }
@@ -234,7 +207,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
         meshRef.current.scale.copy(itemScale);
       }
     } catch (error) {
-      console.warn('Position/Rotation/Scale sync failed:', error);
+      // console.warn('Position/Rotation/Scale sync failed:', error);
     }
   }, [item.id, item.isLocked]); // 최적화된 의존성 배열
 
@@ -352,7 +325,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
           meshRef.current.position.copy(currentPosition);
         }
         
-        console.log('🚫 TransformControls: 벽 충돌 감지, 위치 제한:', currentPosition);
+        // console.log('🚫 TransformControls: 벽 충돌 감지, 위치 제한:', currentPosition);
       }
 
       // 현재 값과 이전 값을 비교하여 실제 변경된 경우에만 업데이트
@@ -381,7 +354,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
         });
       }
     } catch (error) {
-      console.warn('Transform update failed:', error);
+      // console.warn('Transform update failed:', error);
     }
   }, [item.id, item.position, item.rotation, item.scale, onUpdate, grid, rotationSnap, mode, snapPosition, snapRotation]);
 
@@ -389,7 +362,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
   const handleTransformEnd = React.useCallback(() => {
     if (!isSelected || item.isLocked) return;
 
-    console.log('🎯 드래그 종료 - 객체 위치 조정 완료:', item.id);
+    // console.log('🎯 드래그 종료 - 객체 위치 조정 완료:', item.id);
     
     // TransformControls 종료 시 호버 효과 복원
     setIsHovered(true);
@@ -398,7 +371,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     const { autoLock } = useEditorStore.getState();
 
     if (autoLock.enabled) {
-      console.log(`⏱️ ${autoLock.delay}ms 후 자동 고정 예정...`);
+      // console.log(`⏱️ ${autoLock.delay}ms 후 자동 고정 예정...`);
 
       // 설정된 지연 시간 후 자동 고정
       setTimeout(() => {
@@ -415,15 +388,15 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
             scale: currentScale
           });
 
-          console.log(`📍 자동 고정 준비: (${currentPosition.x.toFixed(2)}, ${currentPosition.z.toFixed(2)})`);
+          // console.log(`📍 자동 고정 준비: (${currentPosition.x.toFixed(2)}, ${currentPosition.z.toFixed(2)})`);
 
           // 자동 고정 실행
           useEditorStore.getState().lockItem(item.id);
-          console.log('🔒 자동 고정 완료!');
+          // console.log('🔒 자동 고정 완료!');
         }
       }, autoLock.delay);
     } else {
-      console.log('🔓 자동 고정이 비활성화되어 있습니다. 수동으로 L키를 눌러 고정하세요.');
+      // console.log('🔓 자동 고정이 비활성화되어 있습니다. 수동으로 L키를 눌러 고정하세요.');
     }
   }, [isSelected, item.id, item.isLocked, onUpdate]);
 
@@ -441,7 +414,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
 
     // 고정 상태가 변경되었는지 확인
     if (previousLockState !== item.isLocked) {
-      console.log(`🔒 고정 상태 변경: ${previousLockState ? '고정됨' : '해제됨'} → ${item.isLocked ? '고정됨' : '해제됨'}`);
+      // console.log(`🔒 고정 상태 변경: ${previousLockState ? '고정됨' : '해제됨'} → ${item.isLocked ? '고정됨' : '해제됨'}`);
 
       // 애니메이션 실행
       setLockAnimation(true);
@@ -483,13 +456,13 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
 
     // 고정된 객체는 선택할 수 없음
     if (item.isLocked) {
-      console.log('고정된 객체는 선택할 수 없습니다:', item.id);
+      // console.log('고정된 객체는 선택할 수 없습니다:', item.id);
       return;
     }
 
     // 단일 선택만 허용 - 다른 객체를 클릭하면 이전 선택이 자동으로 해제됨
     // 이미 선택된 객체를 다시 클릭해도 선택 유지
-    console.log(`🎯 가구 클릭: ${item.id} (현재 선택됨: ${isSelected})`);
+    // console.log(`🎯 가구 클릭: ${item.id} (현재 선택됨: ${isSelected})`);
     onSelect(item.id);
     
     // 선택 시 호버 효과 활성화
@@ -533,7 +506,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
           // 객체 고정/해제 토글 - 현재 위치 확실히 저장
           if (item.isLocked) {
             useEditorStore.getState().unlockItem(item.id);
-            console.log('🔓 객체 고정 해제됨:', item.id);
+            // console.log('🔓 객체 고정 해제됨:', item.id);
           } else {
             // 고정하기 전에 현재 위치를 확실히 저장
             if (meshRef.current && isSelected) {
@@ -548,13 +521,13 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
                 scale: currentScale
               });
 
-              console.log(`📍 현재 위치에 고정 준비: (${currentPosition.x.toFixed(2)}, ${currentPosition.z.toFixed(2)})`);
+              // console.log(`📍 현재 위치에 고정 준비: (${currentPosition.x.toFixed(2)}, ${currentPosition.z.toFixed(2)})`);
             }
 
             // 잠시 후에 고정 설정 (위치 저장 완료 대기)
             setTimeout(() => {
               useEditorStore.getState().lockItem(item.id);
-              console.log('🔒 객체 고정됨 - 현재 위치에 고정되었습니다!');
+              // console.log('🔒 객체 고정됨 - 현재 위치에 고정되었습니다!');
             }, 100);
           }
           break;
@@ -577,7 +550,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
             event.preventDefault();
             // 그리드 스냅 토글
             useEditorStore.getState().toggleGridSnap();
-            console.log('그리드 스냅 토글:', useEditorStore.getState().grid.enabled ? 'ON' : 'OFF');
+            // console.log('그리드 스냅 토글:', useEditorStore.getState().grid.enabled ? 'ON' : 'OFF');
           } else {
             event.preventDefault();
             // 이동 도구로 전환
@@ -590,7 +563,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
             event.preventDefault();
             // 회전 스냅 토글
             useEditorStore.getState().toggleRotationSnap();
-            console.log('회전 스냅 토글:', useEditorStore.getState().rotationSnap.enabled ? 'ON' : 'OFF');
+            // console.log('회전 스냅 토글:', useEditorStore.getState().rotationSnap.enabled ? 'ON' : 'OFF');
           } else {
             event.preventDefault();
             // 회전 도구로 전환
@@ -869,14 +842,14 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
       </group>
 
       {/* 모바일 터치 핸들러 - 모바일 환경에서만 활성화 */}
-      {isTouchMode && meshRef.current && (
+      {/* {isTouchMode && meshRef.current && (
         <MobileTouchHandler
           target={meshRef.current}
           enabled={isSelected && isEditMode && !item.isLocked}
           onTransform={handleTouchTransform}
           sensitivity={{ pan: 1, pinch: 1, rotate: 1 }}
         />
-      )}
+      )} */}
 
       {/* TransformControls - 데스크톱 환경에서만 활성화 */}
       {!isMobile && isSelected && isEditMode && !item.isLocked && meshRef.current && (
@@ -893,6 +866,41 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
           space="world"
           size={0.75}
         />
+      )}
+
+      {/* 색상 변경 UI - 선택된 상태에서만 표시 */}
+      {isSelected && isEditMode && (
+        <Html>
+          <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-4 z-50">
+            <h3 className="text-sm font-semibold mb-2">🎨 색상 변경</h3>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {[
+              { name: '빨간색', color: '#FF6B6B' },
+              { name: '파란색', color: '#4ECDC4' },
+              { name: '초록색', color: '#45B7D1' },
+              { name: '보라색', color: '#96CEB4' },
+              { name: '주황색', color: '#FFEAA7' },
+              { name: '핑크색', color: '#DDA0DD' },
+            ].map((colorOption) => (
+              <button
+                key={colorOption.color}
+                onClick={() => handleColorChange(colorOption.color)}
+                className={`w-8 h-8 rounded border-2 ${
+                  currentColor === colorOption.color ? 'border-blue-500' : 'border-gray-300'
+                }`}
+                style={{ backgroundColor: colorOption.color }}
+                title={colorOption.name}
+              />
+            ))}
+          </div>
+            <button
+              onClick={handleColorReset}
+              className="text-xs text-gray-600 hover:text-gray-800"
+            >
+              🔄 원본으로 복원
+            </button>
+          </div>
+        </Html>
       )}
     </>
   );

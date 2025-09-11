@@ -35,7 +35,7 @@ class PerformanceMonitor {
     };
 
     this.isMonitoring = true;
-    console.log(`🚀 성능 모니터링 시작: ${storeName}`);
+    // console.log(`🚀 성능 모니터링 시작: ${storeName}`);
   }
 
   // 성능 모니터링 중지
@@ -44,7 +44,7 @@ class PerformanceMonitor {
 
     delete this.metrics[storeName];
     this.isMonitoring = false;
-    console.log(`⏹️ 성능 모니터링 중지: ${storeName}`);
+    // console.log(`⏹️ 성능 모니터링 중지: ${storeName}`);
   }
 
   // 렌더링 카운트 증가

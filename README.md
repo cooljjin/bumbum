@@ -1,4 +1,4 @@
-# 🏠 Bondidi Project - 가구 라이브러리 UI 리팩토링
+# 🏠 Bumbum Project - 가구 라이브러리 UI 리팩토링
 
 3D 가구 라이브러리와 룸 에디터를 위한 현대적인 웹 애플리케이션입니다.
 
@@ -21,8 +21,8 @@
 
 ```bash
 # 프로젝트 클론
-git clone https://github.com/your-org/bondidi-project.git
-cd bondidi-project
+git clone https://github.com/your-org/bumbum-project.git
+cd bumbum-project
 
 # 의존성 설치
 npm install
@@ -170,7 +170,7 @@ npm run test:e2e
 
 ## 📞 지원 및 연락처
 
-- **프로젝트 이슈**: [GitHub Issues](https://github.com/your-org/bondidi-project/issues)
+- **프로젝트 이슈**: [GitHub Issues](https://github.com/your-org/bumbum-project/issues)
 - **기술 지원**: [개발자 가이드](docs/DEVELOPMENT.md#지원-및-연락처)
 - **문서 관련**: [문서 저장소](docs/)
 
@@ -185,4 +185,20 @@ npm run test:e2e
 
 **프로젝트 버전**: 2.1.0  
 **마지막 업데이트**: 2024년 12월  
-**개발팀**: Bondidi Team
+**개발팀**: Bumbum Team
+
+## 📝 MCP 체크포인트 저장
+
+컨텍스트가 커지기 전에 현재 상태를 요약해 저장합니다.
+
+```bash
+# 기본(스냅샷 + Git 상태)
+npm run checkpoint:save -- --title="작업 일시중단" --notes="카메라 이동 로직 정리 전"
+
+# 전체(스냅샷 + Git 상태 + diff)
+npm run checkpoint:save:full -- --title="리팩터링 직전" --notes="EditableFurniture 동기화 최종 확인"
+```
+
+결과 파일은 `data/memory/checkpoints/checkpoint-YYYY-MM-DDTHH-MM-SS.json`에 생성됩니다.
+
+참고: `npm run mcp:auto` 실행 시, 스냅샷 저장과 ref 갱신 후 자동으로 체크포인트(스냅샷 + Git 상태 + diff 요약)가 함께 생성됩니다.

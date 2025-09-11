@@ -63,12 +63,12 @@ class ModelCache {
       cached.lastUsed = Date.now();
       cached.useCount++;
       
-      console.log(`📦 캐시 히트: ${modelPath} (사용 횟수: ${cached.useCount})`);
+      // console.log(`📦 캐시 히트: ${modelPath} (사용 횟수: ${cached.useCount})`);
       return cached.model.clone();
     }
 
     // 새로 로딩
-    console.log(`🔄 모델 로딩: ${modelPath}`);
+    // console.log(`🔄 모델 로딩: ${modelPath}`);
     const model = await this.loadModel(modelPath);
     
     // 캐시에 저장
@@ -94,7 +94,7 @@ class ModelCache {
         },
         (progress) => {
           const percent = (progress.loaded / progress.total * 100).toFixed(2);
-          console.log(`📥 로딩 진행률: ${percent}%`);
+          // console.log(`📥 로딩 진행률: ${percent}%`);
         },
         (error) => {
           console.error(`❌ 모델 로딩 실패: ${modelPath}`, error);
@@ -129,7 +129,7 @@ class ModelCache {
     this.cache.set(modelPath, cachedModel);
     this.totalMemory += size;
 
-    console.log(`💾 모델 캐시됨: ${modelPath} (크기: ${(size / 1024).toFixed(2)}MB)`);
+    // console.log(`💾 모델 캐시됨: ${modelPath} (크기: ${(size / 1024).toFixed(2)}MB)`);
   }
 
   /**
@@ -240,7 +240,7 @@ class ModelCache {
    * 캐시 정리
    */
   public async cleanupCache(): Promise<void> {
-    console.log('🧹 캐시 정리 시작...');
+    // console.log('🧹 캐시 정리 시작...');
 
     const entries = Array.from(this.cache.entries());
     
@@ -262,10 +262,10 @@ class ModelCache {
       this.cache.delete(path);
       this.totalMemory -= model.size;
       
-      console.log(`🗑️ 모델 제거됨: ${path} (크기: ${(model.size / 1024).toFixed(2)}MB)`);
+      // console.log(`🗑️ 모델 제거됨: ${path} (크기: ${(model.size / 1024).toFixed(2)}MB)`);
     }
 
-    console.log(`✅ 캐시 정리 완료 (총 메모리: ${(this.totalMemory / 1024).toFixed(2)}MB)`);
+    // console.log(`✅ 캐시 정리 완료 (총 메모리: ${(this.totalMemory / 1024).toFixed(2)}MB)`);
   }
 
   /**
@@ -348,7 +348,7 @@ class ModelCache {
    * 캐시 완전 정리
    */
   clearCache(): void {
-    console.log('🗑️ 캐시 완전 정리...');
+    // console.log('🗑️ 캐시 완전 정리...');
     
     this.cache.forEach((model) => {
       this.disposeModel(model.model);
@@ -357,7 +357,7 @@ class ModelCache {
     this.cache.clear();
     this.totalMemory = 0;
     
-    console.log('✅ 캐시 완전 정리 완료');
+    // console.log('✅ 캐시 완전 정리 완료');
   }
 
   /**
@@ -378,7 +378,7 @@ export const modelCache = new ModelCache();
 export const cacheUtils = {
   // 모델 프리로딩
   preloadModels: async (modelPaths: string[]): Promise<void> => {
-    console.log(`🚀 모델 프리로딩 시작: ${modelPaths.length}개`);
+    // console.log(`🚀 모델 프리로딩 시작: ${modelPaths.length}개`);
     
     const promises = modelPaths.map(path => 
       modelCache.getModel(path).catch(error => {
@@ -387,7 +387,7 @@ export const cacheUtils = {
     );
     
     await Promise.all(promises);
-    console.log('✅ 모델 프리로딩 완료');
+    // console.log('✅ 모델 프리로딩 완료');
   },
 
   // 캐시 상태 확인

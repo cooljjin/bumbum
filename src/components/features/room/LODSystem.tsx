@@ -128,7 +128,7 @@ export const LODSystem: React.FC<LODSystemProps> = ({
       // 성능 로깅
       const currentLevel = lodLevels[newLODLevel];
       if (currentLevel) {
-        console.log(`🎯 LOD 레벨 변경: ${currentLODLevel} → ${newLODLevel} (거리: ${distance.toFixed(2)}, 삼각형: ${currentLevel.triangleCount})`);
+        // console.log(`🎯 LOD 레벨 변경: ${currentLODLevel} → ${newLODLevel} (거리: ${distance.toFixed(2)}, 삼각형: ${currentLevel.triangleCount})`);
       }
     }
 

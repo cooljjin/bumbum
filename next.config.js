@@ -3,15 +3,17 @@ const nextConfig = {
   // 워크스페이스 루트 경고 해결
   outputFileTracingRoot: require('path').join(__dirname),
 
-  // Netlify static export 설정
-  output: 'export',
-  trailingSlash: true,
-  skipTrailingSlashRedirect: true,
-  distDir: 'out',
+  // 개발 환경에서는 static export 비활성화
+  ...(process.env.NODE_ENV === 'production' && {
+    output: 'export',
+    trailingSlash: true,
+    skipTrailingSlashRedirect: true,
+    distDir: 'out',
+  }),
 
-  // 이미지 최적화 비활성화 (static export에서는 필요 없음)
+  // 이미지 최적화 설정
   images: {
-    unoptimized: true,
+    unoptimized: process.env.NODE_ENV === 'production',
   },
 
   // SSR 문제 해결을 위한 설정
@@ -22,8 +24,6 @@ const nextConfig = {
     'framer-motion'
   ],
 
-
-  
   // 번들 최적화 (안정성 우선: Next 기본 최적화 사용)
   experimental: {
     optimizeCss: true,

@@ -55,7 +55,7 @@ export default function BottomCategoryTabs({
       onCategoryChange(category);
     }
 
-    console.log('🏷️ 카테고리 선택:', category);
+    // console.log('🏷️ 카테고리 선택:', category);
   };
 
   return (

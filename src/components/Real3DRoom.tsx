@@ -76,7 +76,7 @@ const UnifiedCameraControls = dynamic(() => import('./3D/UnifiedCameraControls')
 
 import { updateRoomDimensions, isFurnitureInRoom, constrainFurnitureToRoom, getRoomBoundaries } from '../utils/roomBoundary';
 import '../utils/modelSizeAnalyzer'; // 모델 크기 분석기 로드
-import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, selectItem, addItem, clearAllItems, useIsDragging, useCurrentFloorTexture, setFloorTexture } from '../store/editorStore';
+import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, selectItem, addItem, clearAllItems, useIsDragging, useCurrentFloorTexture, setFloorTexture, useEditorStore } from '../store/editorStore';
 import { 
   enableScrollLock, 
   disableScrollLock, 
@@ -86,6 +86,7 @@ import {
   // isIOSSafari,
   isMobile as isMobileDevice
 } from '../utils/scrollLock';
+import { getSafeTouchArea, getUIOcclusionInsets } from '../utils/mobileHtmlConstraints';
 
 interface Real3DRoomProps {
   shadowMode?: 'baked' | 'realtime';
@@ -173,6 +174,7 @@ function BottomSheetCatalog({
 
   return (
     <div
+      data-occlude-floating="bottom-sheet"
       ref={sheetRef}
       className="fixed left-0 right-0 bottom-0 w-full bg-white border-t shadow-2xl z-[9999] flex flex-col furniture-library-container"
       style={{
@@ -203,7 +205,7 @@ const Real3DRoomComponent = React.memo(({
   isEditMode: externalEditMode
 }: Real3DRoomProps) => {
   // isViewLocked 상태 디버깅
-  console.log('🏠 Real3DRoom isViewLocked 상태:', isViewLocked);
+  // console.log('🏠 Real3DRoom isViewLocked 상태:', isViewLocked);
   
   // 클라이언트 사이드 준비 상태
   const isClientReady = useClientSideReady();
@@ -211,6 +213,11 @@ const Real3DRoomComponent = React.memo(({
   const searchParams = typeof window !== 'undefined' ? useSearchParams() : (null as any);
   // const debugFreeCam = !!(searchParams && searchParams.get('freecam') === '1');
   const gestureFixScope = (searchParams && searchParams.get('gfix')) || 'canvas'; // 'canvas' | 'global'
+  const debugFloating = !!(searchParams && searchParams.get('debugFloating') === '1');
+  const debugPos = (searchParams && (searchParams.get('dbgPos') || searchParams.get('debugPos'))) || 'bl'; // tl|tr|bl|br
+  const forceFloating = !!(searchParams && searchParams.get('forceFloating') === '1');
+  const [dbgPosPx, setDbgPosPx] = useState<{ x: number; y: number } | null>(null);
+  const dbgDragRef = useRef<{ sx: number; sy: number; px: number; py: number; dragging: boolean } | null>(null);
 
   // 모든 useState 훅들은 항상 호출되어야 함 (React Hooks 규칙)
   // const [showTransitionEffect, setShowTransitionEffect] = useState(false); // 파란색 오버레이 효과 제거
@@ -272,7 +279,7 @@ const Real3DRoomComponent = React.memo(({
     // });
     
     if (!camera) {
-      console.log('⚠️ 카메라가 없음 - 기본 위치 반환');
+      // console.log('⚠️ 카메라가 없음 - 기본 위치 반환');
       // 카메라가 없을 때도 플로팅 컨트롤이 보이도록 화면 중앙에 위치
       return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     }
@@ -285,12 +292,12 @@ const Real3DRoomComponent = React.memo(({
     const x = (vector.x * 0.5 + 0.5) * width;
     const y = (vector.y * -0.5 + 0.5) * height;
     
-    console.log('🎯 worldToScreen 결과:', {
-      worldPosition,
-      projectedVector: { x: vector.x, y: vector.y, z: vector.z },
-      screenPosition: { x, y },
-      windowSize: { width, height }
-    });
+    // console.log('🎯 worldToScreen 결과:', {
+    //   worldPosition,
+    //   projectedVector: { x: vector.x, y: vector.y, z: vector.z },
+    //   screenPosition: { x, y },
+    //   windowSize: { width, height }
+    // });
     
     return { x, y };
   }, [cameraControlsRef]);
@@ -305,32 +312,53 @@ const Real3DRoomComponent = React.memo(({
   }, [isDragging, selectedItemId]);
 
   // 선택된 가구가 있을 때 플로팅 컨트롤 위치 업데이트
+  // - 초기 선택 시 한 번
+  // - 카메라 이동/줌/윈도우 리사이즈 동안 지속적으로 추적 (RAF)
   useEffect(() => {
-    if (selectedItemId) {
-      const selectedItem = placedItems.find(item => item.id === selectedItemId);
-      if (selectedItem) {
-        // console.log('🎯 선택된 가구 플로팅 컨트롤 업데이트:', {
-        //   itemId: selectedItem.id,
-        //   itemName: selectedItem.name,
-        //   position: selectedItem.position,
-        //   isDragging
-        // });
-        
-        // 가구의 상단 위치 계산 (Y축에 가구 높이 추가)
-        const furnitureTopPosition = {
-          x: selectedItem.position.x,
-          y: selectedItem.position.y + selectedItem.footprint.height,
-          z: selectedItem.position.z
-        };
-        
-        // 3D 위치를 화면 좌표로 변환
-        const screenPosition = worldToScreen(furnitureTopPosition);
-        
-        setFloatingControlsPosition(screenPosition);
-        // showFloatingControls 상태는 제거하고 selectedItemId만으로 제어
+    if (!selectedItemId) return;
+
+    const selectedItem = placedItems.find(item => item.id === selectedItemId);
+    if (!selectedItem) return;
+
+    // 즉시 한 번 계산
+    const furnitureTopPosition = {
+      x: selectedItem.position.x,
+      y: selectedItem.position.y + selectedItem.footprint.height,
+      z: selectedItem.position.z
+    };
+    setFloatingControlsPosition(worldToScreen(furnitureTopPosition));
+
+    // 카메라가 움직이거나 줌 되는 동안, 혹은 기기 회전/리사이즈 시 계속 추적
+    let raf = 0;
+    const prev = { x: -9999, y: -9999 };
+    const update = () => {
+      // 드래그 중에는 플로팅을 숨기므로 업데이트하지 않음
+      if (!isDragging) {
+        const pos = worldToScreen(furnitureTopPosition);
+        // 불필요한 렌더를 줄이기 위해 변화가 있을 때만 갱신
+        if (Math.abs(pos.x - prev.x) > 0.5 || Math.abs(pos.y - prev.y) > 0.5) {
+          prev.x = pos.x; prev.y = pos.y;
+          setFloatingControlsPosition(pos);
+        }
       }
-    }
-  }, [selectedItemId, placedItems, worldToScreen]);
+      raf = window.requestAnimationFrame(update);
+    };
+
+    raf = window.requestAnimationFrame(update);
+
+    const handleResize = () => {
+      const pos = worldToScreen(furnitureTopPosition);
+      setFloatingControlsPosition(pos);
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, [selectedItemId, placedItems, worldToScreen, isDragging]);
 
   // 웹 환경에서의 대안: 카메라가 없을 때도 플로팅 컨트롤을 표시
   useEffect(() => {
@@ -387,7 +415,7 @@ const Real3DRoomComponent = React.memo(({
       document.addEventListener('touchmove', preventTouchScroll, eventOptions);
       document.addEventListener('touchend', preventTouchScroll, eventOptions);
       
-      console.log('🔒 편집 모드 진입: 스크롤 락 활성화');
+      // console.log('🔒 편집 모드 진입: 스크롤 락 활성화');
     } else {
       disableScrollLock();
       
@@ -398,7 +426,7 @@ const Real3DRoomComponent = React.memo(({
       document.removeEventListener('touchmove', preventTouchScroll, { capture: true });
       document.removeEventListener('touchend', preventTouchScroll, { capture: true });
       
-      console.log('🔓 편집 모드 종료: 스크롤 락 해제');
+      // console.log('🔓 편집 모드 종료: 스크롤 락 해제');
     }
 
     return () => {
@@ -418,7 +446,7 @@ const Real3DRoomComponent = React.memo(({
 
     if (isDragging) {
       // 편집 모드에서 이미 스크롤 락이 적용되어 있으므로 추가 처리만
-      console.log('🔒 드래그 중 추가 스크롤 락 처리');
+      // console.log('🔒 드래그 중 추가 스크롤 락 처리');
       return undefined;
     } else {
       return undefined;
@@ -466,7 +494,7 @@ const Real3DRoomComponent = React.memo(({
   const handleTemplateSelect = async (template: RoomTemplate) => {
     try {
       setIsApplyingTemplate(true);
-      console.log('🎯 템플릿 적용 시작:', template.metadata.nameKo);
+      // console.log('🎯 템플릿 적용 시작:', template.metadata.nameKo);
 
       // 기존 객체들 모두 제거
       clearAllItems();
@@ -495,11 +523,11 @@ const Real3DRoomComponent = React.memo(({
         );
       }
 
-      console.log(`✅ 템플릿 적용 완료: ${result.placedItems.length}개 객체 배치`);
+      // console.log(`✅ 템플릿 적용 완료: ${result.placedItems.length}개 객체 배치`);
       setShowTemplateSelector(false);
 
     } catch (error) {
-      console.error('❌ 템플릿 적용 실패:', error);
+      // console.error('❌ 템플릿 적용 실패:', error);
     } finally {
       setIsApplyingTemplate(false);
     }
@@ -556,7 +584,7 @@ const Real3DRoomComponent = React.memo(({
 
     // 컴포넌트 언마운트 시 정리 함수 등록
     const cleanup = () => {
-      console.log('🧹 Real3DRoom 컴포넌트 메모리 정리 시작');
+        // console.log('🧹 Real3DRoom 컴포넌트 메모리 정리 시작');
 
       // 등록된 정리 함수들 실행 (자기 자신은 제외)
       cleanupRefs.current.forEach(cleanupFn => {
@@ -566,7 +594,7 @@ const Real3DRoomComponent = React.memo(({
             cleanupFn();
           }
         } catch (error) {
-          console.warn('정리 함수 실행 중 오류:', error);
+          // console.warn('정리 함수 실행 중 오류:', error);
         }
       });
 
@@ -612,11 +640,11 @@ const Real3DRoomComponent = React.memo(({
   }, [externalEditMode, setMode]);
 
   const handleFurnitureSelect = (item: FurnitureItem) => {
-    console.log('가구 선택됨:', item);
+    // console.log('가구 선택됨:', item);
 
     // 바닥 카테고리의 경우 텍스처 변경 처리
     if (item.category === 'floor') {
-      console.log('🏠 바닥 텍스처 변경:', item);
+      // console.log('🏠 바닥 텍스처 변경:', item);
       // 바닥 텍스처 변경 (modelPath에 텍스처 경로가 저장됨)
       const floorTexturePath = item.modelPath || '/models/floor/floor_wooden.png';
       setFloorTexture(floorTexturePath);
@@ -645,10 +673,10 @@ const Real3DRoomComponent = React.memo(({
 
     // 기본 위치에서 벗어난 랜덤한 위치로 배치하여 충돌 방지
     if (existingItems.length > 0) {
-      console.log('🔍 기존 가구 위치 확인:', existingItems.map(item => ({
-        id: item.id,
-        position: { x: item.position.x, y: item.position.y, z: item.position.z }
-      })));
+      // console.log('🔍 기존 가구 위치 확인:', existingItems.map(item => ({
+      //   id: item.id,
+      //   position: { x: item.position.x, y: item.position.y, z: item.position.z }
+      // })));
 
       // 🏠 카테고리별 배치 전략
       const getPlacementStrategy = (category: string, subcategory?: string) => {
@@ -679,7 +707,7 @@ const Real3DRoomComponent = React.memo(({
       };
 
       const placementStrategy = getPlacementStrategy(item.category, item.subcategory);
-      console.log(`🎯 ${item.nameKo} (${item.category}/${item.subcategory}) 배치 전략: ${placementStrategy}`);
+      // console.log(`🎯 ${item.nameKo} (${item.category}/${item.subcategory}) 배치 전략: ${placementStrategy}`);
 
       // 기존 가구들의 평균 위치 계산 (원본 객체 변경 방지)
       const avgPosition = existingItems.reduce((acc, item) => {
@@ -691,15 +719,15 @@ const Real3DRoomComponent = React.memo(({
         };
         
         const itemPositionCopy = new Vector3(safePosition.x, safePosition.y, safePosition.z);
-        console.log(`📐 가구 ${item.id} 위치 복사:`, {
-          원본: { x: item.position.x, y: item.position.y, z: item.position.z },
-          안전한위치: safePosition,
-          복사본: { x: itemPositionCopy.x, y: itemPositionCopy.y, z: itemPositionCopy.z }
-        });
+        // console.log(`📐 가구 ${item.id} 위치 복사:`, {
+        //   원본: { x: item.position.x, y: item.position.y, z: item.position.z },
+        //   안전한위치: safePosition,
+        //   복사본: { x: itemPositionCopy.x, y: itemPositionCopy.y, z: itemPositionCopy.z }
+        // });
         return acc.add(itemPositionCopy);
       }, new Vector3(0, 0, 0)).divideScalar(existingItems.length);
 
-      console.log('🎯 계산된 평균 위치:', { x: avgPosition.x, y: avgPosition.y, z: avgPosition.z });
+      // console.log('🎯 계산된 평균 위치:', { x: avgPosition.x, y: avgPosition.y, z: avgPosition.z });
 
       // 카테고리별 배치 전략에 따른 위치 계산
       if (placementStrategy === 'wall') {
@@ -740,11 +768,11 @@ const Real3DRoomComponent = React.memo(({
           // 벽면 에셋의 경우 Y축을 적절한 높이로 설정
           if (item.subcategory === 'clock' && item.placement.wallHeight) {
             position.y = item.placement.wallHeight;
-            console.log(`🕐 시계 Y축 위치 설정: ${position.y}m (벽 높이)`);
+            // console.log(`🕐 시계 Y축 위치 설정: ${position.y}m (벽 높이)`);
           } else if (item.placement.wallOnly) {
             // 벽면 전용 에셋의 경우 기본 벽 높이 설정
             position.y = item.placement.wallHeight || 1.5; // 기본 1.5m 높이
-            console.log(`🏠 벽면 에셋 Y축 위치 설정: ${position.y}m`);
+            // console.log(`🏠 벽면 에셋 Y축 위치 설정: ${position.y}m`);
           } else {
             // 일반 벽면 가구의 경우 바닥에 배치
             position.y = 0;
@@ -856,30 +884,40 @@ const Real3DRoomComponent = React.memo(({
     // 🔥 가구 배치 시 벽 충돌 감지 및 위치 제한 적용
     const constrainedItem = constrainFurnitureToRoom(newPlacedItem);
     if (!constrainedItem.position.equals(newPlacedItem.position)) {
-      console.log('🚫 가구 배치 시 벽 충돌 감지, 위치 제한:', {
-        원래위치: `(${newPlacedItem.position.x.toFixed(2)}, ${newPlacedItem.position.y.toFixed(2)}, ${newPlacedItem.position.z.toFixed(2)})`,
-        제한위치: `(${constrainedItem.position.x.toFixed(2)}, ${constrainedItem.position.y.toFixed(2)}, ${constrainedItem.position.z.toFixed(2)})`
-      });
+      // console.log('🚫 가구 배치 시 벽 충돌 감지, 위치 제한:', {
+      //   원래위치: `(${newPlacedItem.position.x.toFixed(2)}, ${newPlacedItem.position.y.toFixed(2)}, ${newPlacedItem.position.z.toFixed(2)})`,
+      //   제한위치: `(${constrainedItem.position.x.toFixed(2)}, ${constrainedItem.position.y.toFixed(2)}, ${constrainedItem.position.z.toFixed(2)})`
+      // });
     }
 
     // 편집 스토어에 추가 (제한된 위치로)
     addItem(constrainedItem);
-    console.log('새 가구 배치:', constrainedItem);
+    // console.log('새 가구 배치:', constrainedItem);
   };
 
   // 가구 선택 핸들러 - 단일 선택만 허용
   const handleFurnitureSelectInScene = (id: string | null) => {
-    console.log(`🎯 가구 선택 요청: ${id} (현재 선택됨: ${selectedItemId})`);
-    console.log(`📊 선택 상태:`, {
-      requestedId: id,
-      currentSelectedId: selectedItemId,
-      isEditMode,
-      placedItemsCount: placedItems.length
-    });
+    // console.log(`🎯 가구 선택 요청: ${id} (현재 선택됨: ${selectedItemId})`);
+    // console.log(`📊 선택 상태:`, {
+    //   requestedId: id,
+    //   currentSelectedId: selectedItemId,
+    //   isEditMode,
+    //   placedItemsCount: placedItems.length
+    // });
     
     if (id === null) {
       // 선택 해제
-      selectItem(null);
+      if (typeof useEditorStore !== 'undefined') {
+        // 안전하게 스토어의 clearSelection 사용
+        try {
+          const { clearSelection } = useEditorStore.getState();
+          clearSelection();
+        } catch (_) {
+          selectItem(null);
+        }
+      } else {
+        selectItem(null);
+      }
     } else {
       // 단일 선택 - 다른 가구를 선택하면 이전 선택이 자동으로 해제됨
       selectItem(id);
@@ -915,7 +953,7 @@ const Real3DRoomComponent = React.memo(({
   // 가구 복제 핸들러
   const handleFurnitureDuplicate = (item: PlacedItem) => {
     addItem(item);
-    console.log('가구 복제됨:', item.name);
+    // console.log('가구 복제됨:', item.name);
   };
 
   // 플로팅 컨트롤 액션 핸들러들
@@ -930,7 +968,7 @@ const Real3DRoomComponent = React.memo(({
           selectedItem.rotation.order
         );
         updateItem(selectedItemId, { rotation: newRotation });
-        console.log('가구 왼쪽 회전:', selectedItem.name);
+        // console.log('가구 왼쪽 회전:', selectedItem.name);
       }
     }
   };
@@ -946,7 +984,7 @@ const Real3DRoomComponent = React.memo(({
           selectedItem.rotation.order
         );
         updateItem(selectedItemId, { rotation: newRotation });
-        console.log('가구 오른쪽 회전:', selectedItem.name);
+        // console.log('가구 오른쪽 회전:', selectedItem.name);
       }
     }
   };
@@ -973,7 +1011,7 @@ const Real3DRoomComponent = React.memo(({
   const handleFurniturePlaced = () => {
     setIsPlacingFurniture(false);
     setSelectedFurniture(null);
-    console.log('가구 배치가 완료되었습니다.');
+    // console.log('가구 배치가 완료되었습니다.');
   };
 
   const handleToggleFurnitureCatalog = () => {
@@ -1004,9 +1042,22 @@ const Real3DRoomComponent = React.memo(({
         minDpr={minDpr}
         maxDpr={maxDpr}
         onClick={() => {
-          // 빈 공간 클릭 시 선택 해제 및 플로팅 컨트롤 닫기
+          // 빈 공간 클릭 시 선택 해제 (가구 클릭 직후에는 무시)
+          try {
+            const last = (window as any).lastFurnitureClickTime as number | undefined;
+            if (last && Date.now() - last < 200) {
+              // 가구 클릭 직후 발생한 빈 공간 이벤트로 간주하고 무시
+              return;
+            }
+          } catch {}
+
           if (selectedItemId) {
-            selectItem(null);
+            try {
+              const { clearSelection } = useEditorStore.getState();
+              clearSelection();
+            } catch (_) {
+              selectItem(null);
+            }
           }
         }}
       >
@@ -1142,7 +1193,7 @@ const Real3DRoomComponent = React.memo(({
           onClick={() => {
             if (window.confirm(`${placedItems.length}개의 객체를 모두 삭제하시겠습니까?`)) {
               clearAllItems();
-              console.log('모든 객체가 삭제되었습니다.');
+              // console.log('모든 객체가 삭제되었습니다.');
             }
           }}
           className="absolute bottom-4 right-4 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-2xl hover:from-red-700 hover:to-red-800 hover:scale-105 border-2 border-red-800 z-[9999] flex items-center gap-2"
@@ -1159,7 +1210,7 @@ const Real3DRoomComponent = React.memo(({
             showFurnitureCatalog={showFurnitureCatalog}
             onToggleTemplateSelector={() => setShowTemplateSelector(!showTemplateSelector)}
             showTemplateSelector={showTemplateSelector}
-            isMobile={isMobile}
+            isMobileDevice={isMobile}
           />
         )}
 
@@ -1221,14 +1272,14 @@ const Real3DRoomComponent = React.memo(({
           isOpen={showRoomSizeSettings}
           onClose={() => setShowRoomSizeSettings(false)}
           onRoomSizeChange={(dimensions) => {
-            console.log('🏠 방 크기 변경:', dimensions);
+            // console.log('🏠 방 크기 변경:', dimensions);
             // 방 크기 업데이트
             updateRoomDimensions(dimensions);
             
             // 기존 가구들이 새로운 방 크기에 맞는지 검증하고 필요시 이동
             placedItems.forEach(item => {
               if (!isFurnitureInRoom(item)) {
-                console.log(`🚨 방 크기 변경 후 가구가 벽 밖으로 나감: ${item.name || item.id}`);
+                // console.log(`🚨 방 크기 변경 후 가구가 벽 밖으로 나감: ${item.name || item.id}`);
                 const constrainedItem = constrainFurnitureToRoom(item);
                 updateItem(item.id, { position: constrainedItem.position });
               }
@@ -1266,7 +1317,7 @@ const Real3DRoomComponent = React.memo(({
 
       {/* 플로팅 컨트롤 - 가구가 선택되면 무조건 표시 */}
       {(() => {
-        const shouldShow = selectedItemId && !isDragging;
+        const shouldShow = (!!selectedItemId && !isDragging) || forceFloating;
         // console.log('🎯 플로팅 컨트롤 렌더링 조건:', {
         //   selectedItemId,
         //   isDragging,
@@ -1281,8 +1332,95 @@ const Real3DRoomComponent = React.memo(({
           onRotateRight={handleRotateRight}
           onDuplicate={handleDuplicate}
           onDelete={handleDelete}
-          position={floatingControlsPosition}
+          position={{
+            x: Number.isFinite(floatingControlsPosition.x) ? floatingControlsPosition.x : window.innerWidth / 2,
+            y: Number.isFinite(floatingControlsPosition.y) ? floatingControlsPosition.y : window.innerHeight / 2
+          }}
         />
+      )}
+
+      {/* 디버그: 플로팅 앵커 위치 점 표시 및 상태 패널 */}
+      {debugFloating && (
+        <>
+          <div
+            style={{
+              position: 'fixed',
+              left: floatingControlsPosition.x,
+              top: floatingControlsPosition.y,
+              width: 8,
+              height: 8,
+              background: 'red',
+              borderRadius: 9999,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 99999
+            }}
+          />
+          {(() => {
+            const pad = 8;
+            const occ = getUIOcclusionInsets();
+            const posStyle: React.CSSProperties = { position: 'fixed' } as any;
+
+            if (dbgPosPx) {
+              // 드래그된 좌표를 우선 적용
+              posStyle.left = dbgPosPx.x;
+              posStyle.top = dbgPosPx.y;
+              posStyle.transform = 'translate(-50%, -50%)';
+            } else {
+              // 기본 위치는 파라미터 + 차단영역 반영
+              if (debugPos.includes('t')) posStyle.top = (occ?.top || 0) + pad;
+              if (debugPos.includes('b')) posStyle.bottom = (occ?.bottom || 0) + pad;
+              if (debugPos.includes('l')) posStyle.left = pad;
+              if (debugPos.includes('r')) posStyle.right = pad;
+              // 기본은 bottom-left
+              if (!('top' in posStyle) && !('bottom' in posStyle)) posStyle.bottom = (occ?.bottom || 0) + pad;
+              if (!('left' in posStyle) && !('right' in posStyle)) posStyle.left = pad;
+            }
+            return (
+              <div
+                style={{
+                  ...posStyle,
+                  zIndex: 99999,
+                  background: 'rgba(0,0,0,0.6)',
+                  color: 'white',
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  lineHeight: 1.4,
+                  pointerEvents: 'auto',
+                  cursor: 'move'
+                }}
+                onPointerDown={(e) => {
+                  try { (e as any).preventDefault?.(); } catch {}
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  const cx = dbgPosPx ? dbgPosPx.x : rect.left + rect.width / 2;
+                  const cy = dbgPosPx ? dbgPosPx.y : rect.top + rect.height / 2;
+                  dbgDragRef.current = { sx: e.clientX, sy: e.clientY, px: cx, py: cy, dragging: true };
+                  const onMove = (ev: PointerEvent) => {
+                    if (!dbgDragRef.current?.dragging) return;
+                    const dx = ev.clientX - dbgDragRef.current.sx;
+                    const dy = ev.clientY - dbgDragRef.current.sy;
+                    setDbgPosPx({ x: dbgDragRef.current.px + dx, y: dbgDragRef.current.py + dy });
+                  };
+                  const onUp = () => {
+                    if (dbgDragRef.current) dbgDragRef.current.dragging = false;
+                    window.removeEventListener('pointermove', onMove);
+                    window.removeEventListener('pointerup', onUp);
+                    window.removeEventListener('pointercancel', onUp);
+                  };
+                  window.addEventListener('pointermove', onMove, { passive: true });
+                  window.addEventListener('pointerup', onUp, { passive: true });
+                  window.addEventListener('pointercancel', onUp, { passive: true });
+                }}
+              >
+                <div>selected: {String(selectedItemId)}</div>
+                <div>dragging: {String(isDragging)}</div>
+                <div>x: {Math.round(floatingControlsPosition.x)}, y: {Math.round(floatingControlsPosition.y)}</div>
+                <div>safe: {(() => { const s = getSafeTouchArea(); return `${s.top}/${s.bottom}/${s.left}/${s.right}`; })()}</div>
+                <div>occ: {(() => { const o = getUIOcclusionInsets(); return `${o.top}/${o.bottom}/${o.left}/${o.right}`; })()}</div>
+              </div>
+            );
+          })()}
+        </>
       )}
 
       {/* 디버깅용 고정 플로팅 컨트롤 - 웹 환경 테스트용 */}

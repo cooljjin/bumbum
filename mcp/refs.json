@@ -1,0 +1,228 @@
+{
+  "meta": {
+    "note": "Map stable aliases to Playwright MCP element refs. Fill 'ref' after first snapshot.",
+    "createdBy": "codex-cli",
+    "version": 1
+  },
+  "pages": {
+    "default": {
+      "url": "",
+      "elements": {
+        "loginButton": {
+          "ref": "",
+          "selector": "[data-testid=\"login-button\"]",
+          "desc": "Primary login action button"
+        },
+        "emailInput": {
+          "ref": "",
+          "selector": "[data-testid=\"email\"]",
+          "desc": "Email address input field"
+        },
+        "passwordInput": {
+          "ref": "",
+          "selector": "[data-testid=\"password\"]",
+          "desc": "Password input field"
+        }
+      }
+    },
+    "home": {
+      "url": "http://localhost:3002/",
+      "elements": {
+        "appHeading": {
+          "ref": "e8",
+          "selector": "h1",
+          "desc": "Page main heading (🏠 bumbum)"
+        },
+        "exitEditButton": {
+          "ref": "e11",
+          "selector": "[data-testid=\"edit-toggle\"]",
+          "fallback": "button[aria-label=\"편집 모드 종료\"], button:has-text(\"편집 모드 종료\")",
+          "desc": "편집 모드 종료"
+        },
+        "lockViewButton": {
+          "ref": "e14",
+          "selector": "[data-testid=\"view-lock-toggle\"]",
+          "fallback": "button:has-text(\"시점 고정\")",
+          "desc": "시점 고정"
+        },
+        "settingsButton": {
+          "ref": "e161",
+          "selector": "[data-testid=\"settings-button\"]",
+          "fallback": "button:has-text(\"설정\")",
+          "desc": "설정"
+        },
+        "designManageButton": {
+          "ref": "e165",
+          "selector": "[data-testid=\"design-manage-button\"]",
+          "fallback": "button:has-text(\"사용자 디자인 관리\")",
+          "desc": "사용자 디자인 관리"
+        },
+        "accessibilityButton": {
+          "ref": "e170",
+          "selector": "[data-testid=\"accessibility-button\"]",
+          "fallback": "button:has-text(\"접근성 설정 열기\")",
+          "desc": "접근성 설정 열기"
+        },
+        "exportShareButton": {
+          "ref": "e31",
+          "selector": "[data-testid=\"export-share-button\"]",
+          "fallback": "button:has-text(\"디자인 내보내기 및 공유\")",
+          "desc": "디자인 내보내기 및 공유"
+        },
+        "analyticsButton": {
+          "ref": "e181",
+          "selector": "[data-testid=\"analytics-button\"]",
+          "fallback": "button:has-text(\"사용 분석 대시보드\")",
+          "desc": "사용 분석 대시보드"
+        },
+        "mainLoadingText": {
+          "ref": "e45",
+          "selector": "main p",
+          "desc": "3D 룸을 로딩 중입니다..."
+        },
+        "skipToContentLink": {
+          "ref": "e53",
+          "selector": "a[href=\"#main-content\"]",
+          "desc": "메인 콘텐츠로 건너뛰기"
+        },
+        "settingsPanel": {
+          "ref": "e111",
+          "selector": "[data-testid=\"settings-panel\"]",
+          "fallback": "section:has(h2:has-text(\"설정\"))",
+          "desc": "설정 패널 컨테이너"
+        },
+        "settingsTitle": {
+          "ref": "e113",
+          "selector": "[data-testid=\"settings-title\"]",
+          "fallback": "h2:has-text(\"설정\")",
+          "desc": "설정 패널 헤딩"
+        },
+        "settingsCloseButton": {
+          "ref": "e114",
+          "selector": "[data-testid=\"settings-close\"]",
+          "fallback": "button:has-text(\"✕\")",
+          "desc": "설정 패널 닫기 버튼"
+        },
+        "roomSettingsSection": {
+          "ref": "e115",
+          "selector": "section:has(h3:has-text(\"룸 설정\"))",
+          "desc": "룸 설정 섹션 컨테이너"
+        },
+        "roomSettingsTitle": {
+          "ref": "e116",
+          "selector": "[data-testid=\"room-settings-title\"]",
+          "fallback": "h3:has-text(\"룸 설정\")",
+          "desc": "룸 설정 헤딩"
+        },
+        "lockViewToggleContainer": {
+          "ref": "e118",
+          "selector": "label:has-text(\"시점 고정\")",
+          "desc": "시점 고정 토글 래퍼"
+        },
+        "lockViewCheckbox": {
+          "ref": "e119",
+          "selector": "[data-testid=\"lock-view-checkbox\"]",
+          "fallback": "input[type=checkbox][aria-label=\"시점 고정\"]",
+          "desc": "시점 고정 체크박스"
+        },
+        "lockViewLabel": {
+          "ref": "e120",
+          "selector": "*:text(\"시점 고정\")",
+          "desc": "시점 고정 라벨"
+        },
+        "editModeToggleContainer": {
+          "ref": "e121",
+          "selector": "label:has-text(\"편집 모드\")",
+          "desc": "편집 모드 토글 래퍼"
+        },
+        "editModeCheckbox": {
+          "ref": "e122",
+          "selector": "[data-testid=\"edit-mode-checkbox\"]",
+          "fallback": "input[type=checkbox][aria-label=\"편집 모드\"]",
+          "desc": "편집 모드 체크박스"
+        },
+        "editModeLabel": {
+          "ref": "e123",
+          "selector": "*:text(\"편집 모드\")",
+          "desc": "편집 모드 라벨"
+        },
+        "helpSection": {
+          "ref": "e124",
+          "selector": "section:has(h3:has-text(\"도움말\"))",
+          "desc": "도움말 섹션"
+        },
+        "helpTitle": {
+          "ref": "e125",
+          "selector": "[data-testid=\"help-title\"]",
+          "fallback": "h3:has-text(\"도움말\")",
+          "desc": "도움말 헤딩"
+        },
+        "shortcutsWrapper": {
+          "ref": "e130",
+          "selector": "section:has(h4:has-text(\"키보드 단축키\"))",
+          "desc": "키보드 단축키 섹션"
+        },
+        "shortcutsTitle": {
+          "ref": "e131",
+          "selector": "[data-testid=\"shortcuts-title\"]",
+          "fallback": "h4:has-text(\"키보드 단축키\")",
+          "desc": "키보드 단축키 헤딩"
+        },
+        "exportSharePanel": {
+          "ref": "e195",
+          "selector": "[data-testid=\"export-modal\"]",
+          "fallback": "section:has(h2:has-text(\"내보내기 및 공유\"))",
+          "desc": "내보내기 및 공유 패널 컨테이너"
+        },
+        "exportShareTitle": {
+          "ref": "e196",
+          "selector": "[data-testid=\"export-title\"]",
+          "fallback": "h2:has-text(\"내보내기 및 공유\")",
+          "desc": "내보내기 및 공유 헤딩"
+        },
+        "exportShareCloseButton": {
+          "ref": "e200",
+          "selector": "[data-testid=\"export-close\"]",
+          "fallback": "button:has-text(\"내보내기 창 닫기\"), button:has-text(\"✕\")",
+          "desc": "내보내기/공유 패널 닫기"
+        },
+        "exportPngJpgButton": {
+          "ref": "e204",
+          "selector": "[data-testid=\"export-image\"]",
+          "fallback": "button:has-text(\"PNG/JPG\")",
+          "desc": "이미지 PNG/JPG 내보내기"
+        },
+        "exportPdfButton": {
+          "ref": "e211",
+          "selector": "[data-testid=\"export-pdf\"]",
+          "fallback": "button:has-text(\"PDF\")",
+          "desc": "PDF 보고서 내보내기"
+        },
+        "exportJsonButton": {
+          "ref": "e217",
+          "selector": "[data-testid=\"export-json\"]",
+          "fallback": "button:has-text(\"JSON\")",
+          "desc": "데이터 JSON 내보내기"
+        },
+        "exportShareLinkButton": {
+          "ref": "e223",
+          "selector": "[data-testid=\"export-share\"]",
+          "fallback": "button:has-text(\"공유 링크\")",
+          "desc": "공유 링크 만들기"
+        },
+        "exportInfoSection": {
+          "ref": "e232",
+          "selector": "[data-testid=\"export-info\"]",
+          "fallback": "section:has(h3:has-text(\"현재 디자인 정보\"))",
+          "desc": "현재 디자인 정보 섹션"
+        },
+        "exportInfoTitle": {
+          "ref": "e233",
+          "selector": "[data-testid=\"export-info-title\"]",
+          "fallback": "h3:has-text(\"현재 디자인 정보\")",
+          "desc": "현재 디자인 정보 헤딩"
+        }
+      }
+    }
+  }
+}

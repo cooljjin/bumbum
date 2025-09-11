@@ -71,7 +71,7 @@ export function createWallModel(
       wallMaterial.map = texture;
       wallMaterial.needsUpdate = true;
 
-      console.log('🎨 벽 텍스처 로드 성공:', texturePath);
+      // console.log('🎨 벽 텍스처 로드 성공:', texturePath);
     },
     undefined,
     (error) => {
@@ -91,7 +91,7 @@ export function createWallModel(
   wallGroup.add(wallMesh);
   wallGroup.userData = { isWall: true, texturePath };
 
-  console.log('🏗️ 벽 모델 생성 완료:', { width, height, depth, texturePath });
+  // console.log('🏗️ 벽 모델 생성 완료:', { width, height, depth, texturePath });
 
   return wallGroup;
 }
@@ -110,7 +110,12 @@ export async function loadModel(
   const { useCache = true, priority = 'normal', onProgress } = options;
 
   // 개발/테스트 환경에서는 실제 GLTF 로딩을 생략하고 플레이스홀더 반환
-  if (shouldUsePlaceholderModels()) {
+  const usePlaceholder = shouldUsePlaceholderModels();
+  console.log('🔍 shouldUsePlaceholderModels():', usePlaceholder);
+  console.log('🔍 NODE_ENV:', process.env.NODE_ENV);
+  console.log('🔍 NEXT_PUBLIC_PLACEHOLDER_MODELS:', process.env.NEXT_PUBLIC_PLACEHOLDER_MODELS);
+  
+  if (usePlaceholder) {
     console.log('🧩 Placeholder 모델 사용(개발/테스트 모드):', url);
     return createFallbackModel();
   }
@@ -126,12 +131,12 @@ export async function loadModel(
     const cached = modelCache.get(url)!;
     cached.useCount++;
     cached.timestamp = Date.now();
-    console.log(`📦 모델 캐시 히트: ${url}`);
+    // console.log(`📦 모델 캐시 히트: ${url}`);
     return cached.model.clone();
   }
 
   try {
-    console.log(`🔄 모델 로딩 시작: ${resolvedUrl}`);
+    // console.log(`🔄 모델 로딩 시작: ${resolvedUrl}`);
     
     // 더미 파일 감지를 위한 사전 체크
     try {
@@ -159,13 +164,24 @@ export async function loadModel(
       } : undefined;
 
     // 모델 로드
+    console.log('🔄 GLTF 로더로 모델 로딩 시작:', resolvedUrl);
     const gltf = await new Promise<GLTF>((resolve, reject) => {
       const loader = getGLTFLoader();
       
+      const onLoad = (gltf: GLTF) => {
+        console.log('✅ GLTF 모델 로딩 성공:', resolvedUrl);
+        resolve(gltf);
+      };
+      
+      const onError = (error: ErrorEvent) => {
+        console.error('❌ GLTF 모델 로딩 실패:', resolvedUrl, error);
+        reject(error);
+      };
+      
       if (progressHandler) {
-        loader.load(resolvedUrl, resolve, progressHandler, reject);
+        loader.load(resolvedUrl, onLoad, progressHandler, onError);
       } else {
-        loader.load(resolvedUrl, resolve, undefined, reject);
+        loader.load(resolvedUrl, onLoad, undefined, onError);
       }
     });
 
@@ -182,10 +198,10 @@ export async function loadModel(
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     
-    console.log(`📊 모델 크기 분석: ${resolvedUrl}`);
-    console.log(`   📐 크기: ${size.x.toFixed(3)}m × ${size.y.toFixed(3)}m × ${size.z.toFixed(3)}m`);
-    console.log(`   🎯 중심점: (${center.x.toFixed(3)}, ${center.y.toFixed(3)}, ${center.z.toFixed(3)})`);
-    console.log(`   📦 바운딩 박스: min(${box.min.x.toFixed(3)}, ${box.min.y.toFixed(3)}, ${box.min.z.toFixed(3)}) ~ max(${box.max.x.toFixed(3)}, ${box.max.y.toFixed(3)}, ${box.max.z.toFixed(3)})`);
+    // console.log(`📊 모델 크기 분석: ${resolvedUrl}`);
+    // console.log(`   📐 크기: ${size.x.toFixed(3)}m × ${size.y.toFixed(3)}m × ${size.z.toFixed(3)}m`);
+    // console.log(`   🎯 중심점: (${center.x.toFixed(3)}, ${center.y.toFixed(3)}, ${center.z.toFixed(3)})`);
+    // console.log(`   📦 바운딩 박스: min(${box.min.x.toFixed(3)}, ${box.min.y.toFixed(3)}, ${box.min.z.toFixed(3)}) ~ max(${box.max.x.toFixed(3)}, ${box.max.y.toFixed(3)}, ${box.max.z.toFixed(3)})`);
     
     // 모델 최적화
     optimizeModel(model);
@@ -195,7 +211,7 @@ export async function loadModel(
       cacheModel(url, model);
     }
 
-    console.log(`✅ 모델 로딩 완료: ${resolvedUrl}`);
+    // console.log(`✅ 모델 로딩 완료: ${resolvedUrl}`);
     return model;
 
   } catch (error) {
@@ -256,12 +272,12 @@ export async function loadTexture(
     const cached = textureCache.get(url)!;
     cached.useCount++;
     cached.timestamp = Date.now();
-    console.log(`🖼️ 텍스처 캐시 히트: ${url}`);
+    // console.log(`🖼️ 텍스처 캐시 히트: ${url}`);
     return cached.texture;
   }
 
   try {
-    console.log(`🔄 텍스처 로딩 시작: ${url}`);
+    // console.log(`🔄 텍스처 로딩 시작: ${url}`);
     
     const texture = await new Promise<THREE.Texture>((resolve, reject) => {
       const loader = new THREE.TextureLoader();
@@ -282,7 +298,7 @@ export async function loadTexture(
       cacheTexture(url, texture);
     }
 
-    console.log(`✅ 텍스처 로딩 완료: ${url}`);
+    // console.log(`✅ 텍스처 로딩 완료: ${url}`);
     return texture;
 
   } catch (error) {
@@ -368,7 +384,7 @@ function optimizeTexture(texture: THREE.Texture): void {
     texture.needsUpdate = true;
   }
   
-  console.log(`🎨 텍스처 최적화 완료: anisotropy=${texture.anisotropy}`);
+  // console.log(`🎨 텍스처 최적화 완료: anisotropy=${texture.anisotropy}`);
 }
 
 /**
@@ -386,7 +402,7 @@ function cleanupOldestModels(): void {
     modelCache.delete(url);
   }
   
-  console.log(`🧹 ${removeCount}개 모델 캐시 정리 완료`);
+  // console.log(`🧹 ${removeCount}개 모델 캐시 정리 완료`);
 }
 
 /**
@@ -404,7 +420,7 @@ function cleanupOldestTextures(): void {
     textureCache.delete(url);
   }
   
-  console.log(`🧹 ${removeCount}개 텍스처 캐시 정리 완료`);
+  // console.log(`🧹 ${removeCount}개 텍스처 캐시 정리 완료`);
 }
 
 /**
@@ -432,7 +448,7 @@ export function disposeModel(model: THREE.Group): void {
       }
     });
     
-    console.log('🧹 모델 메모리 해제 완료');
+    // console.log('🧹 모델 메모리 해제 완료');
   } catch (error) {
     console.warn('모델 메모리 해제 중 오류:', error);
   }
@@ -550,7 +566,7 @@ export function clearCache(): void {
     cleanupTimer = null;
   }
   
-  console.log('🧹 모든 캐시 정리 완료');
+  // console.log('🧹 모든 캐시 정리 완료');
 }
 
 /**
@@ -664,35 +680,35 @@ export function compareModelWithFootprint(
   const box = new THREE.Box3().setFromObject(model);
   const size = box.getSize(new THREE.Vector3());
   
-  console.log(`\n🔍 크기 비교 분석: ${modelName}`);
-  console.log(`   📏 Footprint: ${footprint.width}m × ${footprint.height}m × ${footprint.depth}m`);
-  console.log(`   📐 실제 모델: ${size.x.toFixed(3)}m × ${size.y.toFixed(3)}m × ${size.z.toFixed(3)}m`);
+  // console.log(`\n🔍 크기 비교 분석: ${modelName}`);
+  // console.log(`   📏 Footprint: ${footprint.width}m × ${footprint.height}m × ${footprint.depth}m`);
+  // console.log(`   📐 실제 모델: ${size.x.toFixed(3)}m × ${size.y.toFixed(3)}m × ${size.z.toFixed(3)}m`);
   
   // 스케일 비율 계산
   const scaleX = footprint.width / size.x;
   const scaleY = footprint.height / size.y;
   const scaleZ = footprint.depth / size.z;
   
-  console.log(`   🔧 필요한 스케일: X=${scaleX.toFixed(3)}, Y=${scaleY.toFixed(3)}, Z=${scaleZ.toFixed(3)}`);
+  // console.log(`   🔧 필요한 스케일: X=${scaleX.toFixed(3)}, Y=${scaleY.toFixed(3)}, Z=${scaleZ.toFixed(3)}`);
   
   // 크기 차이 분석
   const diffX = Math.abs(size.x - footprint.width);
   const diffY = Math.abs(size.y - footprint.height);
   const diffZ = Math.abs(size.z - footprint.depth);
   
-  console.log(`   📊 크기 차이: X=${diffX.toFixed(3)}m, Y=${diffY.toFixed(3)}m, Z=${diffZ.toFixed(3)}m`);
+  // console.log(`   📊 크기 차이: X=${diffX.toFixed(3)}m, Y=${diffY.toFixed(3)}m, Z=${diffZ.toFixed(3)}m`);
   
   // 매칭 상태 평가
   const tolerance = 0.01; // 1cm 허용 오차
   const isMatched = diffX < tolerance && diffY < tolerance && diffZ < tolerance;
   
   if (isMatched) {
-    console.log(`   ✅ 크기 매칭: 완벽하게 일치`);
+    // console.log(`   ✅ 크기 매칭: 완벽하게 일치`);
   } else {
-    console.log(`   ⚠️ 크기 불일치: 조정 필요`);
+    // console.log(`   ⚠️ 크기 불일치: 조정 필요`);
   }
   
-  console.log(`\n`);
+  // console.log(`\n`);
 }
 
 /**
@@ -706,7 +722,7 @@ export function createFurnitureModel(
 ): THREE.Group {
   const group = new THREE.Group();
   
-  console.log(`🔨 가구 모델 생성 시작: ${width}x${height}x${depth}, 색상: 0x${color.toString(16)}`);
+  // console.log(`🔨 가구 모델 생성 시작: ${width}x${height}x${depth}, 색상: 0x${color.toString(16)}`);
   
   // 메인 바디 (더 현실적인 재질)
   const bodyGeometry = new THREE.BoxGeometry(width, height, depth);
@@ -721,10 +737,10 @@ export function createFurnitureModel(
   bodyMesh.position.set(0, height / 2, 0); // 바닥에 맞춤
   group.add(bodyMesh);
   
-  console.log(`📦 메인 바디 생성 완료: 위치 (0, ${height/2}, 0)`);
+  // console.log(`📦 메인 바디 생성 완료: 위치 (0, ${height/2}, 0)`);
   
   // 테이블의 경우 다리 추가 (더 현실적인 형태)
-  console.log(`🔍 테이블 조건 체크: height=${height} > 0.5? ${height > 0.5}`);
+  // console.log(`🔍 테이블 조건 체크: height=${height} > 0.5? ${height > 0.5}`);
   if (height > 0.5) { // 높이가 0.5m 이상이면 테이블로 간주
     const legHeight = height * 0.8;
     const legThickness = Math.min(width, depth) * 0.08; // 더 얇은 다리
@@ -751,11 +767,11 @@ export function createFurnitureModel(
       group.add(leg);
     });
     
-    console.log(`🪑 테이블 다리 4개 추가 완료`);
+    // console.log(`🪑 테이블 다리 4개 추가 완료`);
   }
   
   // 소파의 경우 등받이와 팔걸이 추가
-  console.log(`🔍 소파 조건 체크: width=${width} > 1.5? ${width > 1.5}, height=${height} > 0.6? ${height > 0.6}`);
+  // console.log(`🔍 소파 조건 체크: width=${width} > 1.5? ${width > 1.5}, height=${height} > 0.6? ${height > 0.6}`);
   if (width > 1.5 && height > 0.6) { // 소파로 간주
     // 등받이
     const backHeight = height * 0.7;
@@ -771,7 +787,7 @@ export function createFurnitureModel(
     backMesh.receiveShadow = true;
     group.add(backMesh);
     
-    console.log(`🛋️ 소파 등받이 추가 완료`);
+    // console.log(`🛋️ 소파 등받이 추가 완료`);
     
     // 팔걸이 (양쪽)
     const armHeight = height * 0.6;
@@ -797,11 +813,11 @@ export function createFurnitureModel(
     rightArm.receiveShadow = true;
     group.add(rightArm);
     
-    console.log(`🛋️ 소파 팔걸이 2개 추가 완료`);
+    // console.log(`🛋️ 소파 팔걸이 2개 추가 완료`);
   }
   
   // 의자의 경우 등받이 추가
-  console.log(`🔍 의자 조건 체크: width=${width} < 1.0? ${width < 1.0}, height=${height} > 0.8? ${height > 0.8}, depth=${depth} < 1.0? ${depth < 1.0}`);
+  // console.log(`🔍 의자 조건 체크: width=${width} < 1.0? ${width < 1.0}, height=${height} > 0.8? ${height > 0.8}, depth=${depth} < 1.0? ${depth < 1.0}`);
   if (width < 1.0 && height > 0.8 && depth < 1.0) { // 의자로 간주
     const backHeight = height * 0.6;
     const backGeometry = new THREE.BoxGeometry(width, backHeight, depth * 0.1);
@@ -816,11 +832,11 @@ export function createFurnitureModel(
     backMesh.receiveShadow = true;
     group.add(backMesh);
     
-    console.log(`🪑 의자 등받이 추가 완료`);
+    // console.log(`🪑 의자 등받이 추가 완료`);
   }
   
   // 침대의 경우 헤드보드 추가
-  console.log(`🔍 침대 조건 체크: width=${width} > 1.5? ${width > 1.5}, height=${height} < 0.6? ${height < 0.6}, depth=${depth} > 2.0? ${depth > 2.0}`);
+  // console.log(`🔍 침대 조건 체크: width=${width} > 1.5? ${width > 1.5}, height=${height} < 0.6? ${height < 0.6}, depth=${depth} > 2.0? ${depth > 2.0}`);
   if (width > 1.5 && height < 0.6 && depth > 2.0) { // 침대로 간주
     const headboardHeight = height * 1.5;
     const headboardGeometry = new THREE.BoxGeometry(width, headboardHeight, depth * 0.1);
@@ -835,9 +851,9 @@ export function createFurnitureModel(
     headboardMesh.receiveShadow = true;
     group.add(headboardMesh);
     
-    console.log(`🛏️ 침대 헤드보드 추가 완료`);
+    // console.log(`🛏️ 침대 헤드보드 추가 완료`);
   }
   
-  console.log(`✅ 가구 모델 생성 완료: ${group.children.length}개 컴포넌트`);
+  // console.log(`✅ 가구 모델 생성 완료: ${group.children.length}개 컴포넌트`);
   return group;
 }

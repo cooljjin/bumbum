@@ -131,6 +131,7 @@ export interface EditorActions {
   removeItem: (id: string) => void;
   duplicateItem: (id: string) => void;
   selectItem: (id: string | null) => void;
+  clearSelection: () => void;
   lockItem: (id: string) => void;
   unlockItem: (id: string) => void;
 

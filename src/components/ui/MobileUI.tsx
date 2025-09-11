@@ -51,6 +51,7 @@ export const MobileUI: React.FC<MobileUIProps> = ({
     <>
       {/* 모바일용 하단 툴바 - 간소화된 버전 */}
       <motion.div
+        data-occlude-floating="mobile-bottom-bar"
         className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200/50 shadow-lg z-40"
         initial={{ y: 100 }}
         animate={{ y: 0 }}
@@ -82,6 +83,7 @@ export const MobileUI: React.FC<MobileUIProps> = ({
       <AnimatePresence>
         {selectedItemId && !showToolPanel && (
           <motion.div
+            data-occlude-floating="mobile-quick-action"
             className="fixed bottom-20 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 z-30"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -131,6 +133,7 @@ export const MobileUI: React.FC<MobileUIProps> = ({
       <AnimatePresence>
         {showToolPanel && (
           <motion.div
+            data-occlude-floating="mobile-tool-panel"
             className="fixed bottom-24 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 z-35 overflow-hidden max-w-[calc(100vw-2rem)]"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -161,7 +164,7 @@ export const MobileUI: React.FC<MobileUIProps> = ({
                   onClick={() => {
                     // 가구가 선택된 경우 편집 모드 토글
                     if (selectedItemId) {
-                      console.log('가구 편집 모드 토글');
+                      // console.log('가구 편집 모드 토글');
                     }
                   }}
                   disabled={!selectedItemId}

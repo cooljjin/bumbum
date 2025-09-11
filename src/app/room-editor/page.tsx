@@ -60,7 +60,7 @@ export default function RoomEditorPage() {
       document.addEventListener('touchmove', preventTouchScroll, eventOptions);
       document.addEventListener('touchend', preventTouchScroll, eventOptions);
       
-      console.log('🔒 편집 모드 진입: 스크롤 락 활성화');
+      // console.log('🔒 편집 모드 진입: 스크롤 락 활성화');
     } else {
       disableScrollLock();
       
@@ -71,7 +71,7 @@ export default function RoomEditorPage() {
       document.removeEventListener('touchmove', preventTouchScroll, { capture: true });
       document.removeEventListener('touchend', preventTouchScroll, { capture: true });
       
-      console.log('🔓 편집 모드 종료: 스크롤 락 해제');
+      // console.log('🔓 편집 모드 종료: 스크롤 락 해제');
     }
 
     return () => {
@@ -93,7 +93,7 @@ export default function RoomEditorPage() {
     // editorStore의 mode도 함께 변경
     setMode(editMode ? 'edit' : 'view');
     
-    console.log('🎯 편집 모드 상태:', { editMode, mode: editMode ? 'edit' : 'view' });
+    // console.log('🎯 편집 모드 상태:', { editMode, mode: editMode ? 'edit' : 'view' });
   };
 
   if (isLoading) {
@@ -145,6 +145,26 @@ export default function RoomEditorPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* 테스트용 침대 추가 버튼 */}
+              <button
+                onClick={() => {
+                  const testBed = {
+                    id: `test-bed-${Date.now()}`,
+                    name: 'Cozy Bed',
+                    modelPath: '/models/furniture/Cozy_bed_0909043453_texture.glb',
+                    position: { x: 0, y: 0, z: 0 },
+                    rotation: { x: 0, y: 0, z: 0 },
+                    scale: { x: 1, y: 1, z: 1 },
+                    footprint: { width: 2.0, depth: 1.5, height: 0.8 },
+                    metadata: { category: 'bedroom', furnitureId: 'cozybed' }
+                  };
+                  console.log('테스트 침대 추가:', testBed);
+                }}
+                className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+              >
+                🛏️ 테스트 침대 추가
+              </button>
+              
               <button
                 onClick={() => setIsViewLocked(!isViewLocked)}
                 className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${

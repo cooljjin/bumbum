@@ -38,20 +38,20 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
       if (grid.enabled) {
         const cellSize = grid.size / grid.divisions;
         transformControlsRef.current.setTranslationSnap(cellSize);
-        console.log(`Room furniture grid snap enabled: ${cellSize}m`);
+        // console.log(`Room furniture grid snap enabled: ${cellSize}m`);
       } else {
         transformControlsRef.current.setTranslationSnap(null);
-        console.log('Room furniture grid snap disabled');
+        // console.log('Room furniture grid snap disabled');
       }
 
       // 회전 스냅 설정
       if (rotationSnap.enabled) {
         const snapAngle = (rotationSnap.angle * Math.PI) / 180; // 도를 라디안으로 변환
         transformControlsRef.current.setRotationSnap(snapAngle);
-        console.log(`Room furniture rotation snap enabled: ${rotationSnap.angle}°`);
+        // console.log(`Room furniture rotation snap enabled: ${rotationSnap.angle}°`);
       } else {
         transformControlsRef.current.setRotationSnap(null);
-        console.log('Room furniture rotation snap disabled');
+        // console.log('Room furniture rotation snap disabled');
       }
     }
   }, [isSelected, mode, grid.enabled, grid.size, grid.divisions, rotationSnap.enabled, rotationSnap.angle]);
@@ -95,7 +95,7 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
             groupRef.current.position.copy(newPosition);
           }
           
-          console.log('🚫 Room Furniture TransformControls: 벽 충돌 감지, 위치 제한:', newPosition);
+          // console.log('🚫 Room Furniture TransformControls: 벽 충돌 감지, 위치 제한:', newPosition);
         }
 
         onUpdate({
@@ -104,7 +104,7 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
           scale: newScale
         });
       } catch (error) {
-        console.warn('Room furniture transform update failed:', error);
+        // console.warn('Room furniture transform update failed:', error);
       }
     }
   };

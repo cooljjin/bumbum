@@ -140,7 +140,7 @@ describe('storageManager', () => {
       storageManager.autoSave(testItems);
 
       // auto save data가 저장되었는지 확인
-      const autoSaveData = localStorageMock.getItem('bondidi_auto_save');
+      const autoSaveData = localStorageMock.getItem('bumbum_auto_save');
       expect(autoSaveData).toBeTruthy();
     });
   });
@@ -190,7 +190,7 @@ describe('storageManager', () => {
         }
       }];
 
-      localStorageMock.setItem('bondidi_room_layouts', JSON.stringify(oldLayouts));
+      localStorageMock.setItem('bumbum_room_layouts', JSON.stringify(oldLayouts));
 
       const cleanupResult = storageManager.cleanupStorage();
 

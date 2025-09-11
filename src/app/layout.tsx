@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Bondidi - bumbum',
+  title: 'bumbum',
   description: '3D 미니룸을 체험해보세요',
   icons: {
     icon: [

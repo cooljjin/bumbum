@@ -22,8 +22,8 @@
 
 ```bash
 # 프로젝트 클론
-git clone https://github.com/your-org/bondidi-project.git
-cd bondidi-project
+git clone https://github.com/your-org/bumbum-project.git
+cd bumbum-project
 
 # 의존성 설치
 npm install

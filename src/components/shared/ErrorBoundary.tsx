@@ -128,9 +128,9 @@ export default class ErrorBoundary extends Component<Props, State> {
       };
 
       // 에러 리포트를 localStorage에 저장 (나중에 서버로 전송 가능)
-      const reports = JSON.parse(localStorage.getItem('bondidi_error_reports') || '[]');
+      const reports = JSON.parse(localStorage.getItem('bumbum_error_reports') || '[]');
       reports.push(errorReport);
-      localStorage.setItem('bondidi_error_reports', JSON.stringify(reports));
+      localStorage.setItem('bumbum_error_reports', JSON.stringify(reports));
 
       alert('에러 리포트가 저장되었습니다. 문제 해결을 위해 개발팀에 전달하겠습니다.');
     } catch (error) {

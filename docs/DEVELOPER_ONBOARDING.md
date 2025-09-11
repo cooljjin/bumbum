@@ -87,8 +87,8 @@ git lfs install
 
 #### 1. 저장소 클론
 ```bash
-git clone https://github.com/company/bondidi.git
-cd bondidi
+git clone https://github.com/company/bumbum.git
+cd bumbum
 ```
 
 #### 2. 의존성 설치
@@ -150,7 +150,7 @@ npm run prepare
 ### 📁 디렉토리 구조
 
 ```
-bondidi/
+bumbum/
 ├── 📁 docs/                 # 프로젝트 문서
 │   ├── API.md              # API 문서
 │   ├── ARCHITECTURE.md     # 아키텍처 문서

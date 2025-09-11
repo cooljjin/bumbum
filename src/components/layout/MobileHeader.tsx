@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { FiMenu, FiSettings, FiLock, FiUnlock, FiEdit3, FiCheck } from 'react-icons/fi';
 import packageJson from '../../../package.json';
@@ -40,6 +41,7 @@ export function MobileHeader({
 
   return (
     <motion.header
+      data-occlude-floating="mobile-header"
       className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-b border-gray-200/50 z-50"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
@@ -56,7 +58,17 @@ export function MobileHeader({
             <FiMenu size={18} />
           </motion.button>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold text-gray-800">🏠 bumbum</h1>
+            <div className="flex items-center gap-2">
+              {/* 로고 이미지 - public/logo.svg 또는 public/logo.png 파일을 추가하세요 */}
+              <Image
+                src="/logo.png"
+                alt="bumbum 로고"
+                width={24}
+                height={24}
+                className="w-12 h-12"
+              />
+              <h1 className="text-lg font-bold text-gray-800">bumbum</h1>
+            </div>
             <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
               v{packageJson.version}
             </span>

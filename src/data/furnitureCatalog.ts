@@ -49,46 +49,6 @@ export const sampleFurniture: FurnitureItem[] = [
     }
   },
 
-  // === Cozy Bed ===
-  {
-    id: 'cozybed',
-    name: 'Cozy Bed',
-    nameKo: '코지 침대',
-    category: 'bedroom',
-    subcategory: 'bed',
-    modelPath: '/models/furniture/Cozy_bed_0909043453_texture.glb',
-    thumbnailPath: '/thumbnails/furniture/cozybed.svg',
-    footprint: {
-      width: 2.0,
-      depth: 1.5,
-      height: 0.8
-    },
-    placement: {
-      canRotate: true,
-      canScale: true,
-      floorOffset: 0
-    },
-    metadata: {
-      brand: 'CozyFurniture',
-      model: 'CF-BED-001',
-      price: 450000,
-      description: '편안하고 아늑한 침대',
-      tags: ['침대', '코지', '편안한', '아늑한', '침실'],
-      materials: ['나무', '천', '폼'],
-      colors: ['우드', '화이트', '블루', '그레이']
-    },
-    renderSettings: {
-      castShadow: true,
-      receiveShadow: true,
-      defaultScale: v3(1, 1, 1),
-      defaultRotation: e(0, 0, 0)
-    },
-    editSettings: {
-      snapToGrid: true,
-      rotationSnap: 15,
-      collisionGroup: 'furniture'
-    }
-  },
 
   // === Test Table ===
   {
@@ -221,7 +181,7 @@ export const sampleFurniture: FurnitureItem[] = [
     category: 'bedroom',
     subcategory: 'bed',
     modelPath: '/models/furniture/Cozy_bed_0909043453_texture.glb',
-    thumbnailPath: '/thumbnails/furniture/bed-001.svg',
+    thumbnailPath: '/thumbnails/furniture/cozy_bed.png',
     footprint: {
       width: 1.2,
       depth: 2.0,
@@ -428,7 +388,7 @@ export const sampleFurniture: FurnitureItem[] = [
     category: 'bedroom',
     subcategory: 'storage',
     modelPath: '/models/furniture/_gray_drawer.glb',
-    thumbnailPath: '/thumbnails/furniture/dresser-001.svg',
+    thumbnailPath: '/thumbnails/furniture/_gray_drawer.png',
     footprint: {
       width: 1.0,
       depth: 0.5,
@@ -461,46 +421,6 @@ export const sampleFurniture: FurnitureItem[] = [
     }
   },
 
-  // === 벽 카테고리 ===
-  {
-    id: 'wall_beige',
-    name: 'Beige Wall',
-    nameKo: '베이지 벽',
-    category: 'wall',
-    subcategory: 'interior_wall',
-    modelPath: '/models/wall/wall_beige.png', // 텍스처 기반 벽 모델
-    thumbnailPath: '/thumbnails/wall/wall_beige.svg',
-    footprint: {
-      width: 3.0,  // 벽의 기본 너비
-      depth: 0.1,  // 벽의 두께
-      height: 2.5  // 벽의 높이
-    },
-    placement: {
-      canRotate: true,
-      canScale: true,
-      floorOffset: 0 // 벽은 바닥에 붙어서 배치
-    },
-    metadata: {
-      brand: 'WallDecor',
-      model: 'WD-WALL-BEIGE',
-      price: 50000,
-      description: '따뜻한 베이지톤의 인테리어 벽',
-      tags: ['벽', '베이지', '인테리어', '따뜻한', '모던'],
-      materials: ['벽지', '페인트'],
-      colors: ['베이지', '크림']
-    },
-    renderSettings: {
-      castShadow: false,  // 벽은 그림자를 드리우지 않음
-      receiveShadow: true, // 하지만 그림자를 받음
-      defaultScale: v3(1, 1, 1),
-      defaultRotation: e(0, Math.PI / 2, 0) // 벽을 세로로 세우기
-    },
-    editSettings: {
-      snapToGrid: true,
-      rotationSnap: 90, // 벽은 90도 단위로 회전
-      collisionGroup: 'wall'
-    }
-  },
 
   // === Cozy Sofa ===
   {

@@ -89,7 +89,7 @@ export const EnhancedDragDrop: React.FC<EnhancedDragDropProps> = ({
       setTimeout(() => document.body.removeChild(dragImage), 0);
     }
 
-    console.log('🚀 드래그 시작:', { startPos, tool });
+    // console.log('🚀 드래그 시작:', { startPos, tool });
   }, [mode, onDragStart, tool]);
 
   // 드래그 중 처리
@@ -138,9 +138,9 @@ export const EnhancedDragDrop: React.FC<EnhancedDragDropProps> = ({
     
     if (isValidDrop && onDrop) {
       onDrop(dropPosition, dropRotation, dropScale);
-      console.log('✅ 드롭 완료:', { position: dropPosition, rotation: dropRotation, scale: dropScale });
+      // console.log('✅ 드롭 완료:', { position: dropPosition, rotation: dropRotation, scale: dropScale });
     } else {
-      console.log('❌ 드롭 실패: 유효하지 않은 위치');
+      // console.log('❌ 드롭 실패: 유효하지 않은 위치');
     }
 
     // 드래그 상태 초기화
@@ -166,7 +166,7 @@ export const EnhancedDragDrop: React.FC<EnhancedDragDropProps> = ({
     });
 
     onDragEnd?.();
-    console.log('🛑 드래그 종료');
+    // console.log('🛑 드래그 종료');
   }, [onDragEnd]);
 
   // 드래그 프리뷰 렌더링

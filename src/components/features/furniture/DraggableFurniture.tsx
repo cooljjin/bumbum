@@ -66,7 +66,7 @@ const adjustModelToFootprint = (model: THREE.Group, footprint: { width: number; 
                      Math.abs(finalSize.z - footprint.depth) < tolerance;
   
   if (!sizeMatches) {
-    console.warn(`⚠️ 성능: 크기 매칭 실패! 목표: ${footprint.width}x${footprint.height}x${footprint.depth}, 실제: ${finalSize.x.toFixed(2)}x${finalSize.y.toFixed(2)}x${finalSize.z.toFixed(2)}`);
+    // console.warn(`⚠️ 성능: 크기 매칭 실패! 목표: ${footprint.width}x${footprint.height}x${footprint.depth}, 실제: ${finalSize.x.toFixed(2)}x${finalSize.y.toFixed(2)}x${finalSize.z.toFixed(2)}`);
   }
   
   return adjustedModel;
@@ -104,7 +104,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         // console.log(`🔍 furniture 정보:`, furniture);
 
         if (!furniture) {
-          console.warn('⚠️ 성능: 가구 정보를 찾을 수 없어 기본 박스로 표시합니다:', item);
+          // console.warn('⚠️ 성능: 가구 정보를 찾을 수 없어 기본 박스로 표시합니다:', item);
           setLoadError('가구 정보를 찾을 수 없습니다');
           setIsLoading(false);
           return;
@@ -128,7 +128,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
               });
 
               if (gltfModel) {
-                console.log(`✅ 성능: GLTF 모델 로드 성공 - ${furniture.nameKo}`);
+                // console.log(`✅ 성능: GLTF 모델 로드 성공 - ${furniture.nameKo}`);
 
                 // 원본 모델과 footprint 크기 비교
                 compareModelWithFootprint(gltfModel, furniture.footprint, furniture.nameKo);
@@ -142,7 +142,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
                 throw new Error('GLTF 모델 로드 실패');
               }
             } catch (gltfError) {
-              console.warn('⚠️ 성능: GLTF 모델 로드 실패, 폴백 모델 사용:', gltfError);
+              // console.warn('⚠️ 성능: GLTF 모델 로드 실패, 폴백 모델 사용:', gltfError);
               // GLTF 로드 실패 시 폴백 모델 생성으로 넘어감
             }
           } else {
@@ -151,10 +151,10 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         }
 
         // GLTF 로드 실패 또는 벽 카테고리인 경우 폴백 모델 생성
-        console.log(`✅ 성능: 폴백 모델 생성 - ${furniture.nameKo}`);
+        // console.log(`✅ 성능: 폴백 모델 생성 - ${furniture.nameKo}`);
         setIsLoading(false);
       } catch (error) {
-        console.error('❌ 성능: 가구 모델 생성 실패:', error);
+        // console.error('❌ 성능: 가구 모델 생성 실패:', error);
         setLoadError(error instanceof Error ? error.message : 'Unknown error');
 
         // 에러 발생 시 폴백 모델 사용
@@ -196,8 +196,11 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   // 안전한 preventDefault 래퍼 (r3f PointerEvent에는 preventDefault가 없을 수 있음)
   const safePreventDefault = (ev: any) => {
     try {
-      if (typeof ev?.preventDefault === 'function') ev.preventDefault();
-      else if (typeof ev?.nativeEvent?.preventDefault === 'function') ev.nativeEvent.preventDefault();
+      const e = ev?.nativeEvent ?? ev;
+      // 패시브 리스너에서 발생한 이벤트는 cancelable === false 여서
+      // preventDefault를 호출하면 경고가 발생한다. 이 경우 건너뜀.
+      if (e && e.cancelable === false) return;
+      if (typeof e?.preventDefault === 'function') e.preventDefault();
     } catch {}
   };
 
@@ -238,9 +241,9 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       };
 
       disposeObject(modelToDispose);
-      console.log('✅ 성능: 3D 모델 메모리 정리 완료 -', item.name);
+      // console.log('✅ 성능: 3D 모델 메모리 정리 완료 -', item.name);
     } catch (error) {
-      console.warn('⚠️ 성능: 3D 모델 dispose 중 오류:', error);
+      // console.warn('⚠️ 성능: 3D 모델 dispose 중 오류:', error);
     }
   }, [item.name]);
 
@@ -250,9 +253,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       return;
     }
 
-    // 즉시 드래그 모드로 전환
-    setIsDragging(true);
-    setDragging(true);
+    // 실제 드래그 시작 여부는 이동 임계치 통과 시 결정
+    setIsDragging(false);
 
     // 가구 선택
     onSelect(item.id);
@@ -288,6 +290,12 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     dragIntentRef.current = { active: true, startX: clientX, startY: clientY };
     suppressClickRef.current = false; // 드래그 시작 시점에서는 클릭 허용
 
+    // 카메라 시점 즉시 고정: 의도 감지 시 전역 드래그 플래그를 선반영하여
+    // CameraControls enabled를 즉시 false로 만들어 초기 흔들림을 방지
+    try {
+      setDragging(true);
+    } catch {}
+
   }, [isEditMode, item.isLocked, item.id, item.position, onSelect, gl, setDragging]);
 
   // 🔄 드래그 중 핸들러 (마우스 및 터치 지원)
@@ -318,6 +326,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
       if (dist > threshold) {
         setIsDragging(true);
+        setDragging(true); // 전역 드래그 상태는 실제 드래그 시작 시에만 true
         suppressClickRef.current = true; // 실제 드래그 시작 시에만 클릭 억제
       } else {
         return; // 아직 드래그 시작 전이면 무시
@@ -327,10 +336,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     // 실제 드래그 중이 아니면 무시
     if (!isDragging || !dragStartPosition || !dragStartMousePosition) return;
 
-    // 드래그 중에는 터치 이벤트의 기본 동작 방지 (스크롤 등)
-    if (event?.touches || event?.pointerType === 'touch') {
-      safePreventDefault(event);
-    }
+    // 스크롤 방지는 전역(window) 리스너(passive: false)에서 처리
 
     const rect = gl?.domElement?.getBoundingClientRect?.();
     const width = rect?.width ?? window.innerWidth;
@@ -370,7 +376,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     setIsColliding(collisionCheck.hasCollision);
     
     if (collisionCheck.hasCollision) {
-      console.warn(`⚠️ 성능: 드래그 중 충돌 감지 - ${item.name || item.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
+      // console.warn(`⚠️ 성능: 드래그 중 충돌 감지 - ${item.name || item.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
     }
     
     onUpdate(item.id, { position: constrained.position });
@@ -415,13 +421,13 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       const collisionCheck = checkDragCollision(item, otherItems, item.position);
       
       if (collisionCheck.hasCollision) {
-        console.warn(`⚠️ 성능: 드래그 종료 시 충돌 감지 - ${item.name || item.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
+        // console.warn(`⚠️ 성능: 드래그 종료 시 충돌 감지 - ${item.name || item.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
         
         // 충돌을 피할 수 있는 안전한 위치로 자동 이동
         const safeItem = moveToSafePosition(item, otherItems);
         
         if (safeItem.position !== item.position) {
-          console.log(`✅ 성능: 충돌 해결 - ${item.name || item.id}을(를) 안전한 위치로 자동 이동`);
+          // console.log(`✅ 성능: 충돌 해결 - ${item.name || item.id}을(를) 안전한 위치로 자동 이동`);
           onUpdate(item.id, { position: safeItem.position });
         }
       }
@@ -434,6 +440,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   // 🖱️ 마우스 이벤트 핸들러
   // 포인터 다운(마우스/터치 공통)
   const handlePointerDown = useCallback((event: any) => {
+    try { event.stopPropagation?.(); } catch {}
     const isTouch = event.pointerType === 'touch' || !!event.touches;
     const isLeft = event.button === 0 || event.button === undefined;
 
@@ -451,9 +458,6 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
   const handlePointerMove = useCallback((event: any) => {
     if (isDragging) {
-      if (event?.touches || event?.type === 'touchmove' || event?.nativeEvent?.touches) {
-        safePreventDefault(event);
-      }
       handleDrag(event);
     } else if (dragIntentRef.current?.active) {
       handleDrag(event);
@@ -461,13 +465,14 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   }, [isDragging, handleDrag, item.id]);
 
   const handlePointerUp = useCallback((event: any) => {
-    if (isDragging) {
+    try { event.stopPropagation?.(); } catch {}
+    if (isDragging || dragIntentRef.current?.active) {
       handleDragEnd(event);
     }
   }, [isDragging, handleDragEnd, item.id]);
 
   const handlePointerCancel = useCallback((event: any) => {
-    if (isDragging) {
+    if (isDragging || dragIntentRef.current?.active) {
       handleDragEnd(event);
     }
   }, [isDragging, handleDragEnd]);
@@ -530,6 +535,9 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       const intersects = raycaster.current.intersectObject(meshRef.current, true);
 
       if (intersects.length > 0) {
+        // 카메라 컨트롤에 이벤트가 전달되어 시점이 움직이지 않도록 즉시 차단
+        try { event.preventDefault(); } catch {}
+        try { event.stopPropagation(); } catch {}
         // 가상 이벤트 객체 생성
         const virtualEvent = {
           clientX: event.clientX,
@@ -549,25 +557,19 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       }
     };
 
-    window.addEventListener('pointerdown', handleDOMPointerDown, { passive: false });
+    // 캡처 단계에서 가구 히트 감지 → 카메라 컨트롤보다 먼저 가로채기
+    window.addEventListener('pointerdown', handleDOMPointerDown, { passive: false, capture: true });
 
     return () => {
-      window.removeEventListener('pointerdown', handleDOMPointerDown);
+      // 캡처 단계 등록과 동일하게 캡처 단계에서 해제
+      window.removeEventListener('pointerdown', handleDOMPointerDown, true);
     };
-  }, [isEditMode, item.isLocked, camera, gl, handlePointerDown]);
+  }, [isEditMode, item.isLocked, camera, gl, handleDragStart]);
 
-  // 드래그 상태 변화 감지 - 드래그가 끝나면 가구 선택
-  useEffect(() => {
-    // 드래그가 끝났고, 드래그 의도가 있었던 경우 가구 선택
-    if (!isDragging && dragIntentRef.current?.active) {
-      onSelect(item.id);
-      dragIntentRef.current = null;
-    }
-    // 드래그가 끝났지만 드래그 의도가 없는 경우도 가구 선택 (웹 환경 대응)
-    else if (!isDragging && dragIntentRef.current === null) {
-      onSelect(item.id);
-    }
-  }, [isDragging, item.id, onSelect]);
+  // 드래그 상태 변화 감지: 자동 재선택 로직 제거
+  // - 드래그 종료 시 선택 처리는 handleDragEnd 또는 클릭 핸들러에서 수행
+  // - 불필요한 자동 선택은 빈 공간 클릭 시 선택 해제를 방해할 수 있음
+  // 유지 목적: 과거의 자동 선택 부작용 제거를 위한 설명 주석
 
   // 컴포넌트가 언마운트될 때 이벤트 리스너 정리
   useEffect(() => {
@@ -610,36 +612,36 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
   // 모델 로딩 - 강제 실행
   useEffect(() => {
-    console.log(`🔄 useEffect 실행됨 - item.id: ${item.id}, item.name: ${item.name}`);
-    console.log(`🔄 useEffect dependency 체크:`, { 
-      itemId: item.id, 
-      itemName: item.name, 
-      itemModelPath: item.modelPath 
-    });
+    // console.log(`🔄 useEffect 실행됨 - item.id: ${item.id}, item.name: ${item.name}`);
+    // console.log(`🔄 useEffect dependency 체크:`, { 
+    //   itemId: item.id, 
+    //   itemName: item.name, 
+    //   itemModelPath: item.modelPath 
+    // });
     
     const loadFurnitureModel = async () => {
       try {
-        console.log(`🚀 loadFurnitureModel 시작 - item.id: ${item.id}`);
+        // console.log(`🚀 loadFurnitureModel 시작 - item.id: ${item.id}`);
         setIsLoading(true);
         setLoadError(null);
 
         const furniture = getFurnitureFromPlacedItem(item);
-        console.log(`🔍 furniture 정보:`, furniture);
+        // console.log(`🔍 furniture 정보:`, furniture);
         
         if (!furniture) {
-          console.warn('⚠️ 성능: 가구 정보를 찾을 수 없어 기본 박스로 표시합니다:', item);
+          // console.warn('⚠️ 성능: 가구 정보를 찾을 수 없어 기본 박스로 표시합니다:', item);
           setLoadError('가구 정보를 찾을 수 없습니다');
           setIsLoading(false);
           return;
         }
 
-        console.log(`🎯 가구 모델 로딩 시작: ${furniture.nameKo} (ID: ${item.id})`);
-        console.log(`📁 모델 경로: ${furniture.modelPath}`);
-        console.log(`📏 크기: ${furniture.footprint.width}x${furniture.footprint.height}x${furniture.footprint.depth}`);
+        // console.log(`🎯 가구 모델 로딩 시작: ${furniture.nameKo} (ID: ${item.id})`);
+        // console.log(`📁 모델 경로: ${furniture.modelPath}`);
+        // console.log(`📏 크기: ${furniture.footprint.width}x${furniture.footprint.height}x${furniture.footprint.depth}`);
 
         // 벽 카테고리는 GLB 로드 시도하지 않고 바로 폴백 모델 생성
         if (furniture.category === 'wall') {
-          console.log(`🏗️ 벽 카테고리 감지, GLB 로드 생략 및 폴백 모델 생성: ${furniture.nameKo}`);
+          // console.log(`🏗️ 벽 카테고리 감지, GLB 로드 생략 및 폴백 모델 생성: ${furniture.nameKo}`);
         } else {
           // 벽이 아닌 경우에만 GLB 로드 시도
           if (furniture.modelPath) {
@@ -651,13 +653,13 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
               });
 
               if (gltfModel) {
-                console.info(`✅ GLTF 모델 로드 성공: ${furniture.nameKo}`);
-                console.log(`📦 로드된 모델 정보:`, {
-                  childrenCount: gltfModel.children.length,
-                  position: gltfModel.position,
-                  rotation: gltfModel.rotation,
-                  scale: gltfModel.scale
-                });
+                // console.info(`✅ GLTF 모델 로드 성공: ${furniture.nameKo}`);
+                // console.log(`📦 로드된 모델 정보:`, {
+                //   childrenCount: gltfModel.children.length,
+                //   position: gltfModel.position,
+                //   rotation: gltfModel.rotation,
+                //   scale: gltfModel.scale
+                // });
 
                 // 원본 모델과 footprint 크기 비교
                 compareModelWithFootprint(gltfModel, furniture.footprint, furniture.nameKo);
@@ -672,20 +674,20 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
                 setIsLoading(false);
                 return;
               } else {
-                console.warn(`⚠️ GLTF 모델이 null입니다: ${furniture.nameKo}`);
+                // console.warn(`⚠️ GLTF 모델이 null입니다: ${furniture.nameKo}`);
               }
             } catch (gltfError) {
-              console.warn(`⚠️ GLTF 모델 로드 실패, 폴백 모델 사용: ${furniture.nameKo}`);
-              console.warn(`❌ 오류 상세:`, gltfError);
-              console.warn(`📁 시도한 경로: ${furniture.modelPath}`);
+              // console.warn(`⚠️ GLTF 모델 로드 실패, 폴백 모델 사용: ${furniture.nameKo}`);
+              // console.warn(`❌ 오류 상세:`, gltfError);
+              // console.warn(`📁 시도한 경로: ${furniture.modelPath}`);
             }
           } else {
-            console.warn(`⚠️ 모델 경로가 없습니다: ${furniture.nameKo}`);
+            // console.warn(`⚠️ 모델 경로가 없습니다: ${furniture.nameKo}`);
           }
         }
 
         // GLTF 로드 실패 시 폴백 모델 생성
-        console.info(`폴백 모델 생성: ${furniture.nameKo}`);
+        // console.info(`폴백 모델 생성: ${furniture.nameKo}`);
         
         // 카테고리별 색상 선택 (더 현실적인 색상으로 개선)
         const getCategoryColor = (category: string, subcategory?: string) => {
@@ -718,10 +720,10 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         // 벽이나 시계는 전용 모델 사용
         let fallbackModel;
         if (furniture.category === 'wall') {
-          console.log(`🏗️ 벽 모델 생성: ${furniture.nameKo}`);
+          // console.log(`🏗️ 벽 모델 생성: ${furniture.nameKo}`);
           // 벽 텍스처 경로 사용 (이미 PNG 경로로 설정됨)
           const texturePath = furniture.modelPath || '/models/wall/wall_beige.png';
-          console.log(`🖼️ 벽 텍스처 경로: ${texturePath}`);
+          // console.log(`🖼️ 벽 텍스처 경로: ${texturePath}`);
 
           fallbackModel = createWallModel(
             texturePath,
@@ -730,13 +732,13 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
             furniture.footprint.depth
           );
         } else if (furniture.subcategory === 'clock') {
-          console.log(`🕐 시계 전용 모델 생성: ${furniture.nameKo}`);
+          // console.log(`🕐 시계 전용 모델 생성: ${furniture.nameKo}`);
           fallbackModel = createClockFallbackModel();
         } else {
-          console.log(`🪑 가구 모델 생성: ${furniture.nameKo} (${furniture.category}/${furniture.subcategory})`);
-          console.log(`📏 크기: ${furniture.footprint.width}x${furniture.footprint.height}x${furniture.footprint.depth}`);
+          // console.log(`🪑 가구 모델 생성: ${furniture.nameKo} (${furniture.category}/${furniture.subcategory})`);
+          // console.log(`📏 크기: ${furniture.footprint.width}x${furniture.footprint.height}x${furniture.footprint.depth}`);
           const color = getCategoryColor(furniture.category, furniture.subcategory);
-          console.log(`🎨 색상: 0x${color.toString(16)}`);
+          // console.log(`🎨 색상: 0x${color.toString(16)}`);
           
           fallbackModel = createFurnitureModel(
             furniture.footprint.width,
@@ -745,13 +747,13 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
             color
           );
           
-          console.log(`✅ 폴백 모델 생성 완료:`, fallbackModel);
+          // console.log(`✅ 폴백 모델 생성 완료:`, fallbackModel);
         }
         setModel(fallbackModel);
-        console.log(`✅ 폴백 모델 설정 완료: ${furniture.nameKo}`);
+        // console.log(`✅ 폴백 모델 설정 완료: ${furniture.nameKo}`);
         setIsLoading(false);
       } catch (error) {
-        console.error('Failed to load furniture model:', error);
+        // console.error('Failed to load furniture model:', error);
         setLoadError(error instanceof Error ? error.message : 'Unknown error');
 
         const furniture = getFurnitureFromPlacedItem(item);
@@ -816,7 +818,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         meshRef.current.scale.copy(itemScale);
       }
     } catch (error) {
-      console.warn('Position/Rotation/Scale sync failed:', error);
+      // console.warn('Position/Rotation/Scale sync failed:', error);
     }
   }, [item.id, item.isLocked, item.position, item.rotation, item.scale]);
 
@@ -933,17 +935,17 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
         onLostPointerCapture={() => {
-          console.log('🎯 onLostPointerCapture 호출:', {
-            isDragging,
-            itemId: item.id,
-            timestamp: new Date().toISOString()
-          });
+            // console.log('🎯 onLostPointerCapture 호출:', {
+            //   isDragging,
+            //   itemId: item.id,
+            //   timestamp: new Date().toISOString()
+            // });
           if (isDragging) {
-            console.log('🎯 포인터 캡처 손실 - handleDragEnd 호출');
+            // console.log('🎯 포인터 캡처 손실 - handleDragEnd 호출');
             try {
               handleDragEnd({ stopPropagation: () => {} });
             } catch (error) {
-              console.log('🎯 handleDragEnd 오류:', error);
+              // console.log('🎯 handleDragEnd 오류:', error);
               setDragging(false);
             }
           }
@@ -959,11 +961,11 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
             {/* console.log(`🎨 모델 렌더링: ${item.id}, 컴포넌트 수: ${model.children.length}`) */}
             <primitive
               object={model}
-              onClick={(e: any) => { /* e.stopPropagation(); */ handleClick(e); }}
-              onPointerDown={(e: any) => { /* e.stopPropagation(); */ handlePointerDown(e); }}
-              onPointerMove={(e: any) => { /* e.stopPropagation(); */ handlePointerMove(e); }}
-              onPointerUp={(e: any) => { /* e.stopPropagation(); */ handlePointerUp(e); }}
-              onPointerCancel={(e: any) => { /* e.stopPropagation(); */ handlePointerCancel(e); }}
+              onClick={(e: any) => { try { e.stopPropagation?.(); } catch {}; handleClick(e); }}
+              onPointerDown={(e: any) => { try { e.stopPropagation?.(); } catch {}; handlePointerDown(e); }}
+              onPointerMove={(e: any) => { try { e.stopPropagation?.(); } catch {}; handlePointerMove(e); }}
+              onPointerUp={(e: any) => { try { e.stopPropagation?.(); } catch {}; handlePointerUp(e); }}
+              onPointerCancel={(e: any) => { try { e.stopPropagation?.(); } catch {}; handlePointerCancel(e); }}
               onPointerOver={(_e: any) => { /* e.stopPropagation() */ }}
               onPointerOut={(_e: any) => { /* e.stopPropagation() */ }}
               onWheel={(_e: any) => { /* e.stopPropagation() */ }}

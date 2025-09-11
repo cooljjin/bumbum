@@ -146,7 +146,7 @@ const CardNav: React.FC<CardNavProps> = ({
                       key={`${link.label}-${i}`}
                       className="text-left text-sm font-medium hover:bg-white/10 rounded-xl px-3 py-2 transition-colors duration-200 font-sans"
                       aria-label={link.ariaLabel || link.label}
-                      onClick={() => console.log(`클릭됨: ${link.label}`)}
+                      onClick={() => // console.log(`클릭됨: ${link.label}`)}
                     >
                       {link.label}
                     </button>

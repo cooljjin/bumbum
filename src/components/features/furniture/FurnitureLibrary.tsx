@@ -24,6 +24,7 @@ const furnitureData: FurnitureItem[] = [
   { id: 'cozy_sofa_0911122807_texture', name: '코지 소파', icon: '🛋️', count: 1, category: '가구' },
   { id: 'furniture-4', name: '침대', icon: '🛏️', count: 1, category: '가구' },
   { id: 'furniture-5', name: '옷장', icon: '🗄️', count: 2, category: '가구' },
+  { id: 'gray-drawer', name: '그레이 서랍장', icon: '🗄️', count: 1, category: '가구' },
 
   // 장식품 카테고리
   { id: 'decoration-1', name: '화분', icon: '🪴', count: 4, category: '장식품' },

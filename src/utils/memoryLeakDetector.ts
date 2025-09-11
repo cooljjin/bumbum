@@ -51,7 +51,7 @@ export class MemoryLeakDetector {
       this.detectLeaks();
     }, this.detectionInterval);
 
-    console.log('🔍 메모리 누수 감지 시스템 시작');
+    // console.log('🔍 메모리 누수 감지 시스템 시작');
   }
 
   /**
@@ -62,7 +62,7 @@ export class MemoryLeakDetector {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
-    console.log('⏹️ 메모리 누수 감지 시스템 중지');
+    // console.log('⏹️ 메모리 누수 감지 시스템 중지');
   }
 
   /**
@@ -116,7 +116,7 @@ export class MemoryLeakDetector {
       this.snapshots.shift();
     }
 
-    console.log(`📊 메모리 스냅샷: ${Math.round(snapshot.usedJSHeapSize / 1024 / 1024)}MB`);
+    // console.log(`📊 메모리 스냅샷: ${Math.round(snapshot.usedJSHeapSize / 1024 / 1024)}MB`);
   }
 
   /**
@@ -292,7 +292,7 @@ export class MemoryLeakDetector {
       errors
     };
 
-    console.log(`🧹 자동 메모리 정리 완료: ${cleanedObjects}개 객체, ${freedMemory.toFixed(2)}MB 해제`);
+    // console.log(`🧹 자동 메모리 정리 완료: ${cleanedObjects}개 객체, ${freedMemory.toFixed(2)}MB 해제`);
     return result;
   }
 
@@ -531,7 +531,7 @@ export const memoryUtils = {
   forceGarbageCollection(): void {
     if (window.gc) {
       window.gc();
-      console.log('🗑️ 가비지 컬렉션 강제 실행');
+      // console.log('🗑️ 가비지 컬렉션 강제 실행');
     } else {
       console.warn('⚠️ 가비지 컬렉션을 강제로 실행할 수 없습니다.');
     }

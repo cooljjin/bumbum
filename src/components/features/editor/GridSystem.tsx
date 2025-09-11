@@ -28,16 +28,8 @@ export const GridSystem: React.FC<GridSystemProps> = React.memo(({
     return showGrid && storeShowGrid && (mode === 'edit' || isEditMode);
   }, [showGrid, storeShowGrid, mode, isEditMode]);
 
-  // 그리드 설정 동기화 (최적화)
-  useEffect(() => {
-    if (gridRef.current && gridRef.current.material) {
-      try {
-        gridRef.current.material.color.setHex(color.replace('#', '0x'));
-      } catch (error) {
-        console.warn('Grid material color update failed:', error);
-      }
-    }
-  }, [color]);
+  // 색상은 Grid 컴포넌트의 props(cellColor/sectionColor)로 전달하므로
+  // material 직접 변경은 생략하여 런타임 오류 및 경고를 방지
 
   // 그리드 크기 및 분할 동기화 (최적화)
   useEffect(() => {

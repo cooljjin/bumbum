@@ -7,6 +7,7 @@ interface IconButtonProps {
   onClick: () => void;
   title?: string;
   ariaLabel?: string;
+  dataTestId?: string;
   size?: 'sm' | 'md' | 'lg';
   variant?: 'default' | 'primary' | 'secondary' | 'danger';
   disabled?: boolean;
@@ -18,6 +19,7 @@ export function IconButton({
   onClick,
   title,
   ariaLabel,
+  dataTestId,
   size = 'md',
   variant = 'default',
   disabled = false,
@@ -42,6 +44,7 @@ export function IconButton({
       disabled={disabled}
       title={title}
       aria-label={ariaLabel}
+      data-testid={dataTestId}
       className={`
         ${sizeClasses[size]}
         ${variantClasses[variant]}

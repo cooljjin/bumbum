@@ -122,7 +122,7 @@ function EmptySpaceHandler() {
     }
     lastClickTime.current = now;
 
-    console.log('🎯 빈 공간 핸들러 클릭 감지:', { clientX: e.clientX, clientY: e.clientY });
+    // console.log('🎯 빈 공간 핸들러 클릭 감지:', { clientX: e.clientX, clientY: e.clientY });
 
     // Canvas 요소 확인
     const canvas = gl?.domElement;
@@ -133,7 +133,7 @@ function EmptySpaceHandler() {
     const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-    console.log('🎯 변환된 좌표:', { mouseX, mouseY });
+    // console.log('🎯 변환된 좌표:', { mouseX, mouseY });
 
     // 레이캐스터 설정
     raycaster.current.setFromCamera(new THREE.Vector2(mouseX, mouseY), camera);
@@ -141,7 +141,7 @@ function EmptySpaceHandler() {
     // 씬의 모든 객체와의 교차점 찾기 (더 깊게 검색)
     const intersects = raycaster.current.intersectObjects(scene.children, true);
 
-    console.log('🎯 교차점 개수:', intersects.length);
+    // console.log('🎯 교차점 개수:', intersects.length);
 
     // 가구 객체와의 충돌 확인 (더 정확하게)
     let isFurnitureHit = false;
@@ -149,12 +149,12 @@ function EmptySpaceHandler() {
 
     for (const intersect of intersects) {
       const object = intersect.object;
-      console.log('🎯 검사 중인 객체:', {
-        name: object.name,
-        type: object.type,
-        userData: object.userData,
-        distance: intersect.distance
-      });
+      // console.log('🎯 검사 중인 객체:', {
+      //   name: object.name,
+      //   type: object.type,
+      //   userData: object.userData,
+      //   distance: intersect.distance
+      // });
 
       // 가구 객체인지 확인 (여러 방법으로)
       if (object.userData?.isFurniture ||
@@ -164,24 +164,24 @@ function EmptySpaceHandler() {
         if (intersect.distance < closestDistance) {
           closestDistance = intersect.distance;
           isFurnitureHit = true;
-          console.log('🎯 가구 객체 감지됨:', object.name || 'unnamed');
+          // console.log('🎯 가구 객체 감지됨:', object.name || 'unnamed');
         }
       }
     }
 
-    console.log('🎯 최종 판정:', { isFurnitureHit, selectedItemId });
+    // console.log('🎯 최종 판정:', { isFurnitureHit, selectedItemId });
 
     // 가구 객체와 충돌하지 않았다면 빈 공간 클릭으로 처리
     if (!isFurnitureHit) {
       // 빈 공간 클릭 시 선택된 객체 해제
       if (selectedItemId) {
-        console.log('✅ 빈 공간 클릭: 객체 선택 해제');
+        // console.log('✅ 빈 공간 클릭: 객체 선택 해제');
         selectItem(null);
       } else {
-        console.log('ℹ️ 빈 공간 클릭: 선택된 객체 없음');
+        // console.log('ℹ️ 빈 공간 클릭: 선택된 객체 없음');
       }
     } else {
-      console.log('❌ 가구 객체 클릭: 빈 공간 처리 무시');
+      // console.log('❌ 가구 객체 클릭: 빈 공간 처리 무시');
     }
 
     // 이벤트 전파 중단 (중요!)
@@ -262,7 +262,7 @@ function EmptySpaceHandler() {
       
 //       const speed = 0.01;
 //       addTruck(-deltaX * speed, deltaY * speed);
-//       console.log('🖱️ 마우스 드래그:', { deltaX, deltaY, speed });
+//       // console.log('🖱️ 마우스 드래그:', { deltaX, deltaY, speed });
       
 //       setLastMouseX(e.clientX);
 //       setLastMouseY(e.clientY);
@@ -278,7 +278,7 @@ function EmptySpaceHandler() {
 //       const deltaY = e.deltaY;
 //       const zoomSpeed = 0.5; // 5배 증가 (0.1 → 0.5)
 //       addZoom(-deltaY * zoomSpeed); // 방향 반전으로 직관적인 줌
-//       console.log('🎡 휠 이벤트:', { deltaY, zoomSpeed });
+//       // console.log('🎡 휠 이벤트:', { deltaY, zoomSpeed });
 //       e.preventDefault();
 //     };
 
@@ -318,7 +318,7 @@ function EmptySpaceHandler() {
           
 //           const speed = 0.01;
 //           addTruck(-deltaX * speed, deltaY * speed);
-//           console.log('👆 터치 드래그:', { deltaX, deltaY, speed });
+//           // console.log('👆 터치 드래그:', { deltaX, deltaY, speed });
           
 //           lastTouchX = touch.clientX;
 //           lastTouchY = touch.clientY;
@@ -335,7 +335,7 @@ function EmptySpaceHandler() {
 //           const deltaDistance = currentDistance - lastTouchDistance;
 //           const zoomSpeed = 0.1; // 10배 증가 (0.01 → 0.1)
 //           addZoom(-deltaDistance * zoomSpeed);
-//           console.log('🤏 핀치 줌:', { deltaDistance, zoomSpeed });
+//           // console.log('🤏 핀치 줌:', { deltaDistance, zoomSpeed });
           
 //           lastTouchDistance = currentDistance;
 //         }
@@ -368,8 +368,8 @@ function EmptySpaceHandler() {
 
 //   // 컴포넌트 마운트 확인
 //   React.useEffect(() => {
-//     console.log('🎯 GestureOverlay 마운트됨');
-//     return () => console.log('🎯 GestureOverlay 언마운트됨');
+//     // console.log('🎯 GestureOverlay 마운트됨');
+//     return () => // console.log('🎯 GestureOverlay 언마운트됨');
 //   }, []);
 
 //   return (
@@ -445,44 +445,44 @@ export default function MiniRoom({
           // 물리적으로 정확한 조명 활성화
           gl.physicallyCorrectLights = true;
 
-          console.log(`🎨 MiniRoom 렌더링 품질 설정:`, {
-            devicePixelRatio: window.devicePixelRatio,
-            pixelRatio: gl.getPixelRatio(),
-            canvasSize: size,
-            antialias: true
-          });
+          // console.log(`🎨 MiniRoom 렌더링 품질 설정:`, {
+          //   devicePixelRatio: window.devicePixelRatio,
+          //   pixelRatio: gl.getPixelRatio(),
+          //   canvasSize: size,
+          //   antialias: true
+          // });
         }}
         onPointerMissed={(event) => {
           // React Three Fiber의 onPointerMissed 이벤트 사용
           // 3D 객체를 클릭하지 않았을 때 호출됨
-          console.log('🎯 3D 객체 미스 - 빈 공간 클릭 감지됨');
-          console.log('🎯 포인터 미스 이벤트 상세:', {
-            type: event.type,
-            pointerType: event.pointerType,
-            clientX: event.clientX,
-            clientY: event.clientY,
-            selectedItemId,
-            timestamp: Date.now()
-          });
+          // console.log('🎯 3D 객체 미스 - 빈 공간 클릭 감지됨');
+          // console.log('🎯 포인터 미스 이벤트 상세:', {
+          //   type: event.type,
+          //   pointerType: event.pointerType,
+          //   clientX: event.clientX,
+          //   clientY: event.clientY,
+          //   selectedItemId,
+          //   timestamp: Date.now()
+          // });
 
           if (selectedItemId) {
-            console.log('✅ 빈 공간 클릭: 객체 선택 해제 실행');
+            // console.log('✅ 빈 공간 클릭: 객체 선택 해제 실행');
             selectItem(null);
-            console.log('✅ selectItem(null) 호출 완료');
+            // console.log('✅ selectItem(null) 호출 완료');
           } else {
-            console.log('ℹ️ 빈 공간 클릭: 선택된 객체 없음');
+            // console.log('ℹ️ 빈 공간 클릭: 선택된 객체 없음');
           }
         }}
         onPointerDown={(event) => {
           // 3D 객체가 아닌 빈 공간을 클릭했을 때도 처리
-          console.log('🎯 Canvas 포인터 다운 이벤트:', {
-            type: event.type,
-            pointerType: event.pointerType,
-            clientX: event.clientX,
-            clientY: event.clientY,
-            selectedItemId,
-            timestamp: Date.now()
-          });
+          // console.log('🎯 Canvas 포인터 다운 이벤트:', {
+          //   type: event.type,
+          //   pointerType: event.pointerType,
+          //   clientX: event.clientX,
+          //   clientY: event.clientY,
+          //   selectedItemId,
+          //   timestamp: Date.now()
+          // });
         }}
       >
         <LightRig />

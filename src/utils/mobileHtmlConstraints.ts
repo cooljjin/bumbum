@@ -141,6 +141,68 @@ export const getSafeTouchArea = (): {
 };
 
 /**
+ * 화면 내 다른 고정 UI(네비게이션 바, 바텀시트 등)로 인해
+ * 플로팅 요소가 겹치지 않도록 해야 하는 차단(occlusion) 영역 계산
+ * data-occlude-floating 속성이 있는 요소들을 스캔합니다.
+ */
+export const getUIOcclusionInsets = (): {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+} => {
+  if (typeof window === 'undefined') {
+    return { top: 0, bottom: 0, left: 0, right: 0 };
+  }
+
+  let top = 0, bottom = 0, left = 0, right = 0;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  const elements = Array.from(document.querySelectorAll<HTMLElement>('[data-occlude-floating]'));
+  for (const el of elements) {
+    const rect = el.getBoundingClientRect();
+    const style = window.getComputedStyle(el);
+    const isFixedLike = ['fixed', 'sticky', 'absolute'].includes(style.position);
+    // 가시성/크기 검증: 실제로 보이는 요소만 고려
+    const visible =
+      isFixedLike &&
+      style.display !== 'none' &&
+      style.visibility !== 'hidden' &&
+      rect.width > 0 && rect.height > 0 &&
+      rect.bottom > 0 && rect.right > 0 && rect.top < vh && rect.left < vw;
+    if (!visible) continue;
+
+    // 속성 힌트로 특정 변만 차단하도록 허용 (예: data-occlude-floating="bottom-nav")
+    const hint = (el.getAttribute('data-occlude-floating') || '').toLowerCase();
+    const allowTop = hint.includes('top') || hint === '';
+    const allowBottom = hint.includes('bottom') || hint === '';
+    const allowLeft = hint.includes('left') || hint === '';
+    const allowRight = hint.includes('right') || hint === '';
+
+    // 상단/하단 바: 화면 상/하단에 붙어 있는 경우만 처리
+    if (allowTop && rect.top <= 8) {
+      top = Math.max(top, Math.min(vh, Math.max(0, rect.bottom)));
+    }
+    if (allowBottom && vh - rect.bottom <= 8) {
+      bottom = Math.max(bottom, Math.min(vh, Math.max(0, vh - rect.top)));
+    }
+
+    // 좌/우 패널: 세로로 큰(세로 50% 이상) 패널만 고려해 바텀시트 같은 풀폭 요소가
+    // 좌/우 인셋을 과대하게 만드는 것을 방지
+    const tallEnough = rect.height >= vh * 0.5;
+    if (allowLeft && rect.left <= 8 && tallEnough) {
+      left = Math.max(left, Math.min(vw, Math.max(0, rect.right)));
+    }
+    if (allowRight && vw - rect.right <= 8 && tallEnough) {
+      right = Math.max(right, Math.min(vw, Math.max(0, vw - rect.left)));
+    }
+  }
+
+  return { top, bottom, left, right };
+};
+
+/**
  * 모바일 환경에서 Html 컴포넌트의 distanceFactor를 조정
  */
 export const getMobileDistanceFactor = (defaultFactor: number = 8): number => {

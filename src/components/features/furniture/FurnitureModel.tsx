@@ -32,7 +32,7 @@ const FurnitureModel: React.FC<FurnitureModelProps> = ({
   const gltf = useGLTF(
     furniture.modelPath || '',
     () => {
-      console.log('Furniture model loaded:', furniture.name);
+      // console.log('Furniture model loaded:', furniture.name);
     }
   );
 
@@ -79,7 +79,7 @@ const FurnitureModel: React.FC<FurnitureModelProps> = ({
         }
 
         setIsLoading(false);
-        console.log('✅ 성능: 가구 모델 로드 성공 -', furniture.name);
+        // console.log('✅ 성능: 가구 모델 로드 성공 -', furniture.name);
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Unknown error');
         setError(error.message);

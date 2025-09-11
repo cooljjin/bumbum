@@ -1,0 +1,82 @@
+- generic [ref=e1]:
+  - main "3D 가구 라이브러리 및 룸 에디터" [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e149]:
+        - generic [ref=e150]:
+          - heading "🏠 bumbum" [level=1] [ref=e151]
+          - generic [ref=e152]: v0.0.1
+        - generic [ref=e153]:
+          - button "편집 모드 종료" [ref=e154] [cursor=pointer]:
+            - img [ref=e155]
+          - button "시점 고정 해제" [ref=e157] [cursor=pointer]:
+            - img [ref=e158]
+          - button "설정" [ref=e161] [cursor=pointer]:
+            - img [ref=e162]
+          - button "사용자 디자인 관리" [ref=e165] [cursor=pointer]:
+            - img [ref=e166]
+          - button "접근성 설정 열기" [ref=e170] [cursor=pointer]:
+            - img [ref=e171]
+          - button "디자인 내보내기 및 공유" [active] [ref=e174] [cursor=pointer]:
+            - img [ref=e175]
+          - button "사용 분석 대시보드" [ref=e181] [cursor=pointer]:
+            - img [ref=e182]
+      - main [ref=e40]:
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - button "↶ 실행취소" [ref=e183] [cursor=pointer]:
+              - generic [ref=e83]:
+                - generic [ref=e84]: ↶
+                - generic [ref=e184]: 실행취소
+            - button "↷ 다시실행" [ref=e185] [cursor=pointer]:
+              - generic [ref=e86]:
+                - generic [ref=e87]: ↷
+                - generic [ref=e186]: 다시실행
+          - button "🪑 가구" [ref=e188] [cursor=pointer]:
+            - generic [ref=e89]:
+              - generic [ref=e90]: 🪑
+              - generic [ref=e189]: 가구
+          - button "🏠 템플릿" [ref=e190] [cursor=pointer]:
+            - generic [ref=e92]:
+              - generic [ref=e93]: 🏠
+              - generic [ref=e191]: 템플릿
+      - navigation [ref=e46]:
+        - generic [ref=e48]:
+          - button "⚙️" [ref=e49] [cursor=pointer]
+          - generic [ref=e50]: 설정
+    - generic [ref=e193]:
+      - generic [ref=e194]:
+        - generic [ref=e195]:
+          - heading "내보내기 및 공유" [level=2] [ref=e196]:
+            - img [ref=e197]
+            - text: 내보내기 및 공유
+          - button "내보내기 창 닫기" [ref=e200] [cursor=pointer]: ✕
+        - paragraph [ref=e201]: 디자인을 이미지, PDF, 또는 공유 링크로 내보내세요
+      - generic [ref=e202]:
+        - generic [ref=e203]:
+          - button "이미지 PNG/JPG" [ref=e204] [cursor=pointer]:
+            - img [ref=e205]
+            - generic [ref=e209]: 이미지
+            - generic [ref=e210]: PNG/JPG
+          - button "PDF 보고서" [ref=e211] [cursor=pointer]:
+            - img [ref=e212]
+            - generic [ref=e215]: PDF
+            - generic [ref=e216]: 보고서
+          - button "데이터 JSON" [ref=e217] [cursor=pointer]:
+            - img [ref=e218]
+            - generic [ref=e221]: 데이터
+            - generic [ref=e222]: JSON
+          - button "공유 링크" [ref=e223] [cursor=pointer]:
+            - img [ref=e224]
+            - generic [ref=e230]: 공유
+            - generic [ref=e231]: 링크
+        - generic [ref=e232]:
+          - heading "현재 디자인 정보" [level=3] [ref=e233]
+          - generic [ref=e234]:
+            - paragraph [ref=e235]: "• 가구 개수: 0개"
+            - paragraph [ref=e236]: "• 내보내기 형식: PNG, JPG, PDF, JSON"
+            - paragraph [ref=e237]: "• 공유: 링크 생성 및 소셜 미디어"
+  - link "메인 콘텐츠로 건너뛰기" [ref=e53] [cursor=pointer]:
+    - /url: "#main-content"
+  - button "Open Next.js Dev Tools" [ref=e105] [cursor=pointer]:
+    - img [ref=e106]
+  - alert [ref=e109]: 🏠 bumbum

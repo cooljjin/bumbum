@@ -48,9 +48,9 @@ export default function RoomSizeSettings({
         onRoomSizeChange(detectedDimensions);
       }
       
-      console.log('🔍 방 크기 자동 감지 완료:', detectedDimensions);
+      // console.log('🔍 방 크기 자동 감지 완료:', detectedDimensions);
     } catch (error) {
-      console.error('❌ 방 크기 감지 실패:', error);
+      // console.error('❌ 방 크기 감지 실패:', error);
     } finally {
       setIsDetecting(false);
     }

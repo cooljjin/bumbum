@@ -1,5 +1,5 @@
 {
-  "name": "src",
+  "name": "bumbum-project",
   "version": "0.0.1",
   "main": "index.js",
   "scripts": {
@@ -64,11 +64,20 @@
     "test:onlyChanged": "jest --onlyChanged",
     "test:findRelatedTests": "jest --findRelatedTests",
     "test:listTests": "jest --listTests",
-    "deploy": "npm run build && cd out && zip -r ../bondidi-deploy.zip . && echo '✅ 배포 파일 생성 완료: bondidi-deploy.zip'",
-    "deploy:clean": "rm -f bondidi-deploy.zip && npm run deploy",
+    "deploy": "npm run build && cd out && zip -r ../bumbum-deploy.zip . && echo '✅ 배포 파일 생성 완료: bumbum-deploy.zip'",
+    "deploy:clean": "rm -f bumbum-deploy.zip && npm run deploy",
     "mcp:smoke": "node scripts/mcp-smoke.js -- node scripts/mcp-dummy-server.js",
     "mcp:tcp:tools:codex": "node scripts/mcp-tcp-client.js --host 127.0.0.1 --port 9882 --list-tools",
-    "mcp:tcp:tools:cursor": "node scripts/mcp-tcp-client.js --host 127.0.0.1 --port 9881 --list-tools"
+    "mcp:tcp:tools:cursor": "node scripts/mcp-tcp-client.js --host 127.0.0.1 --port 9881 --list-tools",
+    "mcp:refresh": "node mcp/helpers/refreshRefs.js --page home --snapshot mcp/snapshot-home.txt",
+    "mcp:refresh:dry": "node mcp/helpers/refreshRefs.js --page home --snapshot mcp/snapshot-home.txt --dry",
+    "mcp:ref": "node mcp/helpers/getRef.js",
+    "mcp:handoff": "node mcp/helpers/handoff.js --snapshot mcp/snapshot-home.txt --out mcp/handoff.md",
+    "mcp:snap:save": "node mcp/helpers/snapshot-save.js",
+    "mcp:refresh:latest": "node mcp/helpers/refresh-latest.js --page home",
+    "mcp:auto": "node mcp/helpers/snapshot-save.js && node mcp/helpers/refresh-latest.js --page home && node scripts/checkpoint-summary.js --title=\"MCP 자동 스냅샷\" --notes=\"mcp:auto 실행 후 자동 체크포인트\" --include=snapshot,status,diff --limit=4000",
+    "checkpoint:save": "node scripts/checkpoint-summary.js",
+    "checkpoint:save:full": "node scripts/checkpoint-summary.js --include=snapshot,status,diff --limit=4000"
   },
   "keywords": [],
   "author": "",

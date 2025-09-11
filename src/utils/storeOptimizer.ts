@@ -204,10 +204,10 @@ class StoreOptimizer {
 
   // 메모리 정리 제안
   private suggestMemoryCleanup(): void {
-    console.log('💡 메모리 정리 제안:');
-    console.log('  - 불필요한 히스토리 항목 제거');
-    console.log('  - 큰 객체 참조 해제');
-    console.log('  - 캐시된 데이터 정리');
+    // console.log('💡 메모리 정리 제안:');
+    // console.log('  - 불필요한 히스토리 항목 제거');
+    // console.log('  - 큰 객체 참조 해제');
+    // console.log('  - 캐시된 데이터 정리');
   }
 
   // 성능 최적화된 상태 업데이트 함수 생성
@@ -275,7 +275,7 @@ class StoreOptimizer {
   // 설정 업데이트
   updateConfig(newConfig: Partial<OptimizationConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    console.log('🔧 스토어 최적화 설정 업데이트:', this.config);
+    // console.log('🔧 스토어 최적화 설정 업데이트:', this.config);
   }
 
   // 현재 설정 가져오기

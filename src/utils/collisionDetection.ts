@@ -47,9 +47,9 @@ export const checkFurnitureCollision = (item1: PlacedItem, item2: PlacedItem): b
   );
 
   if (collision) {
-    console.log(`🚨 가구 충돌 감지: ${item1.name || item1.id} ↔ ${item2.name || item2.id}`);
-    console.log(`   ${item1.name || item1.id}: (${box1.minX.toFixed(2)}, ${box1.minZ.toFixed(2)}) ~ (${box1.maxX.toFixed(2)}, ${box1.maxZ.toFixed(2)})`);
-    console.log(`   ${item2.name || item2.id}: (${box2.minX.toFixed(2)}, ${box2.minZ.toFixed(2)}) ~ (${box2.maxX.toFixed(2)}, ${box2.maxZ.toFixed(2)})`);
+    // console.log(`🚨 가구 충돌 감지: ${item1.name || item1.id} ↔ ${item2.name || item2.id}`);
+    // console.log(`   ${item1.name || item1.id}: (${box1.minX.toFixed(2)}, ${box1.minZ.toFixed(2)}) ~ (${box1.maxX.toFixed(2)}, ${box1.maxZ.toFixed(2)})`);
+    // console.log(`   ${item2.name || item2.id}: (${box2.minX.toFixed(2)}, ${box2.minZ.toFixed(2)}) ~ (${box2.maxX.toFixed(2)}, ${box2.maxZ.toFixed(2)})`);
   }
 
   return collision;
@@ -118,7 +118,7 @@ export const findNonCollidingPosition = (
     
     const collision = checkCollisionWithOthers(testItem, allItems, targetItem.id);
     if (!collision.hasCollision) {
-      console.log(`✅ 충돌 없는 위치 발견: (${testPosition.x.toFixed(2)}, ${testPosition.y.toFixed(2)}, ${testPosition.z.toFixed(2)}) - ${attempt}번째 시도`);
+      // console.log(`✅ 충돌 없는 위치 발견: (${testPosition.x.toFixed(2)}, ${testPosition.y.toFixed(2)}, ${testPosition.z.toFixed(2)}) - ${attempt}번째 시도`);
       return testPosition;
     }
   }

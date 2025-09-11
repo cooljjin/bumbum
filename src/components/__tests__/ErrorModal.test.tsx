@@ -214,7 +214,7 @@ describe('ErrorModal', () => {
 
     expect(mockLocalStorage.setItem).toHaveBeenCalled();
     expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-      'bondidi_error_reports',
+      'bumbum_error_reports',
       expect.any(String)
     );
   });

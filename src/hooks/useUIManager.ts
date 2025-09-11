@@ -74,7 +74,7 @@ export function useUIManager(): UIManager {
     // editorStore의 mode도 함께 변경
     setMode(newEditMode ? 'edit' : 'view');
     
-    console.log('🎯 편집 모드 토글:', { newEditMode, mode: newEditMode ? 'edit' : 'view' });
+    // console.log('🎯 편집 모드 토글:', { newEditMode, mode: newEditMode ? 'edit' : 'view' });
   };
   
   const toggleShowSettings = () => setShowSettings(!showSettings);
@@ -83,7 +83,7 @@ export function useUIManager(): UIManager {
   const setEditMode = (editMode: boolean) => {
     setIsEditMode(editMode);
     setMode(editMode ? 'edit' : 'view');
-    console.log('🎯 편집 모드 설정:', { editMode, mode: editMode ? 'edit' : 'view' });
+    // console.log('🎯 편집 모드 설정:', { editMode, mode: editMode ? 'edit' : 'view' });
   };
 
   // Modal priority management - 한 번에 하나의 모달만 표시

@@ -24,7 +24,7 @@ let currentRoomDimensions = { ...ROOM_DIMENSIONS };
 // 방 크기 업데이트 함수
 export const updateRoomDimensions = (newDimensions: Partial<typeof ROOM_DIMENSIONS>) => {
   currentRoomDimensions = { ...currentRoomDimensions, ...newDimensions };
-  console.log('🏠 방 크기 업데이트:', currentRoomDimensions);
+  // console.log('🏠 방 크기 업데이트:', currentRoomDimensions);
 };
 
 // 현재 방 크기 가져오기
@@ -75,33 +75,33 @@ export const isFurnitureInRoom = (item: PlacedItem): boolean => {
   const boundaries = getRoomBoundaries();
   const furnitureBounds = getFurnitureBounds(item);
   
-  console.log(`🔍 벽 충돌 검사: ${item.name}`, {
-    가구위치: `(${item.position.x.toFixed(2)}, ${item.position.y.toFixed(2)}, ${item.position.z.toFixed(2)})`,
-    가구크기: `${item.footprint.width}x${item.footprint.height}x${item.footprint.depth}`,
-    스케일: `${item.scale.x}x${item.scale.y}x${item.scale.z}`,
-    가구경계: `X:${furnitureBounds.minX.toFixed(2)}~${furnitureBounds.maxX.toFixed(2)}, Z:${furnitureBounds.minZ.toFixed(2)}~${furnitureBounds.maxZ.toFixed(2)}`,
-    방경계: `X:${boundaries.minX.toFixed(2)}~${boundaries.maxX.toFixed(2)}, Z:${boundaries.minZ.toFixed(2)}~${boundaries.maxZ.toFixed(2)}`
-  });
+  // console.log(`🔍 벽 충돌 검사: ${item.name}`, {
+  //   가구위치: `(${item.position.x.toFixed(2)}, ${item.position.y.toFixed(2)}, ${item.position.z.toFixed(2)})`,
+  //   가구크기: `${item.footprint.width}x${item.footprint.height}x${item.footprint.depth}`,
+  //   스케일: `${item.scale.x}x${item.scale.y}x${item.scale.z}`,
+  //   가구경계: `X:${furnitureBounds.minX.toFixed(2)}~${furnitureBounds.maxX.toFixed(2)}, Z:${furnitureBounds.minZ.toFixed(2)}~${furnitureBounds.maxZ.toFixed(2)}`,
+  //   방경계: `X:${boundaries.minX.toFixed(2)}~${boundaries.maxX.toFixed(2)}, Z:${boundaries.minZ.toFixed(2)}~${boundaries.maxZ.toFixed(2)}`
+  // });
   
   // X축 검증
   if (furnitureBounds.minX < boundaries.minX || furnitureBounds.maxX > boundaries.maxX) {
-    console.log(`❌ X축 벽 충돌: 가구(${furnitureBounds.minX.toFixed(2)}~${furnitureBounds.maxX.toFixed(2)}) vs 방(${boundaries.minX.toFixed(2)}~${boundaries.maxX.toFixed(2)})`);
+    // console.log(`❌ X축 벽 충돌: 가구(${furnitureBounds.minX.toFixed(2)}~${furnitureBounds.maxX.toFixed(2)}) vs 방(${boundaries.minX.toFixed(2)}~${boundaries.maxX.toFixed(2)})`);
     return false;
   }
   
   // Z축 검증
   if (furnitureBounds.minZ < boundaries.minZ || furnitureBounds.maxZ > boundaries.maxZ) {
-    console.log(`❌ Z축 벽 충돌: 가구(${furnitureBounds.minZ.toFixed(2)}~${furnitureBounds.maxZ.toFixed(2)}) vs 방(${boundaries.minZ.toFixed(2)}~${boundaries.maxZ.toFixed(2)})`);
+    // console.log(`❌ Z축 벽 충돌: 가구(${furnitureBounds.minZ.toFixed(2)}~${furnitureBounds.maxZ.toFixed(2)}) vs 방(${boundaries.minZ.toFixed(2)}~${boundaries.maxZ.toFixed(2)})`);
     return false;
   }
   
   // Y축 검증 (바닥 위, 천장 아래)
   if (furnitureBounds.minY < boundaries.minY || furnitureBounds.maxY > boundaries.maxY) {
-    console.log(`❌ Y축 벽 충돌: 가구(${furnitureBounds.minY.toFixed(2)}~${furnitureBounds.maxY.toFixed(2)}) vs 방(${boundaries.minY.toFixed(2)}~${boundaries.maxY.toFixed(2)})`);
+    // console.log(`❌ Y축 벽 충돌: 가구(${furnitureBounds.minY.toFixed(2)}~${furnitureBounds.maxY.toFixed(2)}) vs 방(${boundaries.minY.toFixed(2)}~${boundaries.maxY.toFixed(2)})`);
     return false;
   }
   
-  console.log(`✅ 벽 충돌 없음: ${item.name}`);
+  // console.log(`✅ 벽 충돌 없음: ${item.name}`);
   return true;
 };
 
@@ -145,7 +145,7 @@ export const constrainFurnitureToRoom = (item: PlacedItem): PlacedItem => {
     newY = boundaries.maxY - height;
   }
   
-  console.log(`🔧 가구 위치 제한: ${item.name} - 원래: (${item.position.x.toFixed(2)}, ${item.position.y.toFixed(2)}, ${item.position.z.toFixed(2)}) -> 새 위치: (${newX.toFixed(2)}, ${newY.toFixed(2)}, ${newZ.toFixed(2)})`);
+  // console.log(`🔧 가구 위치 제한: ${item.name} - 원래: (${item.position.x.toFixed(2)}, ${item.position.y.toFixed(2)}, ${item.position.z.toFixed(2)}) -> 새 위치: (${newX.toFixed(2)}, ${newY.toFixed(2)}, ${newZ.toFixed(2)})`);
   
   return {
     ...item,

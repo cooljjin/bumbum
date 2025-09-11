@@ -82,9 +82,9 @@ const UnifiedCameraControls: React.FC<UnifiedCameraControlsProps> = ({
       (controlsRef.current as any).polarRotateSpeed = config.polarRotateSpeed;
       (controlsRef.current as any).truckSpeed = config.truckSpeed;
       
-      console.log('🎥 카메라 설정 적용 (일반 모드 - 부드러운 줌 비활성화):', { config, isMobile });
+      // console.log('🎥 카메라 설정 적용 (일반 모드 - 부드러운 줌 비활성화):', { config, isMobile });
     } catch (error) {
-      console.warn('⚠️ 카메라 설정 적용 실패:', error);
+      // console.warn('⚠️ 카메라 설정 적용 실패:', error);
     }
   }, [controlsRef, isMobile]);
 
@@ -98,9 +98,9 @@ const UnifiedCameraControls: React.FC<UnifiedCameraControlsProps> = ({
       controlsRef.current.maxSpeed = 2.0;    // 적당한 속도
       controlsRef.current.dollySpeed = 0.5;  // 부드러운 줌 속도
       
-      console.log('🔒 시점 고정 카메라 설정 적용 (부드러운 전환 활성화)');
+      // console.log('🔒 시점 고정 카메라 설정 적용 (부드러운 전환 활성화)');
     } catch (error) {
-      console.warn('⚠️ 시점 고정 카메라 설정 적용 실패:', error);
+      // console.warn('⚠️ 시점 고정 카메라 설정 적용 실패:', error);
     }
   }, [controlsRef]);
 
@@ -114,14 +114,14 @@ const UnifiedCameraControls: React.FC<UnifiedCameraControlsProps> = ({
     
     // 개발 환경에서만 로그 출력
     if (process.env.NODE_ENV === 'development') {
-      console.log('🎥 카메라 컨트롤 초기화:', {
-        isMobile,
-        isEditMode,
-        isDragging,
-        hasSelection,
-        cameraEnabled: !isViewLocked && !isDragging,
-        config: currentConfig
-      });
+      // console.log('🎥 카메라 컨트롤 초기화:', {
+      //   isMobile,
+      //   isEditMode,
+      //   isDragging,
+      //   hasSelection,
+      //   cameraEnabled: !isViewLocked && !isDragging,
+      //   config: currentConfig
+      // });
     }
   }, [controlsRef, currentConfig, applyCameraSettings, isMobile, isEditMode, isDragging, hasSelection, isViewLocked]);
 
@@ -132,12 +132,12 @@ const UnifiedCameraControls: React.FC<UnifiedCameraControlsProps> = ({
     const cameraEnabled = !isViewLocked && !isDragging;
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('🎯 카메라 컨트롤 상태 변경:', {
-        isDragging,
-        isViewLocked,
-        cameraEnabled,
-        action: isDragging ? '드래그 중 - 카메라 비활성화' : '드래그 종료 - 카메라 활성화'
-      });
+      // console.log('🎯 카메라 컨트롤 상태 변경:', {
+      //   isDragging,
+      //   isViewLocked,
+      //   cameraEnabled,
+      //   action: isDragging ? '드래그 중 - 카메라 비활성화' : '드래그 종료 - 카메라 활성화'
+      // });
     }
     
     // 카메라 컨트롤 활성화/비활성화
@@ -158,7 +158,7 @@ const UnifiedCameraControls: React.FC<UnifiedCameraControlsProps> = ({
       const now = Date.now();
       if (now - lastLogTime.current > 1000) { // 1초마다 로그
         const position = camera.position;
-        console.log(`🎥 카메라 위치: x=${position.x.toFixed(2)}, y=${position.y.toFixed(2)}, z=${position.z.toFixed(2)}`);
+        // console.log(`🎥 카메라 위치: x=${position.x.toFixed(2)}, y=${position.y.toFixed(2)}, z=${position.z.toFixed(2)}`);
         lastLogTime.current = now;
       }
     }
@@ -171,7 +171,7 @@ const UnifiedCameraControls: React.FC<UnifiedCameraControlsProps> = ({
     if (isViewLocked) {
       // 개발 환경에서만 로그 출력
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔒 시점 고정 모드 활성화');
+        // console.log('🔒 시점 고정 모드 활성화');
       }
       
       // 시점 고정 시 카메라 설정 - 부드러운 줌 비활성화
@@ -213,13 +213,13 @@ const UnifiedCameraControls: React.FC<UnifiedCameraControlsProps> = ({
       setTimeout(() => {
         onTransitionLockChange?.(false);
         if (process.env.NODE_ENV === 'development') {
-          console.log('✅ 시점 고정 완료 - 부드러운 전환으로 이동');
+          // console.log('✅ 시점 고정 완료 - 부드러운 전환으로 이동');
         }
       }, 800); // 0.8초 후 완료 처리 (smoothTime과 동일)
     } else {
       // 개발 환경에서만 로그 출력
       if (process.env.NODE_ENV === 'development') {
-        console.log('🎯 시점 자유 모드 활성화');
+        // console.log('🎯 시점 자유 모드 활성화');
       }
       
       // 자유 모드 시 일반 카메라 설정 적용 (부드러운 줌 비활성화)

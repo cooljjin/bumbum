@@ -13,7 +13,16 @@ import {
   EditHistory,
   CompressedState
 } from '../types/editor';
-import { storageManager } from '../utils/storageManager';
+import { 
+  storageManager,
+  saveLayout as saveLayoutUtil,
+  loadLayout as loadLayoutUtil,
+  loadAllLayouts as loadAllLayoutsUtil,
+  deleteLayout as deleteLayoutUtil,
+  loadAutoSave as loadAutoSaveUtil,
+  getStorageUsage as getStorageUsageUtil,
+  cleanupStorage as cleanupStorageUtil
+} from '../utils/storageManager';
 import { isFurnitureInRoom, constrainFurnitureToRoom } from '../utils/roomBoundary';
 import { checkCollisionWithOthers, moveToSafePosition } from '../utils/collisionDetection';
 
@@ -86,7 +95,7 @@ const initialState: EditorState = {
 // 성능 최적화를 위한 유틸리티 함수들
 const performanceUtils = {
   // 깊은 비교를 통한 불필요한 업데이트 방지
-  deepEqual: (a: any, b: any): boolean => {
+  deepEqual: (a: unknown, b: unknown): boolean => {
     if (a === b) return true;
     if (typeof a !== typeof b) return false;
     if (a == null || b == null) return a === b;
@@ -97,10 +106,10 @@ const performanceUtils = {
     }
     
     if (typeof a === 'object') {
-      const keysA = Object.keys(a);
-      const keysB = Object.keys(b);
+      const keysA = Object.keys(a as Record<string, unknown>);
+      const keysB = Object.keys(b as Record<string, unknown>);
       if (keysA.length !== keysB.length) return false;
-      return keysA.every(key => performanceUtils.deepEqual(a[key], b[key]));
+      return keysA.every(key => performanceUtils.deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]));
     }
     
     return false;
@@ -122,12 +131,12 @@ const performanceUtils = {
   },
 
   // 배치 업데이트를 위한 디바운스
-  debounce: <T extends (...args: any[]) => void>(
+  debounce: <T extends (...args: unknown[]) => void>(
     func: T,
     delay: number
   ): T => {
     let timeoutId: NodeJS.Timeout;
-    return ((...args: any[]) => {
+    return ((...args: unknown[]) => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => func(...args), delay);
     }) as T;
@@ -173,7 +182,7 @@ export const useEditorStore = create<EditorStore>()(
           const originalItem = placedItems.find(item => item.id === compressedItem.id);
 
           if (!originalItem) {
-            console.warn(`⚠️ 성능: 히스토리 복원 중 원본 아이템을 찾을 수 없음 - ${compressedItem.id}`);
+            // console.warn(`⚠️ 성능: 히스토리 복원 중 원본 아이템을 찾을 수 없음 - ${compressedItem.id}`);
             return null;
           }
 
@@ -223,25 +232,25 @@ export const useEditorStore = create<EditorStore>()(
         
         // 중복 ID 체크
         if (placedItems.some(existing => existing.id === item.id)) {
-          console.warn('중복된 ID의 아이템을 추가할 수 없습니다:', item.id);
+          // console.warn('중복된 ID의 아이템을 추가할 수 없습니다:', item.id);
           return;
         }
 
         // 가구가 방 안에 있는지 검증하고, 벽 밖에 있다면 자동으로 이동
         let validatedItem = item;
         if (!isFurnitureInRoom(item)) {
-          console.warn(`⚠️ 성능: 가구가 벽 밖에 배치됨 - ${item.name || item.id}`);
+          // console.warn(`⚠️ 성능: 가구가 벽 밖에 배치됨 - ${item.name || item.id}`);
           validatedItem = constrainFurnitureToRoom(item);
         }
 
         // 가구 간 충돌 검사 및 해결
         const collisionCheck = checkCollisionWithOthers(validatedItem, placedItems);
         if (collisionCheck.hasCollision) {
-          console.warn(`⚠️ 성능: 가구 충돌 감지 - ${validatedItem.name || validatedItem.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
+          // console.warn(`⚠️ 성능: 가구 충돌 감지 - ${validatedItem.name || validatedItem.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
           
           // 충돌을 피할 수 있는 안전한 위치로 이동
           validatedItem = moveToSafePosition(validatedItem, placedItems);
-          console.log(`✅ 성능: 충돌 해결 - ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
+          // console.log(`✅ 성능: 충돌 해결 - ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
         }
 
         const newItems = [...placedItems, validatedItem];
@@ -263,7 +272,7 @@ export const useEditorStore = create<EditorStore>()(
         if (itemIndex === -1) return;
 
         const currentItem = placedItems[itemIndex];
-        const updatedItem: PlacedItem = { ...currentItem, ...(updates as any) };
+        const updatedItem: PlacedItem = { ...currentItem, ...updates } as PlacedItem;
 
         // 실제 변경사항이 있는지 확인
         if (performanceUtils.deepEqual(currentItem, updatedItem)) {
@@ -277,7 +286,7 @@ export const useEditorStore = create<EditorStore>()(
           const isInRoom = isFurnitureInRoom(updatedItem);
 
           if (!isInRoom) {
-            console.warn(`⚠️ 성능: 가구 변경으로 벽 밖 조건 발생 - ${updatedItem.name || updatedItem.id}`);
+            // console.warn(`⚠️ 성능: 가구 변경으로 벽 밖 조건 발생 - ${updatedItem.name || updatedItem.id}`);
             validatedItem = constrainFurnitureToRoom(updatedItem);
           }
 
@@ -285,11 +294,11 @@ export const useEditorStore = create<EditorStore>()(
           const otherItems = placedItems.filter(item => item.id !== id);
           const collisionCheck = checkCollisionWithOthers(validatedItem, otherItems);
           if (collisionCheck.hasCollision) {
-            console.warn(`⚠️ 성능: 가구 업데이트 시 충돌 감지 - ${validatedItem.name || validatedItem.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
+            // console.warn(`⚠️ 성능: 가구 업데이트 시 충돌 감지 - ${validatedItem.name || validatedItem.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
             
             // 충돌을 피할 수 있는 안전한 위치로 이동
             validatedItem = moveToSafePosition(validatedItem, otherItems);
-            console.log(`✅ 성능: 충돌 해결 - ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
+            // console.log(`✅ 성능: 충돌 해결 - ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
           }
         }
 
@@ -356,6 +365,14 @@ export const useEditorStore = create<EditorStore>()(
         
         // 단일 선택만 허용 - 이전 선택을 명시적으로 해제
         set({ selectedItemId: id });
+      },
+
+      // 선택 해제(표준 액션)
+      clearSelection: () => {
+        const currentSelectedId = get().selectedItemId;
+        if (currentSelectedId !== null) {
+          set({ selectedItemId: null });
+        }
       },
 
       lockItem: (id: string) => {
@@ -460,15 +477,15 @@ export const useEditorStore = create<EditorStore>()(
         try {
           const { grid, rotationSnap } = get();
           const snapSettings = { grid, rotationSnap };
-          localStorage.setItem('bondidi_snap_settings', JSON.stringify(snapSettings));
+          localStorage.setItem('bumbum_snap_settings', JSON.stringify(snapSettings));
         } catch (error) {
-          console.error('스냅 설정 저장 실패:', error);
+          // console.error('스냅 설정 저장 실패:', error);
         }
       },
 
       loadSnapSettings: () => {
         try {
-          const savedSettings = localStorage.getItem('bondidi_snap_settings');
+          const savedSettings = localStorage.getItem('bumbum_snap_settings');
           if (savedSettings) {
             const settings = JSON.parse(savedSettings);
             const { grid, rotationSnap } = get();
@@ -485,7 +502,7 @@ export const useEditorStore = create<EditorStore>()(
             }
           }
         } catch (error) {
-          console.warn('스냅 설정 로드 실패:', error);
+          // console.warn('스냅 설정 로드 실패:', error);
         }
       },
 
@@ -517,7 +534,7 @@ export const useEditorStore = create<EditorStore>()(
           }
         });
 
-        console.log('✅ 성능: 실행 취소됨');
+        // console.log('✅ 성능: 실행 취소됨');
       },
 
       redo: () => {
@@ -547,7 +564,7 @@ export const useEditorStore = create<EditorStore>()(
           }
         });
 
-        console.log('✅ 성능: 재실행됨');
+        // console.log('✅ 성능: 재실행됨');
       },
 
       clearHistory: () => {
@@ -610,19 +627,19 @@ export const useEditorStore = create<EditorStore>()(
             timestamp: new Date().toISOString()
           };
 
-          localStorage.setItem('bondidi_room_state', JSON.stringify(saveData));
-          console.log('✅ 성능: 룸 상태가 저장되었습니다');
+          localStorage.setItem('bumbum_room_state', JSON.stringify(saveData));
+          // console.log('✅ 성능: 룸 상태가 저장되었습니다');
         } catch (error) {
-          console.error('룸 상태 저장 실패:', error);
+          // console.error('룸 상태 저장 실패:', error);
         }
       },
 
       // 저장된 상태 불러오기 (최적화)
       loadSavedState: () => {
         try {
-          const savedData = localStorage.getItem('bondidi_room_state');
+          const savedData = localStorage.getItem('bumbum_room_state');
           if (!savedData) {
-            console.warn('저장된 룸 상태가 없습니다');
+            // console.warn('저장된 룸 상태가 없습니다');
             return;
           }
 
@@ -645,15 +662,15 @@ export const useEditorStore = create<EditorStore>()(
             selectedItemId: null
           });
 
-          console.log('✅ 성능: 룸 상태가 불러와졌습니다');
+          // console.log('✅ 성능: 룸 상태가 불러와졌습니다');
         } catch (error) {
-          console.error('룸 상태 불러오기 실패:', error);
+          // console.error('룸 상태 불러오기 실패:', error);
         }
       },
 
       // 저장된 상태 존재 여부 확인
       hasSavedState: () => {
-        return localStorage.getItem('bondidi_room_state') !== null;
+        return localStorage.getItem('bumbum_room_state') !== null;
       },
 
       // 자동 고정 설정 토글 (최적화)
@@ -665,7 +682,7 @@ export const useEditorStore = create<EditorStore>()(
             enabled: !autoLock.enabled
           }
         });
-        console.log(`✅ 성능: 자동 고정 ${!autoLock.enabled ? '활성화' : '비활성화'}`);
+        // console.log(`✅ 성능: 자동 고정 ${!autoLock.enabled ? '활성화' : '비활성화'}`);
       },
 
       // 자동 고정 지연 시간 설정 (최적화)
@@ -679,19 +696,19 @@ export const useEditorStore = create<EditorStore>()(
             delay
           }
         });
-        console.log(`✅ 성능: 자동 고정 지연 시간 - ${delay}ms`);
+        // console.log(`✅ 성능: 자동 고정 지연 시간 - ${delay}ms`);
       },
 
       // 레이아웃 저장 (최적화)
       saveLayout: (name: string, description?: string, tags?: string[]) => {
         try {
           const { placedItems } = get();
-          const layoutId = storageManager.saveLayout(name, placedItems, description, tags);
+          const layoutId = saveLayoutUtil(name, placedItems, description, tags);
 
-          console.log('✅ 성능: 레이아웃 저장 완료 -', { name, layoutId, itemCount: placedItems.length });
+          // console.log('✅ 성능: 레이아웃 저장 완료 -', { name, layoutId, itemCount: placedItems.length });
           return layoutId;
         } catch (error) {
-          console.error('❌ 레이아웃 저장 실패:', error);
+          // console.error('❌ 레이아웃 저장 실패:', error);
           throw error;
         }
       },
@@ -699,7 +716,7 @@ export const useEditorStore = create<EditorStore>()(
       // 레이아웃 불러오기 (최적화)
       loadLayout: (layoutId: string) => {
         try {
-          const items = storageManager.loadLayout(layoutId);
+          const items = loadLayoutUtil(layoutId);
           if (!items) {
             throw new Error('레이아웃을 찾을 수 없습니다.');
           }
@@ -712,10 +729,10 @@ export const useEditorStore = create<EditorStore>()(
             selectedItemId: null
           });
 
-          console.log('✅ 성능: 레이아웃 불러오기 완료 -', { layoutId, itemCount: items.length });
+          // console.log('✅ 성능: 레이아웃 불러오기 완료 -', { layoutId, itemCount: items.length });
           return items;
         } catch (error) {
-          console.error('❌ 레이아웃 불러오기 실패:', error);
+          // console.error('❌ 레이아웃 불러오기 실패:', error);
           throw error;
         }
       },
@@ -723,9 +740,9 @@ export const useEditorStore = create<EditorStore>()(
       // 모든 레이아웃 목록 가져오기
       getAllLayouts: () => {
         try {
-          return storageManager.loadAllLayouts();
+          return loadAllLayoutsUtil();
         } catch (error) {
-          console.error('❌ 레이아웃 목록 로드 실패:', error);
+          // console.error('❌ 레이아웃 목록 로드 실패:', error);
           return [];
         }
       },
@@ -733,13 +750,13 @@ export const useEditorStore = create<EditorStore>()(
       // 레이아웃 삭제
       deleteLayout: (layoutId: string) => {
         try {
-          const success = storageManager.deleteLayout(layoutId);
+          const success = deleteLayoutUtil(layoutId);
           if (success) {
-            console.log('✅ 성능: 레이아웃 삭제 완료 -', layoutId);
+            // console.log('✅ 성능: 레이아웃 삭제 완료 -', layoutId);
           }
           return success;
         } catch (error) {
-          console.error('❌ 레이아웃 삭제 실패:', error);
+          // console.error('❌ 레이아웃 삭제 실패:', error);
           return false;
         }
       },
@@ -747,9 +764,9 @@ export const useEditorStore = create<EditorStore>()(
       // 자동 저장된 레이아웃 복구 (최적화)
       loadAutoSave: () => {
         try {
-          const items = storageManager.loadAutoSave();
+          const items = loadAutoSaveUtil();
           if (!items) {
-            console.log('ℹ️ 자동 저장된 레이아웃이 없습니다.');
+            // console.log('ℹ️ 자동 저장된 레이아웃이 없습니다.');
             return null;
           }
 
@@ -760,10 +777,10 @@ export const useEditorStore = create<EditorStore>()(
             selectedItemId: null
           });
 
-          console.log('✅ 성능: 자동 저장 레이아웃 복구 완료 -', { itemCount: items.length });
+          // console.log('✅ 성능: 자동 저장 레이아웃 복구 완료 -', { itemCount: items.length });
           return items;
         } catch (error) {
-          console.error('❌ 자동 저장 레이아웃 복구 실패:', error);
+          // console.error('❌ 자동 저장 레이아웃 복구 실패:', error);
           return null;
         }
       },
@@ -774,16 +791,16 @@ export const useEditorStore = create<EditorStore>()(
           const { placedItems } = get();
           storageManager.autoSave(placedItems);
         } catch (error) {
-          console.error('❌ 자동 저장 실패:', error);
+          // console.error('❌ 자동 저장 실패:', error);
         }
       },
 
       // 저장소 사용량 확인
       getStorageUsage: () => {
         try {
-          return storageManager.getStorageUsage();
+          return getStorageUsageUtil();
         } catch (error) {
-          console.error('❌ 저장소 사용량 확인 실패:', error);
+          // console.error('❌ 저장소 사용량 확인 실패:', error);
           return { used: 0, total: 0, percentage: 0 };
         }
       },
@@ -791,11 +808,11 @@ export const useEditorStore = create<EditorStore>()(
       // 저장소 정리
       cleanupStorage: () => {
         try {
-          const result = storageManager.cleanupStorage();
-          console.log('🧹 저장소 정리 완료:', result);
+          const result = cleanupStorageUtil();
+          // console.log('🧹 저장소 정리 완료:', result);
           return result;
         } catch (error) {
-          console.error('❌ 저장소 정리 실패:', error);
+          // console.error('❌ 저장소 정리 실패:', error);
           return { removed: 0, freed: 0 };
         }
       },
@@ -819,11 +836,11 @@ export const useEditorStore = create<EditorStore>()(
 
           set({ selectedCategory: category });
 
-          console.log('✅ 성능: 카테고리 변경 -', { from: prevCategory, to: category });
+          // console.log('✅ 성능: 카테고리 변경 -', { from: prevCategory, to: category });
 
           requestAnimationFrame(() => get().captureHistory(`카테고리 변경: ${prevCategory} → ${category}`));
         } catch (error) {
-          console.error('❌ 카테고리 변경 실패:', error);
+          // console.error('❌ 카테고리 변경 실패:', error);
         }
       },
 
@@ -841,14 +858,14 @@ export const useEditorStore = create<EditorStore>()(
         if (currentTexture === texturePath) return; // 불필요한 업데이트 방지
 
         set({ currentWallTexture: texturePath });
-        console.log('✅ 성능: 벽 텍스처 변경 -', { from: currentTexture, to: texturePath });
+        // console.log('✅ 성능: 벽 텍스처 변경 -', { from: currentTexture, to: texturePath });
       },
 
       // 스크롤 락 토글 (최적화)
       toggleScrollLock: () => {
         const currentScrollLock = get().scrollLockEnabled;
         set({ scrollLockEnabled: !currentScrollLock });
-        console.log(`✅ 성능: 스크롤 락 ${!currentScrollLock ? '활성화' : '비활성화'}`);
+        // console.log(`✅ 성능: 스크롤 락 ${!currentScrollLock ? '활성화' : '비활성화'}`);
       },
 
       // 스크롤 락 설정 (최적화)
@@ -856,15 +873,41 @@ export const useEditorStore = create<EditorStore>()(
         const currentScrollLock = get().scrollLockEnabled;
         if (currentScrollLock === enabled) return; // 불필요한 업데이트 방지
         set({ scrollLockEnabled: enabled });
-        console.log(`✅ 성능: 스크롤 락 ${enabled ? '활성화' : '비활성화'}`);
+        // console.log(`✅ 성능: 스크롤 락 ${enabled ? '활성화' : '비활성화'}`);
       }
     })),
     {
-      name: 'bondidi-editor-store',
+      name: 'bumbum-editor-store',
       enabled: process.env.NODE_ENV === 'development'
     }
   )
 );
+
+// 개발 편의를 위한 전역 디버그 노출 (브라우저 콘솔에서 상태 확인)
+declare global {
+  interface Window {
+    __editorStore?: typeof useEditorStore;
+    __s?: () => { selected: string | null; dragging: boolean };
+  }
+}
+
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  try {
+    (window as Window & typeof globalThis & {
+      __editorStore?: typeof useEditorStore;
+      __s?: () => { selected: string | null; dragging: boolean };
+    }).__editorStore = useEditorStore;
+    (window as Window & typeof globalThis & {
+      __editorStore?: typeof useEditorStore;
+      __s?: () => { selected: string | null; dragging: boolean };
+    }).__s = () => {
+      const s = useEditorStore.getState();
+      return { selected: s.selectedItemId, dragging: s.isDragging };
+    };
+  } catch {
+    // 개발 환경에서만 사용되는 디버그 기능이므로 에러 무시
+  }
+}
 
 // 성능 최적화된 선택자 함수들
 export const useEditorMode = () => useEditorStore(state => state.mode);
@@ -892,6 +935,7 @@ export const {
   removeItem,
   duplicateItem,
   selectItem,
+  clearSelection,
   lockItem,
   unlockItem,
   setGridSettings,

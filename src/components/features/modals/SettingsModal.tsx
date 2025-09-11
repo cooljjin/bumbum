@@ -109,14 +109,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
    */
   const loadUserSettings = () => {
     try {
-      const saved = localStorage.getItem('bondidi_user_settings');
+      const saved = localStorage.getItem('bumbum_user_settings');
       if (saved) {
         const loadedSettings = { ...DEFAULT_USER_SETTINGS, ...JSON.parse(saved) };
         setSettings(loadedSettings);
-        console.log('✅ 사용자 설정 로드 완료');
+        // console.log('✅ 사용자 설정 로드 완료');
       }
     } catch (error) {
-      console.error('❌ 사용자 설정 로드 실패:', error);
+      // console.error('❌ 사용자 설정 로드 실패:', error);
     }
   };
 
@@ -125,7 +125,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
    */
   const saveUserSettings = () => {
     try {
-      localStorage.setItem('bondidi_user_settings', JSON.stringify(settings));
+      localStorage.setItem('bumbum_user_settings', JSON.stringify(settings));
 
       // editorStore에 설정 적용
       setGridSettings({
@@ -147,9 +147,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       });
 
       setHasUnsavedChanges(false);
-      console.log('✅ 사용자 설정 저장 완료');
+      // console.log('✅ 사용자 설정 저장 완료');
     } catch (error) {
-      console.error('❌ 사용자 설정 저장 실패:', error);
+      // console.error('❌ 사용자 설정 저장 실패:', error);
     }
   };
 

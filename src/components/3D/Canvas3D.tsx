@@ -14,48 +14,7 @@ interface Canvas3DProps {
   onClick?: () => void;
 }
 
-// 빈 공간 판정을 보강하기 위한 Raycasting 핸들러
-function EmptySpaceRaycast({ onEmptySpaceClick }: { onEmptySpaceClick?: () => void }) {
-  const { camera, scene, gl } = useThree();
-
-  useEffect(() => {
-    if (!gl?.domElement) return;
-
-    const handler = (event: PointerEvent) => {
-      try {
-        const rect = gl.domElement.getBoundingClientRect();
-        const mouse = new THREE.Vector2(
-          ((event.clientX - rect.left) / rect.width) * 2 - 1,
-          -((event.clientY - rect.top) / rect.height) * 2 + 1
-        );
-
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(scene.children, true);
-
-        // 가구(userData.isFurniture)만 필터링
-        const furnitureHits = intersects.filter(i => {
-          let obj: any = i.object;
-          while (obj) {
-            if (obj.userData?.isFurniture) return true;
-            obj = obj.parent;
-          }
-          return false;
-        });
-
-        if (furnitureHits.length === 0) {
-          // 가구 히트가 없으면 빈 공간으로 처리
-          onEmptySpaceClick?.();
-        }
-      } catch {}
-    };
-
-    gl.domElement.addEventListener('pointerdown', handler, { passive: true });
-    return () => gl.domElement.removeEventListener('pointerdown', handler as any);
-  }, [camera, scene, gl, onEmptySpaceClick]);
-
-  return null;
-}
+// (보강 핸들러 제거) onPointerMissed만 사용해 빈 공간 클릭 처리
 
 // ---------- 초기 렌더링 강제 실행 컴포넌트 제거됨 ----------
 
@@ -86,13 +45,13 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
 
   // 빈 공간 클릭 핸들러
   const handleEmptySpaceClick = (event: any) => {
-    console.log('🎯 Canvas3D 빈 공간 클릭 감지됨:', {
-      type: event.type,
-      pointerType: event.pointerType,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      timestamp: Date.now()
-    });
+    // console.log('🎯 Canvas3D 빈 공간 클릭 감지됨:', {
+    //   type: event.type,
+    //   pointerType: event.pointerType,
+    //   clientX: event.clientX,
+    //   clientY: event.clientY,
+    //   timestamp: Date.now()
+    // });
 
     // 외부 onClick 핸들러 호출
     if (onClick) {
@@ -176,16 +135,16 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
             camera.updateProjectionMatrix();
             camera.updateMatrixWorld();
 
-            console.log(`🎨 3D 품질 설정 완료:`, {
-              anisotropy: THREE.Texture.DEFAULT_ANISOTROPY,
-              shadowMapSize: isMobile ? '1024x1024' : '2048x2048',
-              antialias: true,
-              devicePixelRatio: window.devicePixelRatio,
-              pixelRatio: gl.getPixelRatio(),
-              canvasSize: size,
-              cameraPosition: camera.position,
-              cameraFov: camera.fov
-            });
+            // console.log(`🎨 3D 품질 설정 완료:`, {
+            //   anisotropy: THREE.Texture.DEFAULT_ANISOTROPY,
+            //   shadowMapSize: isMobile ? '1024x1024' : '2048x2048',
+            //   antialias: true,
+            //   devicePixelRatio: window.devicePixelRatio,
+            //   pixelRatio: gl.getPixelRatio(),
+            //   canvasSize: size,
+            //   cameraPosition: camera.position,
+            //   cameraFov: camera.fov
+            // });
           }}
           onWheel={() => {
             // e.stopPropagation(); // 이벤트 전파 허용
@@ -235,8 +194,7 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
           )} */}
           <AdaptiveEvents />
 
-          {/* 빈 공간 처리는 onPointerMissed + 레이캐스트 보강 */}
-          <EmptySpaceRaycast onEmptySpaceClick={onClick} />
+          {/* 빈 공간 처리는 onPointerMissed만 사용 */}
 
           {children}
         </Canvas>

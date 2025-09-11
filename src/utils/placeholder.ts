@@ -12,7 +12,14 @@ export function shouldUsePlaceholderModels(): boolean {
   // - In tests, use placeholders to avoid GLTF loading
   // - In development, try real models by default (changed from placeholders)
   // - In production, try real models
-  if (process.env.NODE_ENV === 'test') return true;
-  if (process.env.NODE_ENV === 'development') return false; // 실제 모델 로드
+  const nodeEnv = process.env.NODE_ENV;
+  console.log('🔍 shouldUsePlaceholderModels - NODE_ENV:', nodeEnv);
+  
+  if (nodeEnv === 'test') return true;
+  if (nodeEnv === 'development') return false; // 실제 모델 로드
+  
+  // NODE_ENV가 undefined인 경우 (Next.js dev 모드) 실제 모델 로드
+  if (!nodeEnv) return false;
+  
   return false;
 }

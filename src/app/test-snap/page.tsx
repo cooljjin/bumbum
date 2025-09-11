@@ -23,7 +23,7 @@ export default function TestSnapPage() {
 
   // 가구 선택 핸들러
   const handleFurnitureSelect = (furniture: any) => {
-    console.log('가구 선택됨:', furniture);
+    // console.log('가구 선택됨:', furniture);
   };
 
   return (

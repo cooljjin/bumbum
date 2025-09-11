@@ -27,14 +27,14 @@ const EditorTest: React.FC = () => {
   const handleAddTestItem = () => {
     const allFurniture = getAllFurnitureItems();
     if (allFurniture.length === 0) {
-      console.log('가구 카탈로그가 비어있습니다.');
+      // console.log('가구 카탈로그가 비어있습니다.');
       return;
     }
 
     // 첫 번째 가구를 테스트 아이템으로 사용
     const furniture = allFurniture[0];
     if (!furniture) {
-      console.warn('가구 데이터가 없습니다.');
+      // console.warn('가구 데이터가 없습니다.');
       return;
     }
 

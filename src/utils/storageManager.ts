@@ -3,10 +3,10 @@ import { Vector3, Euler } from 'three';
 
 // 저장소 키 상수
 const STORAGE_KEYS = {
-  LAYOUTS: 'bondidi_room_layouts',
-  CURRENT_LAYOUT: 'bondidi_current_layout',
-  AUTO_SAVE: 'bondidi_auto_save',
-  SETTINGS: 'bondidi_storage_settings'
+  LAYOUTS: 'bumbum_room_layouts',
+  CURRENT_LAYOUT: 'bumbum_current_layout',
+  AUTO_SAVE: 'bumbum_auto_save',
+  SETTINGS: 'bumbum_storage_settings'
 };
 
 // 저장소 설정 타입
@@ -85,7 +85,7 @@ class StorageManager {
     try {
       this.settings = { ...this.settings, ...settings };
       localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(this.settings));
-      console.log('✅ 저장소 설정 저장 완료:', this.settings);
+      // console.log('✅ 저장소 설정 저장 완료:', this.settings);
     } catch (error) {
       console.error('❌ 저장소 설정 저장 실패:', error);
     }
@@ -111,10 +111,10 @@ class StorageManager {
       };
 
       localStorage.setItem(STORAGE_KEYS.AUTO_SAVE, JSON.stringify(autoSaveData));
-      console.log('🔄 자동 저장 완료:', {
-        itemCount: items.length,
-        timestamp: new Date().toLocaleTimeString()
-      });
+      // console.log('🔄 자동 저장 완료:', {
+      //   itemCount: items.length,
+      //   timestamp: new Date().toLocaleTimeString()
+      // });
     } catch (error) {
       console.error('❌ 자동 저장 실패:', error);
     }
@@ -154,11 +154,11 @@ class StorageManager {
       layouts.push(newLayout);
       localStorage.setItem(STORAGE_KEYS.LAYOUTS, JSON.stringify(layouts));
 
-      console.log('✅ 레이아웃 저장 완료:', {
-        id: layoutId,
-        name,
-        itemCount: items.length
-      });
+      // console.log('✅ 레이아웃 저장 완료:', {
+      //   id: layoutId,
+      //   name,
+      //   itemCount: items.length
+      // });
 
       return layoutId;
     } catch (error) {
@@ -204,10 +204,10 @@ class StorageManager {
       }
 
       const items = this.decompressItems(layout.data);
-      console.log('✅ 레이아웃 로드 완료:', {
-        name: layout.metadata.name,
-        itemCount: items.length
-      });
+      // console.log('✅ 레이아웃 로드 완료:', {
+      //   name: layout.metadata.name,
+      //   itemCount: items.length
+      // });
 
       return items;
     } catch (error) {
@@ -235,7 +235,7 @@ class StorageManager {
       }
 
       localStorage.setItem(STORAGE_KEYS.LAYOUTS, JSON.stringify(filteredLayouts));
-      console.log('✅ 레이아웃 삭제 완료:', layoutId);
+      // console.log('✅ 레이아웃 삭제 완료:', layoutId);
       return true;
     } catch (error) {
       console.error('❌ 레이아웃 삭제 실패:', error);
@@ -259,10 +259,10 @@ class StorageManager {
       const autoSaveData: CompressedState = JSON.parse(saved);
       const items = this.decompressItems(autoSaveData);
 
-      console.log('✅ 자동 저장 레이아웃 복구 완료:', {
-        itemCount: items.length,
-        timestamp: new Date(autoSaveData.timestamp).toLocaleString()
-      });
+      // console.log('✅ 자동 저장 레이아웃 복구 완료:', {
+      //   itemCount: items.length,
+      //   timestamp: new Date(autoSaveData.timestamp).toLocaleString()
+      // });
 
       return items;
     } catch (error) {
@@ -315,7 +315,7 @@ class StorageManager {
 
       if (removed > 0) {
         localStorage.setItem(STORAGE_KEYS.LAYOUTS, JSON.stringify(validLayouts));
-        console.log('🧹 저장소 정리 완료:', { removed, remaining: validLayouts.length });
+        // console.log('🧹 저장소 정리 완료:', { removed, remaining: validLayouts.length });
       }
 
       return { removed, freed: removed * 1024 }; // 대략적인 메모리 해제량

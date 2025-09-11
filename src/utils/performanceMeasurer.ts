@@ -48,7 +48,7 @@ export class PerformanceMeasurer {
     this.frameCount = 0;
     this.lastTime = performance.now();
     this.fpsHistory = [];
-    console.log('📊 성능 측정 시작');
+    // console.log('📊 성능 측정 시작');
   }
 
   /**
@@ -56,7 +56,7 @@ export class PerformanceMeasurer {
    */
   stopMeasurement(): void {
     this.isMeasuring = false;
-    console.log('⏹️ 성능 측정 중지');
+    // console.log('⏹️ 성능 측정 중지');
   }
 
   /**
@@ -345,7 +345,7 @@ export const performanceUtils = {
     const duration = end - start;
     const avgDuration = duration / iterations;
 
-    console.log(`⚡ 벤치마크 [${name}]: ${iterations}회 실행, 총 ${duration.toFixed(2)}ms, 평균 ${avgDuration.toFixed(4)}ms`);
+    // console.log(`⚡ 벤치마크 [${name}]: ${iterations}회 실행, 총 ${duration.toFixed(2)}ms, 평균 ${avgDuration.toFixed(4)}ms`);
 
     return result!;
   },

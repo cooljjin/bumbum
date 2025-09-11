@@ -41,7 +41,8 @@ export function useKeyboardShortcuts() {
     undo,
     redo,
     toggleGrid,
-    toggleBoundingBoxes
+    toggleBoundingBoxes,
+    clearSelection
   } = useEditorStore();
 
   // 단축키 설정 상태
@@ -60,6 +61,16 @@ export function useKeyboardShortcuts() {
       description: '선택 도구',
       action: () => setTool('select'),
       category: 'tool'
+    },
+    {
+      key: 'Escape',
+      description: '선택 해제',
+      action: () => {
+        if (selectedItemId !== null) {
+          clearSelection();
+        }
+      },
+      category: 'action'
     },
     {
       key: 't',
@@ -127,7 +138,7 @@ export function useKeyboardShortcuts() {
       description: '모든 가구 선택',
       action: () => {
         // 모든 가구 선택 로직 (구현 필요)
-        console.log('모든 가구 선택');
+        // console.log('모든 가구 선택');
       },
       modifier: 'ctrl',
       category: 'action'
@@ -152,7 +163,7 @@ export function useKeyboardShortcuts() {
       action: () => {
         if (selectedItemId) {
           // 카메라를 선택된 가구에 포커스하는 로직 (구현 필요)
-          console.log('선택된 가구에 포커스');
+          // console.log('선택된 가구에 포커스');
         }
       },
       category: 'view'
@@ -162,7 +173,7 @@ export function useKeyboardShortcuts() {
       description: '홈 뷰로 리셋',
       action: () => {
         // 카메라를 기본 위치로 리셋하는 로직 (구현 필요)
-        console.log('홈 뷰로 리셋');
+        // console.log('홈 뷰로 리셋');
       },
       category: 'view'
     },
@@ -227,7 +238,7 @@ export function useKeyboardShortcuts() {
           playShortcutSound();
         }
 
-        console.log(`⌨️ 단축키 실행: ${shortcut.key} - ${shortcut.description}`);
+        // console.log(`⌨️ 단축키 실행: ${shortcut.key} - ${shortcut.description}`);
       } catch (error) {
         console.error('단축키 실행 실패:', error);
       }
@@ -310,8 +321,8 @@ export function useKeyboardShortcuts() {
 
     // localStorage에 설정 저장
     try {
-      localStorage.setItem('bondidi_shortcut_settings', JSON.stringify(shortcutSettings.current));
-      console.log('✅ 단축키 설정 저장 완료');
+      localStorage.setItem('bumbum_shortcut_settings', JSON.stringify(shortcutSettings.current));
+      // console.log('✅ 단축키 설정 저장 완료');
     } catch (error) {
       console.error('❌ 단축키 설정 저장 실패:', error);
     }
@@ -322,10 +333,10 @@ export function useKeyboardShortcuts() {
    */
   const loadShortcutSettings = useCallback(() => {
     try {
-      const saved = localStorage.getItem('bondidi_shortcut_settings');
+      const saved = localStorage.getItem('bumbum_shortcut_settings');
       if (saved) {
         shortcutSettings.current = { ...DEFAULT_SHORTCUTS, ...JSON.parse(saved) };
-        console.log('✅ 단축키 설정 로드 완료');
+        // console.log('✅ 단축키 설정 로드 완료');
       }
     } catch (error) {
       console.error('❌ 단축키 설정 로드 실패:', error);
@@ -338,7 +349,7 @@ export function useKeyboardShortcuts() {
   const resetShortcutSettings = useCallback(() => {
     shortcutSettings.current = { ...DEFAULT_SHORTCUTS };
     updateShortcutSettings({});
-    console.log('🔄 단축키 설정 리셋 완료');
+    // console.log('🔄 단축키 설정 리셋 완료');
   }, [updateShortcutSettings]);
 
   // 컴포넌트 마운트 시 설정 로드 및 이벤트 리스너 등록

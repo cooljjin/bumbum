@@ -119,6 +119,7 @@ export const useEditorActions = () => {
     removeItem: store.removeItem,
     duplicateItem: store.duplicateItem,
     selectItem: store.selectItem,
+    clearSelection: store.clearSelection,
     lockItem: store.lockItem,
     unlockItem: store.unlockItem,
     undo: store.undo,
@@ -230,7 +231,7 @@ export const useSelectionManager = () => {
   
   const selectAll = useCallback(() => {
     // 다중 선택은 향후 구현 예정
-    console.log('다중 선택 기능은 향후 구현 예정입니다.');
+    // console.log('다중 선택 기능은 향후 구현 예정입니다.');
   }, []);
   
   const clearSelection = useCallback(() => {

@@ -7,6 +7,7 @@ import {
 } from '../../../data/furnitureCatalog';
 
 import { FurnitureItem } from '../../../types/furniture';
+import { useEditorStore } from '../../../store/editorStore';
 
 interface FurnitureCatalogProps {
   onFurnitureSelect?: (furniture: FurnitureItem) => void;
@@ -26,6 +27,7 @@ export const FurnitureCatalog: React.FC<FurnitureCatalogProps> = React.memo(({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [dragItem, setDragItem] = useState<FurnitureItem | null>(null);
+  const { setDragging } = useEditorStore();
 
   // 모바일 환경 감지
   const [isMobile, setIsMobile] = useState(false);
@@ -164,7 +166,7 @@ export const FurnitureCatalog: React.FC<FurnitureCatalogProps> = React.memo(({
       navigator.vibrate(100);
     }
 
-    console.log('🎯 가구 선택됨:', furniture.nameKo || furniture.name);
+    // console.log('🎯 가구 선택됨:', furniture.nameKo || furniture.name);
   };
 
   // 드래그 시작
@@ -172,12 +174,30 @@ export const FurnitureCatalog: React.FC<FurnitureCatalogProps> = React.memo(({
     setDragItem(furniture);
     e.dataTransfer.setData('application/json', JSON.stringify(furniture));
     e.dataTransfer.effectAllowed = 'copy';
+
+    // 전역 드래깅 상태 활성화 → 카메라 컨트롤 비활성화
+    try { setDragging(true); } catch {}
   };
 
   // 드래그 종료
   const handleDragEnd = () => {
     setDragItem(null);
+    // 전역 드래깅 상태 비활성화 (안전 가드)
+    try { setDragging(false); } catch {}
   };
+
+  // 드롭/드래그 종료에 대한 전역 가드: 드래그가 외부에서 끝나도 카메라 잠금 해제
+  useEffect(() => {
+    const resetDragging = () => {
+      try { setDragging(false); } catch {}
+    };
+    window.addEventListener('drop', resetDragging);
+    window.addEventListener('dragend', resetDragging);
+    return () => {
+      window.removeEventListener('drop', resetDragging);
+      window.removeEventListener('dragend', resetDragging);
+    };
+  }, [setDragging]);
 
   // 썸네일 이미지 로드 실패 시 기본 아이콘 표시
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {

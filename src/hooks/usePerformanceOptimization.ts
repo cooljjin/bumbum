@@ -118,7 +118,7 @@ export function usePerformanceOptimization(
     // WebGL 컨텍스트 강제 정리
     gl.getContext()?.getExtension('WEBGL_lose_context')?.loseContext();
 
-    console.log('🧹 메모리 정리 완료');
+    // console.log('🧹 메모리 정리 완료');
   }, [scene, gl]);
 
   /**
@@ -176,7 +176,7 @@ export function usePerformanceOptimization(
         cull: Math.max(35, lodSettings.cull * 0.9)
       };
 
-      console.log('⚡ 성능 저하 감지, LOD 레벨 자동 조절:', adjustedSettings);
+      // console.log('⚡ 성능 저하 감지, LOD 레벨 자동 조절:', adjustedSettings);
       return adjustedSettings;
     }
 

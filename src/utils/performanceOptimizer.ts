@@ -265,19 +265,19 @@ export class PerformanceOptimizer {
    */
   private autoOptimizeForLowFps(): void {
     // 낮은 FPS에 대한 자동 최적화
-    console.log('🚀 낮은 FPS 자동 최적화 실행');
+    // console.log('🚀 낮은 FPS 자동 최적화 실행');
     this.triggerEvent('auto-optimize-low-fps');
   }
 
   private autoOptimizeForMediumFps(): void {
     // 중간 FPS에 대한 자동 최적화
-    console.log('⚡ 중간 FPS 자동 최적화 실행');
+    // console.log('⚡ 중간 FPS 자동 최적화 실행');
     this.triggerEvent('auto-optimize-medium-fps');
   }
 
   private autoCleanupMemory(): void {
     // 메모리 정리
-    console.log('🧹 메모리 자동 정리 실행');
+    // console.log('🧹 메모리 자동 정리 실행');
     this.triggerEvent('auto-cleanup-memory');
     
     // 가비지 컬렉션 강제 실행 (가능한 경우)
@@ -288,31 +288,31 @@ export class PerformanceOptimizer {
 
   private autoOptimizeMemory(): void {
     // 메모리 최적화
-    console.log('💾 메모리 자동 최적화 실행');
+    // console.log('💾 메모리 자동 최적화 실행');
     this.triggerEvent('auto-optimize-memory');
   }
 
   private autoOptimizeFrameTime(): void {
     // 프레임 타임 최적화
-    console.log('⏱️ 프레임 타임 자동 최적화 실행');
+    // console.log('⏱️ 프레임 타임 자동 최적화 실행');
     this.triggerEvent('auto-optimize-frame-time');
   }
 
   private autoFixMemoryLeak(): void {
     // 메모리 누수 수정
-    console.log('🔧 메모리 누수 자동 수정 실행');
+    // console.log('🔧 메모리 누수 자동 수정 실행');
     this.triggerEvent('auto-fix-memory-leak');
   }
 
   private autoOptimizeTriangles(): void {
     // 삼각형 수 최적화
-    console.log('🔺 삼각형 수 자동 최적화 실행');
+    // console.log('🔺 삼각형 수 자동 최적화 실행');
     this.triggerEvent('auto-optimize-triangles');
   }
 
   private autoOptimizeRenderCalls(): void {
     // 렌더 호출 최적화
-    console.log('🎨 렌더 호출 자동 최적화 실행');
+    // console.log('🎨 렌더 호출 자동 최적화 실행');
     this.triggerEvent('auto-optimize-render-calls');
   }
 
@@ -331,7 +331,7 @@ export class PerformanceOptimizer {
    * Three.js 씬에 대한 자동 최적화를 수행합니다.
    */
   optimizeScene(scene: THREE.Scene): void {
-    console.log('🎯 씬 자동 최적화 시작');
+    // console.log('🎯 씬 자동 최적화 시작');
 
     // 사용하지 않는 텍스처 정리
     this.cleanupUnusedTextures(scene);
@@ -345,7 +345,7 @@ export class PerformanceOptimizer {
     // 그림자 최적화
     this.optimizeShadows(scene);
 
-    console.log('✅ 씬 자동 최적화 완료');
+    // console.log('✅ 씬 자동 최적화 완료');
   }
 
   /**
