@@ -19,8 +19,8 @@ export const sampleFurniture: FurnitureItem[] = [
     thumbnailPath: '/thumbnails/furniture/weirdtable.svg',
     footprint: {
       width: 1.6,
-      depth: 1.2,
-      height: 0.8
+      depth: 1.4,
+      height: 1.2
     },
     placement: {
       canRotate: true,
@@ -35,6 +35,47 @@ export const sampleFurniture: FurnitureItem[] = [
       tags: ['테이블', '위어드', '독특한', '특별한', '디자인'],
       materials: ['나무', '메탈'],
       colors: ['우드', '블랙', '실버']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 15,
+      collisionGroup: 'furniture'
+    }
+  },
+
+  // === Cozy Bed ===
+  {
+    id: 'cozybed',
+    name: 'Cozy Bed',
+    nameKo: '코지 침대',
+    category: 'bedroom',
+    subcategory: 'bed',
+    modelPath: '/models/furniture/Cozy_bed_0909043453_texture.glb',
+    thumbnailPath: '/thumbnails/furniture/cozybed.svg',
+    footprint: {
+      width: 2.0,
+      depth: 1.5,
+      height: 0.8
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0
+    },
+    metadata: {
+      brand: 'CozyFurniture',
+      model: 'CF-BED-001',
+      price: 450000,
+      description: '편안하고 아늑한 침대',
+      tags: ['침대', '코지', '편안한', '아늑한', '침실'],
+      materials: ['나무', '천', '폼'],
+      colors: ['우드', '화이트', '블루', '그레이']
     },
     renderSettings: {
       castShadow: true,
@@ -338,6 +379,88 @@ export const sampleFurniture: FurnitureItem[] = [
     }
   },
 
+  // === Wooden Dresser ===
+  {
+    id: 'wooden-dresser',
+    name: 'Wooden Dresser',
+    nameKo: '나무 서랍장',
+    category: 'bedroom',
+    subcategory: 'storage',
+    modelPath: '/models/furniture/Wooden__Dresser.glb',
+    thumbnailPath: '/thumbnails/furniture/dresser-001.svg',
+    footprint: {
+      width: 1.2,
+      depth: 0.6,
+      height: 1.0
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0
+    },
+    metadata: {
+      brand: 'WoodCraft',
+      model: 'WC-DR-001',
+      price: 280000,
+      description: '고급스러운 나무 질감의 3단 서랍장으로 수납 공간을 효율적으로 활용할 수 있습니다',
+      tags: ['서랍장', '나무', '수납', '침실', '고급스러운', '3단', '우드'],
+      materials: ['나무', '메탈', '유리'],
+      colors: ['다크우드', '라이트우드', '내추럴']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 90,
+      collisionGroup: 'furniture'
+    }
+  },
+
+  // === Gray Drawer ===
+  {
+    id: 'gray-drawer',
+    name: 'Gray Drawer',
+    nameKo: '그레이 서랍장',
+    category: 'bedroom',
+    subcategory: 'storage',
+    modelPath: '/models/furniture/_gray_drawer.glb',
+    thumbnailPath: '/thumbnails/furniture/dresser-001.svg',
+    footprint: {
+      width: 1.0,
+      depth: 0.5,
+      height: 0.8
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0
+    },
+    metadata: {
+      brand: 'ModernFurniture',
+      model: 'MF-GD-001',
+      price: 220000,
+      description: '모던하고 세련된 그레이 톤의 서랍장으로 현대적인 인테리어에 완벽하게 어울립니다',
+      tags: ['서랍장', '그레이', '수납', '침실', '모던', '세련된', '현대적'],
+      materials: ['합판', '메탈', '플라스틱'],
+      colors: ['그레이', '다크그레이', '차콜']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 90,
+      collisionGroup: 'furniture'
+    }
+  },
+
   // === 벽 카테고리 ===
   {
     id: 'wall_beige',
@@ -376,6 +499,47 @@ export const sampleFurniture: FurnitureItem[] = [
       snapToGrid: true,
       rotationSnap: 90, // 벽은 90도 단위로 회전
       collisionGroup: 'wall'
+    }
+  },
+
+  // === Cozy Sofa ===
+  {
+    id: 'cozy_sofa_0911122807_texture',
+    name: 'Cozy Sofa',
+    nameKo: '코지 소파',
+    category: 'living',
+    subcategory: 'sofa',
+    modelPath: '/models/furniture/cozy_sofa_0911122807_texture.glb',
+    thumbnailPath: '/thumbnails/furniture/cozy_sofa_0911122807_texture.svg',
+    footprint: {
+      width: 2.2,
+      depth: 0.9,
+      height: 1.05
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0
+    },
+    metadata: {
+      brand: 'CozyFurniture',
+      model: 'CF-SF-001',
+      price: 450000,
+      description: '편안하고 아늑한 느낌의 코지 소파',
+      tags: ['소파', '코지', '편안한', '아늑한', '거실'],
+      materials: ['천', '폼', '목재'],
+      colors: ['베이지', '그레이', '브라운']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 15,
+      collisionGroup: 'furniture'
     }
   }
 ];
@@ -437,7 +601,7 @@ export const furnitureCatalog: FurnitureCatalog = {
       name: 'Storage',
       nameKo: '수납',
       description: '공간을 효율적으로 활용할 수 있는 수납 가구들',
-      items: []
+      items: sampleFurniture.filter(item => item.category === 'bedroom' && item.subcategory === 'storage')
     },
     floor: {
       name: 'Floor',

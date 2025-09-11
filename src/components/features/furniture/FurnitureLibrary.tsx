@@ -21,6 +21,7 @@ const furnitureData: FurnitureItem[] = [
   { id: 'furniture-1', name: '의자', icon: '🪑', count: 5, category: '가구' },
   { id: 'furniture-2', name: '테이블', icon: '🪑', count: 3, category: '가구' },
   { id: 'furniture-3', name: '소파', icon: '🛋️', count: 2, category: '가구' },
+  { id: 'cozy_sofa_0911122807_texture', name: '코지 소파', icon: '🛋️', count: 1, category: '가구' },
   { id: 'furniture-4', name: '침대', icon: '🛏️', count: 1, category: '가구' },
   { id: 'furniture-5', name: '옷장', icon: '🗄️', count: 2, category: '가구' },
 
