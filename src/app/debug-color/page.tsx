@@ -10,7 +10,7 @@ import EditToolbar from '../../components/layout/EditToolbar';
 
 export default function DebugColorPage() {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
-  const [isEditMode, setIsEditMode] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [showFurnitureCatalog, setShowFurnitureCatalog] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
 

@@ -12,7 +12,7 @@ import { Vector3, Euler } from 'three';
 
 export default function TestColorPage() {
   const [selectedItem, setSelectedItem] = useState<string | null>('test-bed-1'); // 자동으로 침대 선택
-  const [isEditMode, setIsEditMode] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // 테스트용 침대 아이템 생성
   const testBed: PlacedItem = {

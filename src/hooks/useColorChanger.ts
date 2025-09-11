@@ -4,6 +4,7 @@ import { FurnitureColorChanger } from '../utils/colorChanger';
 
 export const useColorChanger = () => {
   const [currentColor, setCurrentColor] = useState<string>('#FF6B6B');
+  const [isColorPanelExpanded, setIsColorPanelExpanded] = useState<boolean>(true);
   const { selectedItemId, placedItems } = useEditorStore();
 
   const selectedItem = selectedItemId ? placedItems.find(item => item.id === selectedItemId) : null;
@@ -23,6 +24,10 @@ export const useColorChanger = () => {
     setCurrentColor('#FF6B6B');
   }, []);
 
+  const toggleColorPanel = useCallback(() => {
+    setIsColorPanelExpanded(prev => !prev);
+  }, []);
+
   const predefinedColors = [
     { name: '빨간색', color: '#FF6B6B' },
     { name: '파란색', color: '#4ECDC4' },
@@ -38,6 +43,8 @@ export const useColorChanger = () => {
     predefinedColors,
     handleColorChange,
     handleColorReset,
-    isColorChangerVisible: !!selectedItem
+    isColorChangerVisible: !!selectedItem,
+    isColorPanelExpanded,
+    toggleColorPanel
   };
 };

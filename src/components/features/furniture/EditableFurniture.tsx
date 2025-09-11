@@ -10,6 +10,7 @@ import { safePosition, safeRotation, safeScale } from '../../../utils/safePositi
 // import MobileTouchHandler from '../ui/MobileTouchHandler';
 import { constrainFurnitureToRoom, isFurnitureInRoom } from '../../../utils/roomBoundary';
 import { FurnitureColorChanger } from '../../../utils/colorChanger';
+import { useColorChanger } from '../../../hooks/useColorChanger';
 import * as THREE from 'three';
 
 /**
@@ -91,8 +92,17 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
   // useGLTF 훅으로 직접 모델 로드
   const furniture = getFurnitureFromPlacedItem(item);
   const gltf = furniture?.modelPath ? useGLTF(furniture.modelPath, true) : null; // draco 옵션 활성화
-  const [currentColor, setCurrentColor] = useState<string>('#FF6B6B');
   const lastUpdateTime = useRef<number>(0);
+
+  // 색상 변경 기능
+  const {
+    currentColor,
+    predefinedColors,
+    handleColorChange,
+    handleColorReset,
+    isColorPanelExpanded,
+    toggleColorPanel
+  } = useColorChanger();
 
 
 
@@ -128,20 +138,26 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     onUpdate(item.id, { position, rotation, scale });
   }, [item.id, onUpdate]);
 
-  // 색상 변경 핸들러
-  const handleColorChange = useCallback((color: string) => {
+  // 색상 변경 핸들러 (모델에 적용)
+  const handleModelColorChange = useCallback((color: string) => {
     if (model) {
-      setCurrentColor(color);
       FurnitureColorChanger.changeBlanketColor(model, color);
     }
   }, [model]);
 
-  // 색상 초기화 핸들러
-  const handleColorReset = useCallback(() => {
+  // 색상 초기화 핸들러 (모델에 적용)
+  const handleModelColorReset = useCallback(() => {
     if (model) {
       FurnitureColorChanger.resetToOriginalColors(model);
     }
   }, [model]);
+
+  // 색상 변경 시 모델에 적용
+  useEffect(() => {
+    if (model && currentColor) {
+      handleModelColorChange(currentColor);
+    }
+  }, [currentColor, model, handleModelColorChange]);
 
   // useGLTF로 로드된 모델 처리
   useEffect(() => {
@@ -871,34 +887,49 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
       {/* 색상 변경 UI - 선택된 상태에서만 표시 */}
       {isSelected && isEditMode && (
         <Html>
-          <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-4 z-50">
-            <h3 className="text-sm font-semibold mb-2">🎨 색상 변경</h3>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {[
-              { name: '빨간색', color: '#FF6B6B' },
-              { name: '파란색', color: '#4ECDC4' },
-              { name: '초록색', color: '#45B7D1' },
-              { name: '보라색', color: '#96CEB4' },
-              { name: '주황색', color: '#FFEAA7' },
-              { name: '핑크색', color: '#DDA0DD' },
-            ].map((colorOption) => (
-              <button
-                key={colorOption.color}
-                onClick={() => handleColorChange(colorOption.color)}
-                className={`w-8 h-8 rounded border-2 ${
-                  currentColor === colorOption.color ? 'border-blue-500' : 'border-gray-300'
-                }`}
-                style={{ backgroundColor: colorOption.color }}
-                title={colorOption.name}
-              />
-            ))}
-          </div>
+          <div className={`absolute top-4 left-4 bg-white rounded-lg shadow-lg z-50 transition-all duration-300 ${
+            isColorPanelExpanded ? 'p-4 min-w-[200px]' : 'p-2 min-w-[40px]'
+          }`}>
+            {/* 색상 패널 헤더 - 접기/펼치기 버튼 */}
             <button
-              onClick={handleColorReset}
-              className="text-xs text-gray-600 hover:text-gray-800"
+              onClick={toggleColorPanel}
+              className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-all duration-200 w-full"
+              title={isColorPanelExpanded ? '색상 패널 접기' : '색상 패널 펼치기'}
             >
-              🔄 원본으로 복원
+              <span className="text-base">🎨</span>
+              {isColorPanelExpanded && (
+                <span className="transition-all duration-200">색상 변경</span>
+              )}
+              <span className={`text-xs transition-transform duration-200 ${isColorPanelExpanded ? 'rotate-0' : 'rotate-180'}`}>
+                ▼
+              </span>
             </button>
+            
+            {/* 색상 선택 영역 - 접기/펼치기 상태에 따라 표시 */}
+            <div className={`overflow-hidden transition-all duration-300 ${isColorPanelExpanded ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {predefinedColors.map((colorOption) => (
+                  <button
+                    key={colorOption.color}
+                    onClick={() => handleColorChange(colorOption.color)}
+                    className={`w-8 h-8 rounded border-2 transition-all duration-200 ${
+                      currentColor === colorOption.color ? 'border-blue-500 scale-110' : 'border-gray-300 hover:scale-105'
+                    }`}
+                    style={{ backgroundColor: colorOption.color }}
+                    title={colorOption.name}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  handleColorReset();
+                  handleModelColorReset();
+                }}
+                className="text-xs text-gray-600 hover:text-gray-800 transition-colors duration-200"
+              >
+                🔄 원본으로 복원
+              </button>
+            </div>
           </div>
         </Html>
       )}

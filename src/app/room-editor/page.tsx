@@ -31,7 +31,7 @@ const LoadingFallback = () => (
 
 export default function RoomEditorPage() {
   const [isViewLocked, setIsViewLocked] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
   // Editor store에서 setMode 함수 가져오기

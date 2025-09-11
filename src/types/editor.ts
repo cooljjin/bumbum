@@ -32,6 +32,14 @@ export interface PlacedItem {
     depth: number;
     height: number;
   };
+  // 벽 부착 정보 (벽 전용 객체에서 사용)
+  mount?: {
+    type: 'wall';
+    side: 'minX' | 'maxX' | 'minZ' | 'maxZ'; // 어느 벽면인지
+    u: number;       // 벽 길이 방향 위치 (로컬 1D)
+    height: number;  // 바닥에서 높이(Y)
+    offset?: number; // 벽으로부터 추가 오프셋(기본 0)
+  };
   metadata?: {
     category: string;
     brand?: string;

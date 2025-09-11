@@ -1,5 +1,6 @@
 import { PlacedItem } from '../types/editor';
 import { Vector3 } from 'three';
+import { getRoomBoundaries } from './roomBoundary';
 
 /**
  * 가구의 바운딩 박스를 계산합니다
@@ -162,4 +163,89 @@ export const checkDragCollision = (
   };
   
   return checkCollisionWithOthers(testItem, allItems, draggedItem.id);
+};
+
+// ================== 벽 부착 전용 오버랩 검사 ==================
+
+const wallHalfExtentAlongU = (item: PlacedItem, side: 'minX'|'maxX'|'minZ'|'maxZ') => {
+  const baseHalfW = (item.footprint.width * item.scale.x) / 2;
+  const baseHalfD = (item.footprint.depth * item.scale.z) / 2;
+  const yaw = item.rotation?.y ?? 0;
+  const c = Math.abs(Math.cos(yaw));
+  const s = Math.abs(Math.sin(yaw));
+  const halfX = c * baseHalfW + s * baseHalfD;
+  const halfZ = s * baseHalfW + c * baseHalfD;
+  return (side === 'minX' || side === 'maxX') ? halfZ : halfX;
+};
+
+const getWallHorizontalRange = (side: 'minX'|'maxX'|'minZ'|'maxZ') => {
+  const b = getRoomBoundaries();
+  if (side === 'minX' || side === 'maxX') return { minU: b.minZ, maxU: b.maxZ };
+  return { minU: b.minX, maxU: b.maxX };
+};
+
+export const getWallRect = (item: PlacedItem) => {
+  if (!item.mount || item.mount.type !== 'wall') return null;
+  const side = item.mount.side;
+  const halfU = wallHalfExtentAlongU(item, side);
+  const uMin = item.mount.u - halfU;
+  const uMax = item.mount.u + halfU;
+  const yMin = item.mount.height;
+  const yMax = yMin + item.footprint.height * item.scale.y;
+  return { side, uMin, uMax, yMin, yMax };
+};
+
+export const checkWallOverlapWithOthers = (
+  targetItem: PlacedItem,
+  allItems: PlacedItem[]
+): { hasOverlap: boolean; overlappingItems: PlacedItem[] } => {
+  if (!targetItem.mount || targetItem.mount.type !== 'wall') return { hasOverlap: false, overlappingItems: [] };
+  const rectA = getWallRect(targetItem);
+  if (!rectA) return { hasOverlap: false, overlappingItems: [] };
+
+  const overlaps: PlacedItem[] = [];
+  for (const other of allItems) {
+    if (other.id === targetItem.id) continue;
+    if (!other.mount || other.mount.type !== 'wall') continue;
+    if (other.mount.side !== rectA.side) continue;
+    const rectB = getWallRect(other)!;
+    const overlap = (
+      rectA.uMin < rectB.uMax && rectA.uMax > rectB.uMin &&
+      rectA.yMin < rectB.yMax && rectA.yMax > rectB.yMin
+    );
+    if (overlap) overlaps.push(other);
+  }
+  return { hasOverlap: overlaps.length > 0, overlappingItems: overlaps };
+};
+
+export const findNonOverlappingWallPosition = (
+  targetItem: PlacedItem,
+  allItems: PlacedItem[],
+  step: number = 0.1,
+  maxAttempts: number = 200
+): { u: number } | null => {
+  if (!targetItem.mount || targetItem.mount.type !== 'wall') return null;
+  const side = targetItem.mount.side;
+  const { minU, maxU } = getWallHorizontalRange(side);
+  const originalU = targetItem.mount.u;
+
+  // 먼저 원래 u에서 체크
+  if (!checkWallOverlapWithOthers(targetItem, allItems).hasOverlap) {
+    return { u: originalU };
+  }
+
+  // 좌우로 번갈아가며 확장 탐색
+  for (let i = 1; i <= maxAttempts; i++) {
+    const delta = step * i;
+    for (const dir of [-1, 1]) {
+      const u = originalU + dir * delta;
+      const test: PlacedItem = { ...targetItem, mount: { ...targetItem.mount, u } } as PlacedItem;
+      // 경계 내 클램프는 상위에서 보정하므로, 여기서는 범위만 대략 체크
+      if (u < minU || u > maxU) continue;
+      if (!checkWallOverlapWithOthers(test, allItems).hasOverlap) {
+        return { u };
+      }
+    }
+  }
+  return null;
 };

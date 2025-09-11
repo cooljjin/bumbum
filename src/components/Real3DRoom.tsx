@@ -46,6 +46,10 @@ const EditToolbar = dynamic(() => import('./layout/EditToolbar'), {
   ssr: false,
   loading: () => null
 });
+const FloatingColorPalette = dynamic(() => import('./ui/FloatingColorPalette'), { 
+  ssr: false,
+  loading: () => null
+});
 const RoomTemplateSelector = dynamic(() => import('./features/room/RoomTemplateSelector'), { 
   ssr: false,
   loading: () => null
@@ -1444,6 +1448,9 @@ const Real3DRoomComponent = React.memo(({
         </div>
       )}
       */}
+
+      {/* 플로팅 색상 팔레트 */}
+      <FloatingColorPalette />
 
       {/* 모바일 전용 편집/보기 토글은 MiniRoom 내부에서 처리됨 */}
 

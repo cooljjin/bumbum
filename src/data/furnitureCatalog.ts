@@ -571,7 +571,7 @@ export const createPlacedItemFromFurniture = (
   rotation: Euler = new Euler(0, 0, 0),
   scale: Vector3 = new Vector3(1, 1, 1)
 ): PlacedItem => {
-  return {
+  const base: PlacedItem = {
     id: `${furniture.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     name: furniture.name,
     modelPath: furniture.modelPath || '',
@@ -587,6 +587,21 @@ export const createPlacedItemFromFurniture = (
       furnitureId: furniture.id // furniture ID를 metadata에 저장
     }
   };
+
+  // 벽 전용 아이템이면 mount 기본값 설정
+  if (furniture.placement?.wallOnly) {
+    const defaultHeight = furniture.placement.wallHeight ?? 1.4;
+    // 최초에는 중앙에 가깝게. u는 X벽이면 Z중앙, Z벽이면 X중앙이므로 0으로 두고 후에 클램프에서 조정됨
+    base.mount = {
+      type: 'wall',
+      side: 'minZ', // 기본 값: 북쪽 벽
+      u: 0,
+      height: defaultHeight,
+      offset: furniture.placement.wallOffset ?? 0
+    };
+  }
+
+  return base;
 };
 
 /**

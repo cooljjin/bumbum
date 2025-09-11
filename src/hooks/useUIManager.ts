@@ -40,7 +40,7 @@ export interface UIManager extends UIManagerState, UIManagerActions {}
 
 const initialState: UIManagerState = {
   isViewLocked: false,
-  isEditMode: true,  // 기본적으로 편집 모드 활성화
+  isEditMode: false,  // 기본적으로 보기 모드로 시작
   showSettings: false,
   showUserPreferences: false,
   showAccessibilitySettings: false,

@@ -1,5 +1,6 @@
 import { Vector3 } from 'three';
 import { PlacedItem } from '../types/editor';
+import { AxisString } from './orientation';
 
 // 방의 기본 크기 상수
 // 실제 Room.tsx의 기하와 일치하도록 기본값을 설정합니다.
@@ -43,6 +44,145 @@ export const getRoomBoundaries = () => {
     maxZ: halfDepth - dimensions.margin,
     minY: 0,
     maxY: dimensions.height - dimensions.margin
+  };
+};
+
+// 벽 사이드 타입
+export type WallSide = 'minX' | 'maxX' | 'minZ' | 'maxZ';
+
+// 네 개의 벽 평면 좌표와 실내 방향 법선 제공
+export const getWallPlanes = () => {
+  const b = getRoomBoundaries();
+  return {
+    minX: { constant: b.minX, normal: new Vector3(1, 0, 0) },   // 실내 방향 +X
+    maxX: { constant: b.maxX, normal: new Vector3(-1, 0, 0) },  // 실내 방향 -X
+    minZ: { constant: b.minZ, normal: new Vector3(0, 0, 1) },   // 실내 방향 +Z
+    maxZ: { constant: b.maxZ, normal: new Vector3(0, 0, -1) },  // 실내 방향 -Z
+  } as const;
+};
+
+// 포인트에서 가장 가까운 벽 사이드 계산
+export const nearestWallSide = (p: Vector3): WallSide => {
+  const b = getRoomBoundaries();
+  const dxMin = Math.abs(p.x - b.minX);
+  const dxMax = Math.abs(p.x - b.maxX);
+  const dzMin = Math.abs(p.z - b.minZ);
+  const dzMax = Math.abs(p.z - b.maxZ);
+  const minXDist = Math.min(dxMin, dxMax);
+  const minZDist = Math.min(dzMin, dzMax);
+
+  if (minXDist <= minZDist) {
+    return dxMin < dxMax ? 'minX' : 'maxX';
+  }
+  return dzMin < dzMax ? 'minZ' : 'maxZ';
+};
+
+// 벽 평면 로컬 2D 축 정의: 수평축(벽 길이 방향), 수직축(Y)
+const wallAxes = (side: WallSide) => {
+  // 수평축 단위벡터와 추출 함수
+  if (side === 'minX' || side === 'maxX') {
+    return {
+      horizontal: new Vector3(0, 0, 1), // Z 방향
+      toU: (v: Vector3) => v.z,
+      fromU: (u: number) => new Vector3(0, 0, u),
+      normalAxis: 'x' as const
+    };
+  }
+  return {
+    horizontal: new Vector3(1, 0, 0), // X 방향
+    toU: (v: Vector3) => v.x,
+    fromU: (u: number) => new Vector3(u, 0, 0),
+    normalAxis: 'z' as const
+  };
+};
+
+// 항목의 회전을 고려하여 벽 법선 방향 반치수(깊이)를 계산
+const halfDepthAlongNormal = (item: PlacedItem, normalAxis: 'x' | 'z') => {
+  const baseHalfW = (item.footprint.width * item.scale.x) / 2;
+  const baseHalfD = (item.footprint.depth * item.scale.z) / 2;
+  const yaw = item.rotation?.y ?? 0;
+  const c = Math.abs(Math.cos(yaw));
+  const s = Math.abs(Math.sin(yaw));
+  // XZ에서의 AABB 반치수
+  const halfX = c * baseHalfW + s * baseHalfD;
+  const halfZ = s * baseHalfW + c * baseHalfD;
+  return normalAxis === 'x' ? halfX : halfZ;
+};
+
+// 벽 부착 아이템을 현재 side, u, height에 맞춰 위치/회전을 계산
+export const computeWallMountedTransform = (
+  item: PlacedItem,
+  side: WallSide,
+  u: number,
+  height: number,
+  offset: number = 0,
+  frontAxis: AxisString = '+z',
+  upAxis: AxisString = '+y'
+) => {
+  const planes = getWallPlanes();
+  const { normalAxis, fromU } = wallAxes(side);
+
+  // 중심 좌표 계산
+  const alongNormal = halfDepthAlongNormal(item, normalAxis) + offset;
+  const base = new Vector3();
+  if (side === 'minX') base.set(planes.minX.constant + alongNormal, height, 0);
+  if (side === 'maxX') base.set(planes.maxX.constant - alongNormal, height, 0);
+  if (side === 'minZ') base.set(0, height, planes.minZ.constant + alongNormal);
+  if (side === 'maxZ') base.set(0, height, planes.maxZ.constant - alongNormal);
+
+  const pos = base.clone().add(fromU(u));
+
+  // 회전: 정면이 실내를 향하도록 (orientation 유틸 사용)
+  // 유틸에서 Quaternion을 계산하므로, 여기서는 yaw만 맞춰도 1차 동작 가능
+  // 간단화: side에 따라 yaw를 고정
+  let yaw = 0;
+  if (side === 'minX') yaw = Math.PI / 2;      // +X 바라보면 정면은 -X여야 하므로 yaw는 +90도 → 모델 front '+z'를 -x로 돌림(간이)
+  if (side === 'maxX') yaw = -Math.PI / 2;     // -X
+  if (side === 'minZ') yaw = 0;                // +Z
+  if (side === 'maxZ') yaw = Math.PI;          // -Z
+
+  return { position: pos, rotationY: yaw };
+};
+
+// 벽 부착 아이템을 방 경계에 맞게 클램프 (u, height 범위 조정 후 최종 위치 계산)
+export const clampWallMountedItem = (item: PlacedItem): PlacedItem => {
+  if (!item.mount || item.mount.type !== 'wall') return item;
+  const b = getRoomBoundaries();
+  const { side } = item.mount;
+  const { normalAxis } = wallAxes(side);
+
+  // 수평 범위
+  let minU = 0, maxU = 0;
+  if (side === 'minX' || side === 'maxX') {
+    minU = b.minZ; maxU = b.maxZ;
+  } else {
+    minU = b.minX; maxU = b.maxX;
+  }
+
+  // 아이템 반폭(수평축 방향) 고려하여 클램프
+  const baseHalfW = (item.footprint.width * item.scale.x) / 2;
+  const baseHalfD = (item.footprint.depth * item.scale.z) / 2;
+  const yaw = item.rotation?.y ?? 0;
+  const c = Math.abs(Math.cos(yaw));
+  const s = Math.abs(Math.sin(yaw));
+  const halfX = c * baseHalfW + s * baseHalfD;
+  const halfZ = s * baseHalfW + c * baseHalfD;
+  const halfAlongU = (side === 'minX' || side === 'maxX') ? halfZ : halfX;
+
+  const clampedU = Math.min(Math.max(item.mount.u, minU + halfAlongU), maxU - halfAlongU);
+
+  // 높이(Y) 클램프
+  const maxY = b.maxY;
+  const height = Math.min(Math.max(item.mount.height, 0), maxY - item.footprint.height * item.scale.y);
+
+  const offset = item.mount.offset ?? 0;
+  const { position, rotationY } = computeWallMountedTransform(item, side, clampedU, height, offset);
+
+  return {
+    ...item,
+    position,
+    rotation: { ...item.rotation, y: rotationY } as any,
+    mount: { ...item.mount, u: clampedU, height }
   };
 };
 

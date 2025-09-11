@@ -40,6 +40,11 @@ export interface FurnitureItem {
     wallOffset?: number;    // 벽에서의 오프셋 (벽에 붙이는 가구용)
     wallOnly?: boolean;     // 벽에만 배치 가능한지 여부 (시계 등)
     wallHeight?: number;    // 벽에 배치할 때의 높이 (미터)
+    // 벽 부착 객체의 축 정의(선택). frontAxis는 모델의 정면, upAxis는 윗면을 의미
+    frontAxis?: '+x' | '-x' | '+y' | '-y' | '+z' | '-z';
+    upAxis?: '+x' | '-x' | '+y' | '-y' | '+z' | '-z';
+    // 향후 확장: 어떤 표면에 배치 가능한지 명시 (기본: 바닥)
+    supportedSurfaces?: ('floor' | 'wall')[];
   };
 
   // 메타데이터

@@ -23,8 +23,8 @@ import {
   getStorageUsage as getStorageUsageUtil,
   cleanupStorage as cleanupStorageUtil
 } from '../utils/storageManager';
-import { isFurnitureInRoom, constrainFurnitureToRoom } from '../utils/roomBoundary';
-import { checkCollisionWithOthers, moveToSafePosition } from '../utils/collisionDetection';
+import { isFurnitureInRoom, constrainFurnitureToRoom, clampWallMountedItem } from '../utils/roomBoundary';
+import { checkCollisionWithOthers, moveToSafePosition, checkWallOverlapWithOthers, findNonOverlappingWallPosition } from '../utils/collisionDetection';
 
 // 성능 최적화를 위한 상수
 const PERFORMANCE_CONSTANTS = {
@@ -37,7 +37,7 @@ const PERFORMANCE_CONSTANTS = {
 // 초기 상태 정의
 const initialState: EditorState = {
   // 기본 상태
-  mode: 'edit',  // 기본적으로 편집 모드 활성화
+  mode: 'view',  // 기본적으로 보기 모드로 시작
   tool: 'select',
 
   // 가구 관리
@@ -236,21 +236,38 @@ export const useEditorStore = create<EditorStore>()(
           return;
         }
 
-        // 가구가 방 안에 있는지 검증하고, 벽 밖에 있다면 자동으로 이동
-        let validatedItem = item;
-        if (!isFurnitureInRoom(item)) {
-          // console.warn(`⚠️ 성능: 가구가 벽 밖에 배치됨 - ${item.name || item.id}`);
-          validatedItem = constrainFurnitureToRoom(item);
+        // 벽 부착 아이템은 벽 전용 클램프로 처리, 일반 아이템은 방 경계 클램프
+        let validatedItem = item.mount?.type === 'wall' ? clampWallMountedItem(item) : item;
+        if (!item.mount?.type) {
+          if (!isFurnitureInRoom(validatedItem)) {
+            validatedItem = constrainFurnitureToRoom(validatedItem);
+          }
         }
 
         // 가구 간 충돌 검사 및 해결
-        const collisionCheck = checkCollisionWithOthers(validatedItem, placedItems);
-        if (collisionCheck.hasCollision) {
+        // 벽 부착 아이템은 기본 충돌 검사에서 제외(동일 벽 간 2D 충돌은 향후 추가)
+        const shouldCheckCollision = validatedItem.mount?.type !== 'wall';
+        const collisionCheck = shouldCheckCollision ? checkCollisionWithOthers(validatedItem, placedItems) : { hasCollision: false, collidingItems: [] };
+        if (shouldCheckCollision && collisionCheck.hasCollision) {
           // console.warn(`⚠️ 성능: 가구 충돌 감지 - ${validatedItem.name || validatedItem.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
           
           // 충돌을 피할 수 있는 안전한 위치로 이동
           validatedItem = moveToSafePosition(validatedItem, placedItems);
           // console.log(`✅ 성능: 충돌 해결 - ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
+        }
+
+        // 같은 벽면 아이템 겹침 해결
+        if (validatedItem.mount?.type === 'wall') {
+          const { hasOverlap } = checkWallOverlapWithOthers(validatedItem, placedItems);
+          if (hasOverlap) {
+            const found = findNonOverlappingWallPosition(validatedItem, placedItems);
+            if (found) {
+              validatedItem = {
+                ...validatedItem,
+                mount: { ...validatedItem.mount, u: found.u }
+              };
+            }
+          }
         }
 
         const newItems = [...placedItems, validatedItem];
@@ -280,25 +297,39 @@ export const useEditorStore = create<EditorStore>()(
         }
 
         // 위치/회전/스케일 변경 시 벽 안에 있는지 검증 (회전/스케일도 경계에 영향)
-        let validatedItem: PlacedItem = updatedItem;
+        let validatedItem: PlacedItem = updatedItem.mount?.type === 'wall' ? clampWallMountedItem(updatedItem) : updatedItem;
         const affectsBounds = !!(updates.position || updates.rotation || updates.scale);
         if (affectsBounds) {
-          const isInRoom = isFurnitureInRoom(updatedItem);
-
-          if (!isInRoom) {
-            // console.warn(`⚠️ 성능: 가구 변경으로 벽 밖 조건 발생 - ${updatedItem.name || updatedItem.id}`);
-            validatedItem = constrainFurnitureToRoom(updatedItem);
+          if (!updatedItem.mount?.type) {
+            const isInRoom = isFurnitureInRoom(updatedItem);
+            if (!isInRoom) {
+              validatedItem = constrainFurnitureToRoom(updatedItem);
+            }
           }
 
           // 가구 간 충돌 검사 (위치/회전/스케일 변경 시에만)
           const otherItems = placedItems.filter(item => item.id !== id);
-          const collisionCheck = checkCollisionWithOthers(validatedItem, otherItems);
-          if (collisionCheck.hasCollision) {
+          const shouldCheckCollision = validatedItem.mount?.type !== 'wall';
+          const collisionCheck = shouldCheckCollision ? checkCollisionWithOthers(validatedItem, otherItems) : { hasCollision: false, collidingItems: [] };
+          if (shouldCheckCollision && collisionCheck.hasCollision) {
             // console.warn(`⚠️ 성능: 가구 업데이트 시 충돌 감지 - ${validatedItem.name || validatedItem.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
             
             // 충돌을 피할 수 있는 안전한 위치로 이동
             validatedItem = moveToSafePosition(validatedItem, otherItems);
             // console.log(`✅ 성능: 충돌 해결 - ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
+          }
+          // 벽 부착 오버랩 해결
+          if (validatedItem.mount?.type === 'wall') {
+            const { hasOverlap } = checkWallOverlapWithOthers(validatedItem, otherItems);
+            if (hasOverlap) {
+              const found = findNonOverlappingWallPosition(validatedItem, otherItems);
+              if (found) {
+                validatedItem = {
+                  ...validatedItem,
+                  mount: { ...validatedItem.mount, u: found.u }
+                };
+              }
+            }
           }
         }
 

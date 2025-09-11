@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useEditorStore } from '../../store/editorStore';
 import { getSafeTouchArea, isMobile } from '../../utils/mobileHtmlConstraints';
-import { useColorChanger } from '../../hooks/useColorChanger';
 
 interface EditToolbarProps {
   onToggleFurnitureCatalog?: () => void;
@@ -32,15 +31,6 @@ export default function EditToolbar({
     isDragging
   } = useEditorStore();
 
-  // 색상 변경 기능
-  const {
-    currentColor,
-    selectedItem,
-    predefinedColors,
-    handleColorChange,
-    handleColorReset,
-    isColorChangerVisible
-  } = useColorChanger();
 
   // UI 상태 관리
   const [isCompact, setIsCompact] = useState(false);
@@ -267,47 +257,6 @@ export default function EditToolbar({
           </div>
         </motion.button>
 
-        {/* 색상 변경 UI - 가구가 선택된 경우에만 표시 */}
-        {isColorChangerVisible && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="flex items-center gap-2 bg-white rounded-xl p-3 shadow-lg border-2 border-gray-200"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">🎨</span>
-              <span className="text-xs text-gray-600">
-                {selectedItem?.name || '선택된 가구'}
-              </span>
-            </div>
-            
-            <div className="flex gap-1">
-              {predefinedColors.map((colorOption) => (
-                <button
-                  key={colorOption.color}
-                  onClick={() => handleColorChange(colorOption.color)}
-                  className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
-                    currentColor === colorOption.color 
-                      ? 'border-blue-500 scale-110' 
-                      : 'border-gray-300 hover:scale-105'
-                  }`}
-                  style={{ backgroundColor: colorOption.color }}
-                  title={colorOption.name}
-                />
-              ))}
-            </div>
-            
-            <button
-              onClick={handleColorReset}
-              className="text-xs text-gray-500 hover:text-gray-700 transition-colors duration-200"
-              title="원본 색상으로 복원"
-            >
-              🔄
-            </button>
-          </motion.div>
-        )}
 
       </div>
     </motion.div>
