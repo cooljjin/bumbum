@@ -4,6 +4,9 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame, useThree, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getCurrentRoomDimensions } from '../../../utils/roomBoundary';
+import { useWallFades } from '../../../store/wallVisibilityStore';
+import { patchObjectWithWallFade, setWallFadeValue, applyFadeFlagsToObject } from '@/lib/wallFadeShader';
+import { setVisibleWalls, setWallFades } from '../../../store/wallVisibilityStore';
 
 interface RoomProps {
   receiveShadow?: boolean;
@@ -43,77 +46,29 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
   // 성능 최적화를 위한 카메라 위치 추적
   const lastCamPos = useRef<THREE.Vector3>(new THREE.Vector3());
 
-  // 카메라에서 가장 가까운 벽을 숨겨 내부가 보이도록 처리 (부드러운 페이드)
+  const wallFades = useWallFades();
+
+  // Store-driven fade application (values computed by WallFadeController)
   useFrame(() => {
-    const cam = camera.position;
+    // 최초 1회 패치 보장
+    if (backWallRef.current) patchObjectWithWallFade(backWallRef.current, 'minZ');
+    if (frontWallRef.current) patchObjectWithWallFade(frontWallRef.current, 'maxZ');
+    if (leftWallRef.current) patchObjectWithWallFade(leftWallRef.current, 'minX');
+    if (rightWallRef.current) patchObjectWithWallFade(rightWallRef.current, 'maxX');
 
-    // 성능 최적화: 카메라 위치가 크게 변하지 않았으면 스킵
-    if (lastCamPos.current.distanceTo(cam) < 0.1) return;
-    lastCamPos.current.copy(cam);
+    const fMinZ = wallFades.minZ ?? 1; setWallFadeValue('minZ', fMinZ); applyFadeFlagsToObject(backWallRef.current, fMinZ);
+    const fMaxZ = wallFades.maxZ ?? 1; setWallFadeValue('maxZ', fMaxZ); applyFadeFlagsToObject(frontWallRef.current, fMaxZ);
+    const fMinX = wallFades.minX ?? 1; setWallFadeValue('minX', fMinX); applyFadeFlagsToObject(leftWallRef.current, fMinX);
+    const fMaxX = wallFades.maxX ?? 1; setWallFadeValue('maxX', fMaxX); applyFadeFlagsToObject(rightWallRef.current, fMaxX);
 
-    // 각 벽 중심과 카메라 간 거리 계산
-    const walls: Array<[name: string, mesh: THREE.Mesh | null, dist: number]> = [];
-
-    const tmp = new THREE.Vector3();
-    if (backWallRef.current) { backWallRef.current.getWorldPosition(tmp); walls.push(['back', backWallRef.current, cam.distanceTo(tmp.clone())]); }
-    if (frontWallRef.current) { frontWallRef.current.getWorldPosition(tmp); walls.push(['front', frontWallRef.current, cam.distanceTo(tmp.clone())]); }
-    if (leftWallRef.current) { leftWallRef.current.getWorldPosition(tmp); walls.push(['left', leftWallRef.current, cam.distanceTo(tmp.clone())]); }
-    if (rightWallRef.current) { rightWallRef.current.getWorldPosition(tmp); walls.push(['right', rightWallRef.current, cam.distanceTo(tmp.clone())]); }
-
-    // 숨길 벽 선택 (최대 2개)
-    const sorted = walls.sort((a, b) => a[2] - b[2]);
-    const toHide = new Set<string>(sorted.slice(0, 2).map(([name]) => name));
-
-    // 카메라가 천장보다 높으면 천장 숨김
-    if (cam.y > height + 0.01) {
-      toHide.add('ceiling');
-    }
-
-    // 페이드 업데이트
+    // 천장 처리는 기존 로직 유지(요구 범위 밖): 카메라 높이에 따라 보이기/숨기기
+    const camY = camera.position.y;
+    const targetCeil = camY > height + 0.01 ? 0 : 1;
+    const current = fadeRef.current.ceiling ?? 1;
     const ease = 0.15;
-    const applyFade = (
-      name: string,
-      mesh: THREE.Mesh | null,
-      mat: THREE.MeshStandardMaterial | null
-    ) => {
-      if (!mat || !mesh) return;
-      const target = toHide.has(name) ? 0 : 1;
-      const current = fadeRef.current[name] ?? 1;
-      const next = current + (target - current) * ease;
-      fadeRef.current[name] = next;
-
-      // 머티리얼 속성 적용
-      const clamped = THREE.MathUtils.clamp(next, 0, 1);
-      const fullyOpaque = clamped > 0.98;
-      const fullyHidden = clamped < 0.02;
-
-      if (fullyHidden) {
-        // 완전히 숨김
-        mat.transparent = true;
-        mat.opacity = 0;
-        mat.depthWrite = false;
-        mesh.visible = false;
-      } else if (fullyOpaque) {
-        // 완전 불투명 상태로 복원하여 Z-fighting/블렌딩 아티팩트 방지
-        mesh.visible = true;
-        mat.transparent = false;
-        mat.opacity = 1;
-        mat.depthWrite = true;
-      } else {
-        // 페이드 구간에서는 투명 렌더링, 깊이 쓰기 비활성화
-        mesh.visible = true;
-        mat.transparent = true;
-        mat.opacity = clamped;
-        mat.depthWrite = false;
-      }
-      mat.depthTest = true;
-    };
-
-    applyFade('back', backWallRef.current, backMatRef.current);
-    applyFade('front', frontWallRef.current, frontMatRef.current);
-    applyFade('left', leftWallRef.current, leftMatRef.current);
-    applyFade('right', rightWallRef.current, rightMatRef.current);
-    applyFade('ceiling', ceilingRef.current, ceilingMatRef.current);
+    fadeRef.current.ceiling = current + (targetCeil - current) * ease;
+    // 천장엔 유니폼 패치를 적용하지 않으므로 플래그/opacity만 동기화
+    applyFadeFlagsToObject(ceilingRef.current, fadeRef.current.ceiling);
   });
 
   // 바닥 텍스처 로드

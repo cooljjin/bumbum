@@ -462,6 +462,54 @@ export const sampleFurniture: FurnitureItem[] = [
       collisionGroup: 'furniture'
     }
   }
+  ,
+
+  // === Wooden Door (Wall-Attach) ===
+  {
+    id: 'wooden-door',
+    name: 'Wooden Door',
+    nameKo: '원목 문',
+    category: 'decorative',
+    subcategory: 'door',
+    modelPath: '/models/furniture/Wooden_Door_.glb',
+    thumbnailPath: '/thumbnails/furniture/door-wooden.png',
+    footprint: {
+      width: 0.9,
+      depth: 0.08,
+      height: 2.0
+    },
+    placement: {
+      canRotate: true,
+      canScale: true,
+      floorOffset: 0,
+      wallOnly: true,
+      wallHeight: 0,         // 문 하단이 바닥에 닿도록
+      wallOffset: 0.0,       // 벽에 밀착
+      frontAxis: '+z',
+      upAxis: '+y',
+      supportedSurfaces: ['wall']
+    },
+    metadata: {
+      brand: 'WallAttach',
+      model: 'WA-DOOR-001',
+      price: 180000,
+      description: '벽에 부착되는 원목 문 모델 (테스트 용)',
+      tags: ['문', '도어', '벽부착', 'wall', 'door'],
+      materials: ['원목', '금속 경첩'],
+      colors: ['우드']
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: v3(1, 1, 1),
+      defaultRotation: e(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 15,
+      collisionGroup: 'furniture'
+    }
+  }
 ];
 
 // 가구 카탈로그 생성
@@ -597,7 +645,7 @@ export const createPlacedItemFromFurniture = (
       side: 'minZ', // 기본 값: 북쪽 벽
       u: 0,
       height: defaultHeight,
-      offset: furniture.placement.wallOffset ?? 0
+      offset: 0
     };
   }
 

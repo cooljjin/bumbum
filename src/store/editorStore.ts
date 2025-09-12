@@ -226,6 +226,8 @@ export const useEditorStore = create<EditorStore>()(
         set({ tool });
       },
 
+      
+
       // 최적화된 가구 관리 함수들
       addItem: (item: PlacedItem) => {
         const { placedItems, captureHistory } = get();

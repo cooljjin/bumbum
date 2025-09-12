@@ -156,8 +156,10 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
           {/* 배경색 설정 */}
           <color attach="background" args={['#f8fafc']} />
 
-          {/* 환경 맵핑 - 크롬 재질 반사를 위해 추가 */}
-          <Environment preset="apartment" />
+          {/* 환경 맵핑 - 네트워크 제한 환경에서 오류를 유발할 수 있어 기본 비활성화 */}
+          {process.env.NEXT_PUBLIC_USE_ENV === '1' && (
+            <Environment preset="apartment" />
+          )}
 
           {/* 조명 (개선된 설정) */}
           <ambientLight intensity={0.4} color="#ffffff" />

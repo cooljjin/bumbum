@@ -61,6 +61,18 @@ export const getWallPlanes = () => {
   } as const;
 };
 
+// 내부 실제 벽면(시각적 면)의 평면: margin을 무시하고 방 내부 크기를 기준으로 계산
+export const getWallInteriorPlanes = () => {
+  const halfWidth = ROOM_DIMENSIONS.width / 2;
+  const halfDepth = ROOM_DIMENSIONS.depth / 2;
+  return {
+    minX: { constant: -halfWidth, normal: new Vector3(1, 0, 0) },   // x = -W/2
+    maxX: { constant: +halfWidth, normal: new Vector3(-1, 0, 0) },  // x = +W/2
+    minZ: { constant: -halfDepth, normal: new Vector3(0, 0, 1) },   // z = -D/2
+    maxZ: { constant: +halfDepth, normal: new Vector3(0, 0, -1) },  // z = +D/2
+  } as const;
+};
+
 // 포인트에서 가장 가까운 벽 사이드 계산
 export const nearestWallSide = (p: Vector3): WallSide => {
   const b = getRoomBoundaries();
@@ -115,15 +127,16 @@ export const computeWallMountedTransform = (
   side: WallSide,
   u: number,
   height: number,
-  offset: number = 0,
+  _offset: number = 0,
   frontAxis: AxisString = '+z',
   upAxis: AxisString = '+y'
 ) => {
-  const planes = getWallPlanes();
+  // 벽에 딱 붙이기: margin/offset 무시, 실제 내부 벽면에 밀착
+  const planes = getWallInteriorPlanes();
   const { normalAxis, fromU } = wallAxes(side);
 
   // 중심 좌표 계산
-  const alongNormal = halfDepthAlongNormal(item, normalAxis) + offset;
+  const alongNormal = halfDepthAlongNormal(item, normalAxis); // offset 무시
   const base = new Vector3();
   if (side === 'minX') base.set(planes.minX.constant + alongNormal, height, 0);
   if (side === 'maxX') base.set(planes.maxX.constant - alongNormal, height, 0);
@@ -175,14 +188,15 @@ export const clampWallMountedItem = (item: PlacedItem): PlacedItem => {
   const maxY = b.maxY;
   const height = Math.min(Math.max(item.mount.height, 0), maxY - item.footprint.height * item.scale.y);
 
-  const offset = item.mount.offset ?? 0;
+  // offset은 0으로 고정하여 벽에 딱 붙임
+  const offset = 0;
   const { position, rotationY } = computeWallMountedTransform(item, side, clampedU, height, offset);
 
   return {
     ...item,
     position,
     rotation: { ...item.rotation, y: rotationY } as any,
-    mount: { ...item.mount, u: clampedU, height }
+    mount: { ...item.mount, u: clampedU, height, offset }
   };
 };
 

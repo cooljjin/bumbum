@@ -2,10 +2,13 @@
 
 import React from 'react';
 import MiniRoom from '@/components/3D/MiniRoom';
+import { useEditorStore } from '@/store/editorStore';
+import { getFurnitureById, createPlacedItemFromFurniture } from '@/data/furnitureCatalog';
 
 export default function MiniRoomTestPage() {
   const [dragCount, setDragCount] = React.useState(0);
   const [lastEvent, setLastEvent] = React.useState('없음');
+  const addItem = useEditorStore(s => s.addItem);
 
   // 드래그 이벤트를 감지하기 위한 커스텀 훅
   React.useEffect(() => {
@@ -33,6 +36,18 @@ export default function MiniRoomTestPage() {
       document.removeEventListener('wheel', handleWheel);
     };
   }, []);
+
+  // 테스트: 페이지 진입 시 문 모델 자동 배치 (있을 경우)
+  React.useEffect(() => {
+    try {
+      const door = getFurnitureById('wooden-door');
+      if (door) {
+        const placed = createPlacedItemFromFurniture(door);
+        // 기본적으로 북쪽 벽 중앙에 배치 (u=0, height=wallHeight)
+        addItem(placed);
+      }
+    } catch {}
+  }, [addItem]);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>

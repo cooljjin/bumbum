@@ -7,8 +7,10 @@ import { PlacedItem } from '../../../types/editor';
 import { createFallbackModel, createFurnitureModel, createClockFallbackModel, createWallModel, loadModel, compareModelWithFootprint } from '../../../utils/modelLoader';
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
-import { constrainFurnitureToRoom, getRoomBoundaries, nearestWallSide, computeWallMountedTransform, clampWallMountedItem } from '../../../utils/roomBoundary';
-import { checkDragCollision, moveToSafePosition, checkWallOverlapWithOthers } from '../../../utils/collisionDetection';
+import { constrainFurnitureToRoom, getRoomBoundaries, nearestWallSide, computeWallMountedTransform, clampWallMountedItem, getWallInteriorPlanes, getCurrentRoomDimensions } from '../../../utils/roomBoundary';
+import { useVisibleWalls, useWallFades } from '../../../store/wallVisibilityStore';
+import { patchObjectWithWallFade, setWallFadeValue, applyFadeFlagsToObject } from '@/lib/wallFadeShader';
+import { checkDragCollision, moveToSafePosition, checkWallOverlapWithOthers, findNonOverlappingWallPosition } from '../../../utils/collisionDetection';
 import * as THREE from 'three';
 
 /**
@@ -104,7 +106,19 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         // console.log(`🔍 furniture 정보:`, furniture);
 
         if (!furniture) {
-          // console.warn('⚠️ 성능: 가구 정보를 찾을 수 없어 기본 박스로 표시합니다:', item);
+          // 카탈로그에 없더라도 PlacedItem.modelPath가 있으면 직접 로드 시도
+          if (item.modelPath && (item.modelPath.startsWith('blob:') || item.modelPath.endsWith('.glb'))) {
+            try {
+              const gltfModel = await loadModel(item.modelPath, { useCache: false, priority: 'normal' });
+              const adjustedModel = adjustModelToFootprint(gltfModel, item.footprint);
+              setModel(adjustedModel);
+              setIsLoading(false);
+              return;
+            } catch (e) {
+              // 실패 시 폴백으로 진행
+            }
+          }
+
           setLoadError('가구 정보를 찾을 수 없습니다');
           setIsLoading(false);
           return;
@@ -158,11 +172,10 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         setLoadError(error instanceof Error ? error.message : 'Unknown error');
 
         // 에러 발생 시 폴백 모델 사용
+        // 카탈로그가 없을 때도 폴백 생성
         const furniture = getFurnitureFromPlacedItem(item);
-        if (furniture) {
-          const fallbackModel = createFallbackModel();
-          setModel(fallbackModel);
-        }
+        const fallbackModel = createFallbackModel();
+        setModel(fallbackModel);
         setIsLoading(false);
       }
     };
@@ -175,6 +188,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const originalEmissiveRef = useRef<Map<THREE.Material, THREE.Color>>(new Map());
+  const originalOpacityRef = useRef<Map<THREE.Material, number>>(new Map());
 
   // 🖱️ 드래그 앤 드롭 관련 상태 변수들
   const [isDragging, setIsDragging] = useState(false);
@@ -193,6 +207,31 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
   const { grid, setDragging, placedItems } = useEditorStore();
   const { camera, gl } = useThree();
+  const visibleWalls = useVisibleWalls();
+  const wallFades = useWallFades();
+  const isOnVisibleWall = React.useMemo(() => {
+    if (!item.mount || item.mount.type !== 'wall') return true;
+    return visibleWalls.includes(item.mount.side);
+  }, [visibleWalls, item.mount]);
+  const currentWallFade = React.useMemo(() => {
+    if (!item.mount || item.mount.type !== 'wall') return 1;
+    return wallFades[item.mount.side] ?? 1;
+  }, [wallFades, item.mount]);
+  const isDoorRef = React.useRef<boolean>(false);
+  React.useEffect(() => {
+    try {
+      const f = getFurnitureFromPlacedItem(item);
+      isDoorRef.current = f?.subcategory === 'door' || (f?.placement?.wallHeight === 0 && !!f?.placement?.wallOnly) || false;
+    } catch { isDoorRef.current = false; }
+  }, [item]);
+
+  // 벽 부착 아이템은 모델 로드/변경 시 셰이더 패치 1회 수행
+  useEffect(() => {
+    if (item.mount?.type !== 'wall') return;
+    if (!meshRef.current) return;
+    const side = item.mount.side;
+    patchObjectWithWallFade(meshRef.current, side);
+  }, [item.mount?.type, item.mount?.side, model]);
 
   // 안전한 preventDefault 래퍼 (r3f PointerEvent에는 preventDefault가 없을 수 있음)
   const safePreventDefault = (ev: any) => {
@@ -266,13 +305,13 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
     // 드래그 평면 설정
     if (item.mount?.type === 'wall') {
-      const b = getRoomBoundaries();
+      const planes = getWallInteriorPlanes();
       const side = item.mount?.side ?? nearestWallSide(item.position);
       activeWallSideRef.current = side;
-      if (side === 'minX') dragPlane.current.set(new Vector3(1, 0, 0), -b.minX);
-      if (side === 'maxX') dragPlane.current.set(new Vector3(-1, 0, 0), b.maxX);
-      if (side === 'minZ') dragPlane.current.set(new Vector3(0, 0, 1), -b.minZ);
-      if (side === 'maxZ') dragPlane.current.set(new Vector3(0, 0, -1), b.maxZ);
+      if (side === 'minX') dragPlane.current.set(new Vector3(1, 0, 0), -planes.minX.constant);
+      if (side === 'maxX') dragPlane.current.set(new Vector3(-1, 0, 0), planes.maxX.constant);
+      if (side === 'minZ') dragPlane.current.set(new Vector3(0, 0, 1), -planes.minZ.constant);
+      if (side === 'maxZ') dragPlane.current.set(new Vector3(0, 0, -1), planes.maxZ.constant);
     } else {
       dragPlane.current.set(new Vector3(0, 1, 0), -item.position.y);
     }
@@ -360,40 +399,117 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     // 레이캐스터로 3D 공간의 위치 계산
     raycaster.current.setFromCamera(new Vector2(mouseX, mouseY), camera);
 
-    // 드래그 평면과의 교차점 계산
+    // 드래그 평면과의 교차점 계산 또는 벽 선택 로직
+    // 벽 부착 아이템의 경우: 포인터 레이를 네 개의 벽면과 모두 교차시켜
+    // 가장 가까운 교차점을 가진 벽을 선택하여 동적으로 side를 전환한다.
+    if (item.mount?.type === 'wall') {
+      const planes = getWallInteriorPlanes();
+
+      const candidates: Array<{ side: 'minX'|'maxX'|'minZ'|'maxZ'; point: Vector3; t: number }> = [];
+      const tmpPoint = new Vector3();
+      const ray = raycaster.current.ray;
+      const dir = ray.direction.clone().normalize();
+      const origin = ray.origin.clone();
+
+      // 각 벽면에 대한 Plane 구성 (n·x + c = 0 형태)
+      const planeMinX = new Plane(new Vector3(1, 0, 0), -planes.minX.constant);
+      const planeMaxX = new Plane(new Vector3(-1, 0, 0), planes.maxX.constant);
+      const planeMinZ = new Plane(new Vector3(0, 0, 1), -planes.minZ.constant);
+      const planeMaxZ = new Plane(new Vector3(0, 0, -1), planes.maxZ.constant);
+
+      // 사용자 시점에서 보이는 벽만 허용: 카메라에 가장 가까운 두 벽은 숨김 처리되므로 제외한다
+      const dims = getCurrentRoomDimensions();
+      const halfW = dims.width / 2;
+      const halfD = dims.depth / 2;
+      const camPos = camera.position;
+
+      const wallCenters: Array<{ name: 'left'|'right'|'back'|'front'; pos: Vector3; side: 'minX'|'maxX'|'minZ'|'maxZ'; plane: Plane }>= [
+        { name: 'left',  pos: new Vector3(-halfW, dims.height/2, 0), side: 'minX', plane: planeMinX },
+        { name: 'right', pos: new Vector3( halfW, dims.height/2, 0), side: 'maxX', plane: planeMaxX },
+        { name: 'back',  pos: new Vector3(0, dims.height/2, -halfD), side: 'minZ', plane: planeMinZ },
+        { name: 'front', pos: new Vector3(0, dims.height/2,  halfD), side: 'maxZ', plane: planeMaxZ },
+      ];
+      // 실제 화면에서 보이는 벽 목록을 우선 사용
+      let allowedSides = new Set(visibleWalls as ('minX'|'maxX'|'minZ'|'maxZ')[]);
+      if (allowedSides.size === 0) {
+        // 폴백: 카메라 거리 기반(이 경우는 거의 발생하지 않음)
+        const sortedByDistance = wallCenters
+          .map(w => ({ ...w, dist: camPos.distanceTo(w.pos) }))
+          .sort((a, b) => a.dist - b.dist);
+        const fallback = new Set(sortedByDistance.slice(2).map(w => w.side));
+        allowedSides = fallback as any;
+      }
+
+      const checks: Array<{ side: 'minX'|'maxX'|'minZ'|'maxZ'; plane: Plane }> = wallCenters
+        .filter(w => allowedSides.has(w.side))
+        .map(w => ({ side: w.side, plane: w.plane }));
+
+      const eps = 1e-4;
+      for (const { side, plane } of checks) {
+        if (ray.intersectPlane(plane, tmpPoint)) {
+          // 벽 면의 유한 영역(사각형) 안에 교차점이 있는지 검사
+          let onFace = false;
+          if (side === 'minX' || side === 'maxX') {
+            // x 고정, 유효 범위: z in [-halfDepth, +halfDepth], y in [0, height]
+            onFace = (Math.abs(tmpPoint.z) <= halfD + eps) && (tmpPoint.y >= -eps && tmpPoint.y <= dims.height + eps);
+          } else {
+            // z 고정, 유효 범위: x in [-halfWidth, +halfWidth], y in [0, height]
+            onFace = (Math.abs(tmpPoint.x) <= halfW + eps) && (tmpPoint.y >= -eps && tmpPoint.y <= dims.height + eps);
+          }
+          if (!onFace) continue;
+
+          const t = tmpPoint.clone().sub(origin).dot(dir); // 레이 파라미터 (양수만 유효)
+          if (t > 0) {
+            candidates.push({ side, point: tmpPoint.clone(), t });
+          }
+        }
+      }
+
+      if (candidates.length > 0) {
+        // 가장 가까운 교차점 선택 → 해당 벽으로 스냅
+        candidates.sort((a, b) => a.t - b.t);
+        const best = candidates[0];
+        const side = best.side;
+        activeWallSideRef.current = side;
+
+        let u = (side === 'minX' || side === 'maxX') ? best.point.z : best.point.x;
+        let height = best.point.y;
+        if (grid.enabled && grid.divisions > 0) {
+          const cell = grid.size / grid.divisions;
+          u = Math.round(u / cell) * cell;
+          height = Math.round(height / cell) * cell;
+        }
+
+        // 문은 항상 바닥 높이(0)에 맞춘다
+        if (isDoorRef.current) height = 0;
+
+        const offset = item.mount?.offset ?? 0;
+        const { position, rotationY } = computeWallMountedTransform(item, side, u, height, offset);
+
+        // 같은 벽면 겹침 검사
+        const others = placedItems.filter(p => p.id !== item.id);
+        const testItem: PlacedItem = {
+          ...item,
+          position: position.clone() as any,
+          rotation: new Euler(item.rotation.x, rotationY, item.rotation.z) as any,
+          mount: { ...(item.mount || { type: 'wall', side }), side, u, height, offset } as any
+        };
+        const overlap = checkWallOverlapWithOthers(testItem, others);
+        setIsColliding(overlap.hasOverlap);
+
+        onUpdate(item.id, {
+          position: position.clone() as any,
+          rotation: new Euler(item.rotation.x, rotationY, item.rotation.z) as any,
+          mount: { ...(item.mount || { type: 'wall', side }), side, u, height, offset } as any
+        });
+        return;
+      }
+      // 교차점이 없다면 기존 평면 로직으로 폴백
+    }
+
+    // 폴백: 드래그 평면과의 교차점
     const intersectionPoint = new Vector3();
     if (!raycaster.current.ray.intersectPlane(dragPlane.current, intersectionPoint)) return;
-
-    // 벽 전용 드래그 처리
-    if (item.mount?.type === 'wall' && activeWallSideRef.current) {
-      const side = activeWallSideRef.current;
-      let u = (side === 'minX' || side === 'maxX') ? intersectionPoint.z : intersectionPoint.x;
-      let height = intersectionPoint.y;
-      if (grid.enabled && grid.divisions > 0) {
-        const cell = grid.size / grid.divisions;
-        u = Math.round(u / cell) * cell;
-        height = Math.round(height / cell) * cell;
-      }
-      const offset = item.mount?.offset ?? 0;
-      const { position, rotationY } = computeWallMountedTransform(item, side, u, height, offset);
-      // 같은 벽면 겹침 검사
-      const others = placedItems.filter(p => p.id !== item.id);
-      const testItem: PlacedItem = {
-        ...item,
-        position: position.clone() as any,
-        rotation: new Euler(item.rotation.x, rotationY, item.rotation.z) as any,
-        mount: { ...(item.mount || { type: 'wall', side }), side, u, height, offset } as any
-      };
-      const overlap = checkWallOverlapWithOthers(testItem, others);
-      setIsColliding(overlap.hasOverlap);
-
-      onUpdate(item.id, {
-        position: position.clone() as any,
-        rotation: new Euler(item.rotation.x, rotationY, item.rotation.z) as any,
-        mount: { ...(item.mount || { type: 'wall', side }), side, u, height, offset } as any
-      });
-      return;
-    }
 
     // 일반 바닥 드래그
     const newPosition = intersectionPoint.clone();
@@ -457,9 +573,32 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     // 드래그 종료 시 위치 보정
     if (isDragging) {
       if (item.mount?.type === 'wall') {
-        // 벽 부착 아이템은 클램프 적용
-        const clamped = clampWallMountedItem({ ...item });
-        onUpdate(item.id, { position: clamped.position, rotation: clamped.rotation as any, mount: clamped.mount } as any);
+        // 우선 클램프
+        let next = clampWallMountedItem({ ...item });
+
+        // 문은 항상 높이 0으로 고정
+        if (isDoorRef.current && next.mount) {
+          next = clampWallMountedItem({
+            ...next,
+            mount: { ...next.mount, height: 0 }
+          });
+        }
+
+        // 같은 벽면 겹침이 있으면 빈 u를 탐색
+        const others = placedItems.filter(p => p.id !== item.id);
+        const overlap = checkWallOverlapWithOthers(next, others);
+        if (overlap.hasOverlap && next.mount) {
+          // 스텝은 그리드 셀 크기 사용
+          const cell = (grid.enabled && grid.divisions > 0) ? (grid.size / grid.divisions) : 0.1;
+          const found = findNonOverlappingWallPosition(next, others, cell, 300);
+          if (found) {
+            next = clampWallMountedItem({
+              ...next,
+              mount: { ...next.mount, u: found.u }
+            });
+          }
+        }
+        onUpdate(item.id, { position: next.position, rotation: next.rotation as any, mount: next.mount } as any);
       } else {
         const otherItems = placedItems.filter(placedItem => placedItem.id !== item.id);
         const collisionCheck = checkDragCollision(item, otherItems, item.position);
@@ -668,7 +807,18 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         // console.log(`🔍 furniture 정보:`, furniture);
         
         if (!furniture) {
-          // console.warn('⚠️ 성능: 가구 정보를 찾을 수 없어 기본 박스로 표시합니다:', item);
+          // 카탈로그에 없는 임시 에셋: PlacedItem.modelPath로 직접 로드 시도
+          if (item.modelPath && (item.modelPath.startsWith('blob:') || item.modelPath.endsWith('.glb'))) {
+            try {
+              const gltfModel = await loadModel(item.modelPath, { useCache: false, priority: 'normal' });
+              const adjustedModel = adjustModelToFootprint(gltfModel, item.footprint);
+              setModel(adjustedModel);
+              setIsLoading(false);
+              return;
+            } catch (e) {
+              // 실패 시 폴백 생성으로 진행
+            }
+          }
           setLoadError('가구 정보를 찾을 수 없습니다');
           setIsLoading(false);
           return;
@@ -795,11 +945,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         // console.error('Failed to load furniture model:', error);
         setLoadError(error instanceof Error ? error.message : 'Unknown error');
 
-        const furniture = getFurnitureFromPlacedItem(item);
-        if (furniture) {
-          const fallbackModel = createFallbackModel();
-          setModel(fallbackModel);
-        }
+        const fallbackModel = createFallbackModel();
+        setModel(fallbackModel);
         setIsLoading(false);
       }
     };
@@ -919,11 +1066,22 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
                   material.emissive.setHex(0x000000);
                 }
               }
-            }
+              }
+            // 벽 페이드: 유니폼 값만 업데이트, 플래그는 그룹 대상으로 일괄 적용
           });
         }
       });
     }
+  });
+
+  // 그룹 단위로 페이드 값/플래그 적용
+  useFrame(() => {
+    if (item.mount?.type !== 'wall') return;
+    if (!meshRef.current) return;
+    const side = item.mount.side;
+    const fade = currentWallFade;
+    setWallFadeValue(side, fade);
+    applyFadeFlagsToObject(meshRef.current, fade);
   });
 
   // 로딩 상태 표시
@@ -935,6 +1093,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         position={safePosition(item.position)}
         rotation={safeRotation(item.rotation)}
         scale={safeScale(item.scale)}
+        visible={item.mount?.type !== 'wall' ? true : currentWallFade > 0.02}
       >
         <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
           <meshBasicMaterial color="#cccccc" transparent opacity={0.5} />
@@ -952,6 +1111,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         position={safePosition(item.position)}
         rotation={safeRotation(item.rotation)}
         scale={safeScale(item.scale)}
+        visible={item.mount?.type !== 'wall' ? true : currentWallFade > 0.02}
       >
         <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
           <meshBasicMaterial color="#ff0000" transparent opacity={0.5} />
@@ -969,6 +1129,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         position={safePosition(item.position)}
         rotation={safeRotation(item.rotation)}
         scale={safeScale(item.scale)}
+        visible={item.mount?.type !== 'wall' ? true : currentWallFade > 0.02}
         onClick={handleClick}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

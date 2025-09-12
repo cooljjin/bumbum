@@ -101,6 +101,10 @@ interface Real3DRoomProps {
 import { FurnitureItem } from '../types/furniture';
 import { PlacedItem } from '../types/editor';
 import { createPlacedItemFromFurniture, sampleFurniture } from '../data/furnitureCatalog';
+import { applyOverridesToItems } from '@/utils/furnitureOverrides';
+import { getBuiltInOverrideUrls } from '@/utils/assetOverrides';
+import WallFadeController from './features/room/WallFadeController';
+import { getCustomFurnitureItems } from '../utils/customLibrary';
 import { applyRoomTemplate, RoomTemplate } from '../data/roomTemplates';
 
 // SSR 문제 해결을 위한 로딩 상태 관리
@@ -218,6 +222,33 @@ const Real3DRoomComponent = React.memo(({
   // const debugFreeCam = !!(searchParams && searchParams.get('freecam') === '1');
   const gestureFixScope = (searchParams && searchParams.get('gfix')) || 'canvas'; // 'canvas' | 'global'
   const debugFloating = !!(searchParams && searchParams.get('debugFloating') === '1');
+
+  // 커스텀 라이브러리 로드 후 카탈로그에 병합
+  const [customFurniture, setCustomFurniture] = useState<any[]>([]);
+  const [assetOverrides, setAssetOverrides] = useState<Record<string, { modelUrl?: string; thumbUrl?: string }>>({});
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const list = await getCustomFurnitureItems();
+        if (mounted) setCustomFurniture(list);
+      } catch {}
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  // Load built-in asset override URLs (GLB/thumbnail) for all known items
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const combinedIds = [...sampleFurniture, ...customFurniture].map((i) => i.id);
+        const urls = await getBuiltInOverrideUrls(combinedIds);
+        if (mounted) setAssetOverrides(urls);
+      } catch {}
+    })();
+    return () => { mounted = false; };
+  }, [customFurniture]);
   const debugPos = (searchParams && (searchParams.get('dbgPos') || searchParams.get('debugPos'))) || 'bl'; // tl|tr|bl|br
   const forceFloating = !!(searchParams && searchParams.get('forceFloating') === '1');
   const [dbgPosPx, setDbgPosPx] = useState<{ x: number; y: number } | null>(null);
@@ -1106,6 +1137,7 @@ const Real3DRoomComponent = React.memo(({
         />
 
         {/* 3D 룸 */}
+        <WallFadeController />
         <Room
           receiveShadow={shadowMode === 'realtime'}
           floorTexturePath={currentFloorTexture}
@@ -1248,7 +1280,15 @@ const Real3DRoomComponent = React.memo(({
           </div>
           <div className="bg-white p-2">
             <EnhancedFurnitureCatalog
-              furnitureData={sampleFurniture}
+              furnitureData={applyOverridesToItems([...sampleFurniture, ...customFurniture]).map((it) => {
+                const o = assetOverrides[it.id];
+                if (!o) return it;
+                return {
+                  ...it,
+                  modelPath: o.modelUrl || it.modelPath,
+                  thumbnailPath: o.thumbUrl || it.thumbnailPath,
+                };
+              })}
               onFurnitureSelect={handleFurnitureSelect}
               onClose={() => setShowFurnitureCatalog(false)}
               isMobile={true}

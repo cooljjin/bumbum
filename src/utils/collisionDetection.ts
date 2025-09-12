@@ -197,7 +197,8 @@ export const getWallRect = (item: PlacedItem) => {
 
 export const checkWallOverlapWithOthers = (
   targetItem: PlacedItem,
-  allItems: PlacedItem[]
+  allItems: PlacedItem[],
+  minGap: number = 0.02
 ): { hasOverlap: boolean; overlappingItems: PlacedItem[] } => {
   if (!targetItem.mount || targetItem.mount.type !== 'wall') return { hasOverlap: false, overlappingItems: [] };
   const rectA = getWallRect(targetItem);
@@ -209,8 +210,9 @@ export const checkWallOverlapWithOthers = (
     if (!other.mount || other.mount.type !== 'wall') continue;
     if (other.mount.side !== rectA.side) continue;
     const rectB = getWallRect(other)!;
+    // 최소 간격을 고려한 겹침 판단(간격보다 가까우면 겹침)
     const overlap = (
-      rectA.uMin < rectB.uMax && rectA.uMax > rectB.uMin &&
+      rectA.uMin < rectB.uMax + minGap && rectA.uMax > rectB.uMin - minGap &&
       rectA.yMin < rectB.yMax && rectA.yMax > rectB.yMin
     );
     if (overlap) overlaps.push(other);
@@ -222,7 +224,8 @@ export const findNonOverlappingWallPosition = (
   targetItem: PlacedItem,
   allItems: PlacedItem[],
   step: number = 0.1,
-  maxAttempts: number = 200
+  maxAttempts: number = 200,
+  minGap: number = 0.02
 ): { u: number } | null => {
   if (!targetItem.mount || targetItem.mount.type !== 'wall') return null;
   const side = targetItem.mount.side;
@@ -242,7 +245,7 @@ export const findNonOverlappingWallPosition = (
       const test: PlacedItem = { ...targetItem, mount: { ...targetItem.mount, u } } as PlacedItem;
       // 경계 내 클램프는 상위에서 보정하므로, 여기서는 범위만 대략 체크
       if (u < minU || u > maxU) continue;
-      if (!checkWallOverlapWithOthers(test, allItems).hasOverlap) {
+      if (!checkWallOverlapWithOthers(test, allItems, minGap).hasOverlap) {
         return { u };
       }
     }

@@ -61,6 +61,8 @@ export function SettingsSidebar({
         </div>
       </div>
 
+      {/* 벽 배치 설정 제거 */}
+
       {/* 도움말 */}
       <div>
         <h3 className="text-lg font-medium text-gray-700 mb-4" data-testid="help-title">도움말</h3>
