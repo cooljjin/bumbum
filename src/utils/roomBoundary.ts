@@ -63,8 +63,10 @@ export const getWallPlanes = () => {
 
 // 내부 실제 벽면(시각적 면)의 평면: margin을 무시하고 방 내부 크기를 기준으로 계산
 export const getWallInteriorPlanes = () => {
-  const halfWidth = ROOM_DIMENSIONS.width / 2;
-  const halfDepth = ROOM_DIMENSIONS.depth / 2;
+  // 동적 방 크기에 맞춰 내부 벽면(시각적 면) 정의
+  const dims = getCurrentRoomDimensions();
+  const halfWidth = dims.width / 2;
+  const halfDepth = dims.depth / 2;
   return {
     minX: { constant: -halfWidth, normal: new Vector3(1, 0, 0) },   // x = -W/2
     maxX: { constant: +halfWidth, normal: new Vector3(-1, 0, 0) },  // x = +W/2
@@ -138,10 +140,12 @@ export const computeWallMountedTransform = (
   // 중심 좌표 계산
   const alongNormal = halfDepthAlongNormal(item, normalAxis); // offset 무시
   const base = new Vector3();
-  if (side === 'minX') base.set(planes.minX.constant + alongNormal, height, 0);
-  if (side === 'maxX') base.set(planes.maxX.constant - alongNormal, height, 0);
-  if (side === 'minZ') base.set(0, height, planes.minZ.constant + alongNormal);
-  if (side === 'maxZ') base.set(0, height, planes.maxZ.constant - alongNormal);
+  // z-fighting 방지용으로 벽면에서 수 mm 띄움
+  const eps = 0.005;
+  if (side === 'minX') base.set(planes.minX.constant + alongNormal + eps, height, 0);
+  if (side === 'maxX') base.set(planes.maxX.constant - alongNormal - eps, height, 0);
+  if (side === 'minZ') base.set(0, height, planes.minZ.constant + alongNormal + eps);
+  if (side === 'maxZ') base.set(0, height, planes.maxZ.constant - alongNormal - eps);
 
   const pos = base.clone().add(fromU(u));
 

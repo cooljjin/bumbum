@@ -100,13 +100,19 @@ test.describe('종합 성능 테스트', () => {
     const fps = await page.evaluate(() => {
       return new Promise<number>((resolve) => {
         let frames = 0;
-        let lastTime = performance.now();
+        const start = performance.now();
+
+        const fallback = setTimeout(() => {
+          // 프레임이 아예 돌지 않아도 종료
+          resolve(0);
+        }, 6000);
 
         function measureFPS() {
           frames++;
-          const currentTime = performance.now();
+          const elapsed = performance.now() - start;
 
-          if (currentTime - lastTime >= 5000) { // 5초 측정
+          if (elapsed >= 5000) { // 5초 측정
+            clearTimeout(fallback);
             const fps = frames / 5; // 초당 프레임 수
             resolve(fps);
             return;
@@ -207,8 +213,10 @@ test.describe('종합 성능 테스트', () => {
       const renderTime = await page.evaluate(() => {
         return new Promise<number>((resolve) => {
           const start = performance.now();
+          const fallback = setTimeout(() => resolve(10_000), 2000);
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
+              clearTimeout(fallback);
               const end = performance.now();
               resolve(end - start);
             });

@@ -121,14 +121,14 @@ export default function AssetUploaderPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <DevNavbar active="uploader" />
-      <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">가구 에셋 추가</h1>
+      <div className="p-6 md:p-8 bg-gradient-to-b from-white to-rose-50/50 rounded-3xl shadow-sm">
+      <h1 className="text-2xl font-semibold mb-4 text-rose-700">가구 에셋 추가</h1>
       <p className="text-gray-600 mb-6">GLB와 썸네일을 드래그 앤 드롭하거나 파일 선택으로 업로드하고, 이름을 입력한 뒤 저장하면 미니룸에 배치됩니다.</p>
 
       <div
         onDragOver={(e) => { e.preventDefault(); }}
         onDrop={onDrop}
-        className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center gap-3 mb-6"
+        className="border-2 border-dashed border-rose-200 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 mb-6 bg-white/80 hover:border-rose-300 transition shadow-sm"
       >
         <div className="text-gray-700">여기로 파일을 드래그 앤 드롭</div>
         <div className="text-sm text-gray-500">GLB(필수), PNG/JPG/WebP/SVG(선택)</div>
@@ -144,7 +144,7 @@ export default function AssetUploaderPage() {
           <label className="block text-sm font-medium text-gray-700">썸네일 (선택)</label>
           <input type="file" accept="image/*" onChange={(e) => onFilePick(e, 'thumb')} />
           {thumbUrl && (
-            <img src={thumbUrl} alt="thumbnail" className="w-32 h-32 object-cover rounded border" />
+            <img src={thumbUrl} alt="thumbnail" className="w-32 h-32 object-cover rounded-xl border border-gray-200 shadow-sm" />
           )}
         </div>
       </div>
@@ -156,14 +156,14 @@ export default function AssetUploaderPage() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="예: Wooden Chair"
-          className="w-full border rounded px-3 py-2"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-300 transition"
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
           <label className="block text-sm text-gray-700 mb-1">카테고리</label>
-          <select className="w-full border rounded px-2 py-1" value={category} onChange={e=>setCategory(e.target.value as FurnitureCategory)}>
+          <select className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-300 transition" value={category} onChange={e=>setCategory(e.target.value as FurnitureCategory)}>
             {['living','bedroom','kitchen','bathroom','office','outdoor','decorative','storage','floor','wall'].map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
@@ -171,7 +171,7 @@ export default function AssetUploaderPage() {
         </div>
         <div>
           <label className="block text-sm text-gray-700 mb-1">태그 (쉼표 구분)</label>
-          <input type="text" className="w-full border rounded px-3 py-2" value={tagsInput} onChange={e=>setTagsInput(e.target.value)} placeholder="예: modern, wood, white" />
+          <input type="text" className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-300 transition" value={tagsInput} onChange={e=>setTagsInput(e.target.value)} placeholder="예: modern, wood, white" />
         </div>
       </div>
 
@@ -179,15 +179,15 @@ export default function AssetUploaderPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div>
           <label className="block text-sm text-gray-700 mb-1">너비 W (m)</label>
-          <input type="number" step={0.01} min={0.01} value={footWInput} onChange={(e)=>setFootWInput(e.target.value)} className="w-full border rounded px-2 py-1" />
+          <input type="number" step={0.01} min={0.01} value={footWInput} onChange={(e)=>setFootWInput(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-300 transition" />
         </div>
         <div>
           <label className="block text-sm text-gray-700 mb-1">깊이 D (m)</label>
-          <input type="number" step={0.01} min={0.01} value={footDInput} onChange={(e)=>setFootDInput(e.target.value)} className="w-full border rounded px-2 py-1" />
+          <input type="number" step={0.01} min={0.01} value={footDInput} onChange={(e)=>setFootDInput(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-300 transition" />
         </div>
         <div>
           <label className="block text-sm text-gray-700 mb-1">높이 H (m)</label>
-          <input type="number" step={0.01} min={0.01} value={footHInput} onChange={(e)=>setFootHInput(e.target.value)} className="w-full border rounded px-2 py-1" />
+          <input type="number" step={0.01} min={0.01} value={footHInput} onChange={(e)=>setFootHInput(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-300 transition" />
         </div>
       </div>
 
@@ -219,7 +219,7 @@ export default function AssetUploaderPage() {
                 min={0}
                 value={wallHeightInput}
                 onChange={(e)=>setWallHeightInput(e.target.value)}
-                className="w-full border rounded px-2 py-1"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-300 transition"
                 disabled={isDoor}
               />
               <p className="text-xs text-gray-500 mt-1">문: 0 (자동), 액자/시계: 예) 1.4</p>
@@ -228,12 +228,12 @@ export default function AssetUploaderPage() {
         )}
       </div>
 
-      {error && <div className="text-sm text-red-600 mb-4">{error}</div>}
+      {error && <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 mb-4">{error}</div>}
 
       <button
         onClick={handleSave}
         disabled={saving || !glbUrl || !name.trim()}
-        className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-50"
+        className="px-5 py-2.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition"
       >{saving ? '저장 중...' : '저장하고 미니룸에서 확인'}</button>
       </div>
     </div>

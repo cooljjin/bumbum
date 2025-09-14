@@ -70,6 +70,7 @@ const initialState: EditorState = {
 
   // UI 상태
   isDragging: false,
+  draggingItemId: null,
   showGrid: true,
   showBoundingBoxes: false,
 
@@ -255,6 +256,10 @@ export const useEditorStore = create<EditorStore>()(
           
           // 충돌을 피할 수 있는 안전한 위치로 이동
           validatedItem = moveToSafePosition(validatedItem, placedItems);
+          // 안전 위치가 방 경계 밖으로 나갈 수 있으므로 재클램프
+          if (!isFurnitureInRoom(validatedItem)) {
+            validatedItem = constrainFurnitureToRoom(validatedItem);
+          }
           // console.log(`✅ 성능: 충돌 해결 - ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
         }
 
@@ -301,6 +306,8 @@ export const useEditorStore = create<EditorStore>()(
         // 위치/회전/스케일 변경 시 벽 안에 있는지 검증 (회전/스케일도 경계에 영향)
         let validatedItem: PlacedItem = updatedItem.mount?.type === 'wall' ? clampWallMountedItem(updatedItem) : updatedItem;
         const affectsBounds = !!(updates.position || updates.rotation || updates.scale);
+        const { isDragging, draggingItemId } = get();
+        const skipCollisions = isDragging && draggingItemId === id;
         if (affectsBounds) {
           if (!updatedItem.mount?.type) {
             const isInRoom = isFurnitureInRoom(updatedItem);
@@ -309,29 +316,37 @@ export const useEditorStore = create<EditorStore>()(
             }
           }
 
-          // 가구 간 충돌 검사 (위치/회전/스케일 변경 시에만)
-          const otherItems = placedItems.filter(item => item.id !== id);
-          const shouldCheckCollision = validatedItem.mount?.type !== 'wall';
-          const collisionCheck = shouldCheckCollision ? checkCollisionWithOthers(validatedItem, otherItems) : { hasCollision: false, collidingItems: [] };
-          if (shouldCheckCollision && collisionCheck.hasCollision) {
-            // console.warn(`⚠️ 성능: 가구 업데이트 시 충돌 감지 - ${validatedItem.name || validatedItem.id}이(가) ${collisionCheck.collidingItems.length}개의 가구와 충돌`);
-            
-            // 충돌을 피할 수 있는 안전한 위치로 이동
-            validatedItem = moveToSafePosition(validatedItem, otherItems);
-            // console.log(`✅ 성능: 충돌 해결 - ${validatedItem.name || validatedItem.id}을(를) 안전한 위치로 이동`);
-          }
-          // 벽 부착 오버랩 해결
-          if (validatedItem.mount?.type === 'wall') {
-            const { hasOverlap } = checkWallOverlapWithOthers(validatedItem, otherItems);
-            if (hasOverlap) {
-              const found = findNonOverlappingWallPosition(validatedItem, otherItems);
-              if (found) {
-                validatedItem = {
-                  ...validatedItem,
-                  mount: { ...validatedItem.mount, u: found.u }
-                };
+          if (!skipCollisions) {
+            // 가구 간 충돌 검사 (위치/회전/스케일 변경 시에만)
+            const otherItems = placedItems.filter(item => item.id !== id);
+            const shouldCheckCollision = validatedItem.mount?.type !== 'wall';
+            const collisionCheck = shouldCheckCollision ? checkCollisionWithOthers(validatedItem, otherItems) : { hasCollision: false, collidingItems: [] };
+            if (shouldCheckCollision && collisionCheck.hasCollision) {
+              // 충돌을 피할 수 있는 안전한 위치로 이동
+              validatedItem = moveToSafePosition(validatedItem, otherItems);
+              // 안전 위치가 방 경계 밖으로 나갈 수 있으므로 재클램프
+              if (!validatedItem.mount?.type && !isFurnitureInRoom(validatedItem)) {
+                validatedItem = constrainFurnitureToRoom(validatedItem);
               }
             }
+            // 벽 부착 오버랩 해결
+            if (validatedItem.mount?.type === 'wall') {
+              const { hasOverlap } = checkWallOverlapWithOthers(validatedItem, otherItems);
+              if (hasOverlap) {
+                const found = findNonOverlappingWallPosition(validatedItem, otherItems);
+                if (found && validatedItem.mount) {
+                  validatedItem = {
+                    ...validatedItem,
+                    mount: { ...validatedItem.mount, u: found.u }
+                  } as PlacedItem;
+                }
+              }
+            }
+          }
+
+          // 마지막으로 방 경계 보정 한 번 더 수행
+          if (!validatedItem.mount?.type && !isFurnitureInRoom(validatedItem)) {
+            validatedItem = constrainFurnitureToRoom(validatedItem);
           }
         }
 
@@ -617,6 +632,22 @@ export const useEditorStore = create<EditorStore>()(
         if (currentDragging === isDragging) return;
         
         set({ isDragging });
+      },
+
+      // 단일 드래그 락: 아이템별 드래그 소유권 관리
+      beginDraggingItem: (id: string) => {
+        const { draggingItemId } = get();
+        // 이미 누군가 드래그 중이면 실패
+        if (draggingItemId && draggingItemId !== id) return false;
+        // 소유권 획득
+        set({ draggingItemId: id, isDragging: true });
+        return true;
+      },
+      endDraggingItem: (id: string) => {
+        const { draggingItemId } = get();
+        if (draggingItemId === id) {
+          set({ draggingItemId: null, isDragging: false });
+        }
       },
 
       toggleGrid: () => {

@@ -55,20 +55,26 @@ test.describe('Performance Benchmarks', () => {
     const fps = await page.evaluate(() => {
       return new Promise<number>((resolve) => {
         let frameCount = 0;
-        let lastTime = performance.now();
-        
+        const start = performance.now();
+
+        const fallback = setTimeout(() => {
+          // rAF가 전혀 돌지 않는 환경에서도 종료되도록 안전장치
+          resolve(frameCount);
+        }, 2000);
+
         function countFrames() {
           frameCount++;
-          const currentTime = performance.now();
-          
-          if (currentTime - lastTime >= 1000) {
+          const elapsed = performance.now() - start;
+
+          if (elapsed >= 1000) {
+            clearTimeout(fallback);
             resolve(frameCount);
             return;
           }
-          
+
           requestAnimationFrame(countFrames);
         }
-        
+
         requestAnimationFrame(countFrames);
       });
     });

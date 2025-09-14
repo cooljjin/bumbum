@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 
-import { TransformControls, Box, Html, useGLTF } from '@react-three/drei';
+import { TransformControls, Box, Html, useGLTF, Edges } from '@react-three/drei';
 import { Vector3, Euler, Group } from 'three';
 import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
@@ -167,6 +167,61 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
       
       // 모델 크기를 footprint에 맞게 조정
       const adjustedModel = adjustModelToFootprint(gltf.scene, furniture.footprint);
+
+      // 알파 에지(하얀/파란 테두리) 보정: 도어 및 투명 텍스처에 대한 안전 설정
+      try {
+        adjustedModel.traverse((obj: any) => {
+          if (obj && obj.isMesh && obj.material) {
+            const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+            materials.forEach((mat: any) => {
+              // 텍스처 색 공간 및 프리멀티플라이 알파
+              if (mat.map) {
+                if (mat.map.colorSpace !== (THREE as any).SRGBColorSpace) {
+                  mat.map.colorSpace = (THREE as any).SRGBColorSpace;
+                }
+                // 투명 텍스처의 가장자리 헤일로 방지에 도움
+                if (mat.map.premultiplyAlpha !== true) {
+                  mat.map.premultiplyAlpha = true;
+                }
+                mat.map.needsUpdate = true;
+              }
+
+              // 기본 보정: 투명도/알파맵이 있는 경우 약한 alphaTest 적용 + 알파투커버리지
+              const hasAlpha = !!mat.alphaMap || (typeof mat.opacity === 'number' && mat.opacity < 1) || !!mat.transparent;
+              if (hasAlpha) {
+                if (typeof mat.alphaTest !== 'number' || mat.alphaTest < 0.1) {
+                  mat.alphaTest = 0.1; // 부드러운 가장자리 보존하며 헤일로 완화
+                }
+                if ('alphaToCoverage' in mat) {
+                  mat.alphaToCoverage = true; // WebGL2 MSAA 환경에서 가장자리 품질 개선
+                }
+                mat.needsUpdate = true;
+              }
+
+              // 도어 전용 강한 보정: 테두리 헤일로가 두드러져서 더 강하게 처리
+              if (furniture.subcategory === 'door') {
+                // 도어는 투명 유리 재질이 아닌 경우가 많아 alphaTest를 더 높이고 블렌딩 해제
+                if (typeof mat.alphaTest !== 'number' || mat.alphaTest < 0.3) {
+                  mat.alphaTest = 0.3;
+                }
+                // 유리/투명 의도 재질로 추정되는 이름은 보존
+                const name: string = (mat.name || '').toLowerCase();
+                const looksGlass = name.includes('glass') || name.includes('transparent') || name.includes('window');
+                if (!looksGlass) {
+                  mat.transparent = false; // 알파테스트(디스카드) 기반으로 프린지 제거
+                  mat.depthWrite = true;
+                }
+                if ('alphaToCoverage' in mat) {
+                  mat.alphaToCoverage = true;
+                }
+                mat.needsUpdate = true;
+              }
+            });
+          }
+        });
+      } catch (e) {
+        console.warn('알파/텍스처 보정 중 경고:', e);
+      }
       setModel(adjustedModel);
       setIsLoading(false);
       setLoadError(null);
@@ -298,6 +353,14 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
   const handleTransformChange = React.useCallback(() => {
     if (!meshRef.current || !transformControlsRef.current) return;
 
+    // 단일 드래그 락: 내가 소유한 드래그만 처리
+    try {
+      const { draggingItemId } = useEditorStore.getState();
+      if (draggingItemId && draggingItemId !== item.id) {
+        return;
+      }
+    } catch {}
+
     const now = Date.now();
     // 최소 16ms (약 60fps) 간격으로 업데이트 제한
     if (now - lastUpdateTime.current < 16) return;
@@ -414,7 +477,20 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     } else {
       // console.log('🔓 자동 고정이 비활성화되어 있습니다. 수동으로 L키를 눌러 고정하세요.');
     }
+
+    // 드래그 락 해제
+    try { useEditorStore.getState().endDraggingItem(item.id); } catch {}
   }, [isSelected, item.id, item.isLocked, onUpdate]);
+
+  // 컴포넌트 언마운트 시 드래그 락 정리
+  useEffect(() => {
+    return () => {
+      try {
+        const { draggingItemId, endDraggingItem } = useEditorStore.getState();
+        if (draggingItemId === item.id) endDraggingItem(item.id);
+      } catch {}
+    };
+  }, [item.id]);
 
   // 객체 표시 상태 관리 - 고정 상태 변경 시에도 객체가 사라지지 않도록
   const [isVisible, setIsVisible] = React.useState(true);
@@ -685,23 +761,21 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
 
     const isTouching = isTouchMode;
     const indicatorColor = isTouching ? '#f97316' : '#3b82f6'; // 터치 중 주황색, 일반 선택 파란색
-    const indicatorOpacity = isTouching ? 1.0 : 0.8;
+    const indicatorOpacity = isTouching ? 1.0 : 0.8; // 일반 선택은 약간 투명도 유지
 
     return (
       <group>
-        {/* 선택 바운딩 박스 - 더 명확한 파란색 테두리 */}
-        <Box
-          args={[item.footprint.width + 0.15, item.footprint.height + 0.15, item.footprint.depth + 0.15]}
+        {/* 선택 바운딩 박스 - 윤곽선만 표기 (면 비표시) */}
+        <mesh
           position={[0, item.footprint.height / 2, 0]}
-          visible={true}
+          renderOrder={2}
         >
-          <meshBasicMaterial
-            color={indicatorColor}
-            wireframe={true}
-            transparent={true}
-            opacity={indicatorOpacity}
-          />
-        </Box>
+          <boxGeometry args={[item.footprint.width + 0.05, item.footprint.height + 0.05, item.footprint.depth + 0.05]} />
+          {/* 면은 투명 처리 */}
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} depthTest={false} />
+          {/* 윤곽선만 그리기 */}
+          <Edges color={indicatorColor} />
+        </mesh>
 
         {/* 편집 가능 표시 - 더 큰 크기 */}
         <mesh position={[0, item.footprint.height + 0.4, 0]}>
@@ -875,6 +949,9 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
           mode={tool === 'rotate' ? 'rotate' : tool === 'scale' ? 'scale' : 'translate'}
           onObjectChange={handleTransformChange}
           onMouseUp={handleTransformEnd}
+          onMouseDown={() => {
+            try { useEditorStore.getState().beginDraggingItem(item.id); } catch {}
+          }}
           // 키보드 단축키 비활성화
           showX={true}
           showY={true}

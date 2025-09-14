@@ -1,6 +1,6 @@
 import { PlacedItem } from '../types/editor';
 import { Vector3 } from 'three';
-import { getRoomBoundaries } from './roomBoundary';
+import { getRoomBoundaries, constrainFurnitureToRoom, isFurnitureInRoom } from './roomBoundary';
 
 /**
  * 가구의 바운딩 박스를 계산합니다
@@ -95,10 +95,11 @@ export const findNonCollidingPosition = (
   const stepSize = 0.5; // 이동 단위
   const maxDistance = 5.0; // 최대 이동 거리
   
-  // 원래 위치에서 충돌이 없다면 그대로 반환
-  const originalCollision = checkCollisionWithOthers(targetItem, allItems, targetItem.id);
-  if (!originalCollision.hasCollision) {
-    return originalPosition;
+  // 원래 위치를 경계 내로 보정한 뒤 충돌 확인
+  const constrainedOriginal = constrainFurnitureToRoom(targetItem);
+  const originalCollision = checkCollisionWithOthers(constrainedOriginal, allItems, constrainedOriginal.id);
+  if (!originalCollision.hasCollision && isFurnitureInRoom(constrainedOriginal)) {
+    return constrainedOriginal.position.clone();
   }
   
   // 스파이럴 패턴으로 충돌하지 않는 위치 탐색
@@ -112,15 +113,17 @@ export const findNonCollidingPosition = (
       originalPosition.z + Math.sin(angle) * radius
     );
     
-    const testItem = {
+    let testItem: PlacedItem = {
       ...targetItem,
       position: testPosition
-    };
+    } as PlacedItem;
+    // 방 경계 내로 먼저 보정
+    testItem = constrainFurnitureToRoom(testItem);
     
     const collision = checkCollisionWithOthers(testItem, allItems, targetItem.id);
-    if (!collision.hasCollision) {
+    if (!collision.hasCollision && isFurnitureInRoom(testItem)) {
       // console.log(`✅ 충돌 없는 위치 발견: (${testPosition.x.toFixed(2)}, ${testPosition.y.toFixed(2)}, ${testPosition.z.toFixed(2)}) - ${attempt}번째 시도`);
-      return testPosition;
+      return testItem.position.clone();
     }
   }
   
@@ -138,10 +141,12 @@ export const moveToSafePosition = (
   const safePosition = findNonCollidingPosition(targetItem, allItems);
   
   if (safePosition) {
-    return {
+    const item = {
       ...targetItem,
       position: safePosition
-    };
+    } as PlacedItem;
+    // 반환 전 방 경계 보정으로 일관성 유지
+    return constrainFurnitureToRoom(item);
   }
   
   // 안전한 위치를 찾지 못한 경우 원래 위치 반환

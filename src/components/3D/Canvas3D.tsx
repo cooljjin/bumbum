@@ -135,6 +135,13 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
             camera.updateProjectionMatrix();
             camera.updateMatrixWorld();
 
+            // 디버그: R3F 핸들 노출 (개발 전용)
+            if (typeof window !== 'undefined') {
+              try {
+                (window as any).__R3F = { gl, scene, camera };
+              } catch {}
+            }
+
             // console.log(`🎨 3D 품질 설정 완료:`, {
             //   anisotropy: THREE.Texture.DEFAULT_ANISOTROPY,
             //   shadowMapSize: isMobile ? '1024x1024' : '2048x2048',

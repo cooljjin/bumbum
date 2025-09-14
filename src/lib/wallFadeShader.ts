@@ -64,6 +64,8 @@ export function applyFadeFlagsToObject(object: THREE.Object3D | null | undefined
   const fullyOpaque = fade > 0.98;
   const fullyHidden = fade < 0.02;
   object.traverse((child) => {
+    // 히트박스 등 페이드에서 제외해야 하는 객체는 건너뜀
+    if ((child as any)?.userData?.skipWallFade) return;
     const mesh = child as THREE.Mesh;
     const material = mesh?.material as any;
     if (!material) return;
@@ -88,4 +90,3 @@ export function applyFadeFlagsToObject(object: THREE.Object3D | null | undefined
   // 상위 object의 표시 여부도 조절(완전 숨김이면 꺼줌)
   (object as any).visible = !fullyHidden;
 }
-

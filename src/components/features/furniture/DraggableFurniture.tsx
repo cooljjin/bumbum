@@ -9,7 +9,7 @@ import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
 import { constrainFurnitureToRoom, getRoomBoundaries, nearestWallSide, computeWallMountedTransform, clampWallMountedItem, getWallInteriorPlanes, getCurrentRoomDimensions } from '../../../utils/roomBoundary';
 import { useVisibleWalls, useWallFades } from '../../../store/wallVisibilityStore';
-import { patchObjectWithWallFade, setWallFadeValue, applyFadeFlagsToObject } from '@/lib/wallFadeShader';
+import { applyFadeFlagsToObject } from '@/lib/wallFadeShader';
 import { checkDragCollision, moveToSafePosition, checkWallOverlapWithOthers, findNonOverlappingWallPosition } from '../../../utils/collisionDetection';
 import * as THREE from 'three';
 
@@ -137,7 +137,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
             // console.log(`🔄 GLTF 모델 로딩 시작: ${furniture.modelPath}`);
             try {
               const gltfModel = await loadModel(furniture.modelPath, {
-                useCache: false,
+                // 캐시 활용으로 동일 모델 다수 배치 시 로딩/파싱 비용 절감
+                useCache: true,
                 priority: 'normal'
               });
 
@@ -225,13 +226,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     } catch { isDoorRef.current = false; }
   }, [item]);
 
-  // 벽 부착 아이템은 모델 로드/변경 시 셰이더 패치 1회 수행
-  useEffect(() => {
-    if (item.mount?.type !== 'wall') return;
-    if (!meshRef.current) return;
-    const side = item.mount.side;
-    patchObjectWithWallFade(meshRef.current, side);
-  }, [item.mount?.type, item.mount?.side, model]);
+  // 벽 부착 아이템은 셰이더 패치 없이 플래그/opacity만 동기화 (벽과 동일 임계치)
 
   // 안전한 preventDefault 래퍼 (r3f PointerEvent에는 preventDefault가 없을 수 있음)
   const safePreventDefault = (ev: any) => {
@@ -293,11 +288,21 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       return;
     }
 
+    // 선택되지 않은 상태에서는 드래그를 시작하지 않음 (카메라 조작 우선)
+    if (!isSelected) {
+      return;
+    }
+
+    // 전역 단일 드래그 락 시도: 다른 아이템이 이미 드래그 중이면 시작하지 않음
+    try {
+      const st = useEditorStore.getState();
+      if (st.draggingItemId && st.draggingItemId !== item.id) return;
+      const ok = st.beginDraggingItem(item.id);
+      if (!ok) return;
+    } catch {}
+
     // 실제 드래그 시작 여부는 이동 임계치 통과 시 결정
     setIsDragging(false);
-
-    // 가구 선택
-    onSelect(item.id);
     setIsHovered(false);
 
     // 드래그 시작 위치 저장
@@ -346,12 +351,18 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       setDragging(true);
     } catch {}
 
-  }, [isEditMode, item.isLocked, item.id, item.position, onSelect, gl, setDragging]);
+  }, [isEditMode, isSelected, item.isLocked, item.id, item.position, gl, setDragging]);
 
   // 🔄 드래그 중 핸들러 (마우스 및 터치 지원)
   const handleDrag = useCallback((event: any) => {
     // 드래그 의도가 없으면 무시
     if (!dragIntentRef.current?.active) return;
+
+    // 전역 락 소유자만 드래그 처리
+    try {
+      const { draggingItemId } = useEditorStore.getState();
+      if (draggingItemId && draggingItemId !== item.id) return;
+    } catch {}
 
     // 마우스 또는 터치 위치 계산
     let clientX, clientY;
@@ -604,8 +615,10 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         const collisionCheck = checkDragCollision(item, otherItems, item.position);
         if (collisionCheck.hasCollision) {
           const safeItem = moveToSafePosition(item, otherItems);
-          if (safeItem.position !== item.position) {
-            onUpdate(item.id, { position: safeItem.position });
+          // 방 경계 보정 추가
+          const constrained = constrainFurnitureToRoom(safeItem as PlacedItem);
+          if (constrained.position !== item.position) {
+            onUpdate(item.id, { position: constrained.position });
           }
         }
       }
@@ -613,16 +626,24 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
 
     // 드래그 종료 즉시 클릭 억제 플래그 해제
     suppressClickRef.current = false;
+
+    // 전역 단일 드래그 락 해제
+    try { useEditorStore.getState().endDraggingItem(item.id); } catch {}
   }, [isDragging, item, setDragging, placedItems, onUpdate]);
 
   // 🖱️ 마우스 이벤트 핸들러
   // 포인터 다운(마우스/터치 공통)
   const handlePointerDown = useCallback((event: any) => {
-    try { event.stopPropagation?.(); } catch {}
+    // 선택되지 않은 상태에서는 카메라 시점 이동/줌을 우선 허용
+    if (isSelected) {
+      try { event.stopPropagation?.(); } catch {}
+    }
     const isTouch = event.pointerType === 'touch' || !!event.touches;
     const isLeft = event.button === 0 || event.button === undefined;
 
     if (isTouch || isLeft) {
+      // 미선택 상태에서는 드래그 시작 금지 (클릭만 가능)
+      if (!isSelected) return;
       try {
         event.currentTarget?.setPointerCapture?.(event.pointerId);
       } catch (e) {
@@ -632,7 +653,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       // handleDragStart 직접 호출
       handleDragStart(event);
     }
-  }, [handleDragStart, item.id]);
+  }, [handleDragStart, isSelected, item.id]);
 
   const handlePointerMove = useCallback((event: any) => {
     if (isDragging) {
@@ -713,6 +734,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       const intersects = raycaster.current.intersectObject(meshRef.current, true);
 
       if (intersects.length > 0) {
+        // 선택되지 않은 상태에서는 카메라 조작을 우선하고 드래그를 시작하지 않음
+        if (!isSelected) return;
         // 카메라 컨트롤에 이벤트가 전달되어 시점이 움직이지 않도록 즉시 차단
         try { event.preventDefault(); } catch {}
         try { event.stopPropagation(); } catch {}
@@ -742,7 +765,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       // 캡처 단계 등록과 동일하게 캡처 단계에서 해제
       window.removeEventListener('pointerdown', handleDOMPointerDown, true);
     };
-  }, [isEditMode, item.isLocked, camera, gl, handleDragStart]);
+  }, [isEditMode, item.isLocked, isSelected, camera, gl, handleDragStart]);
 
   // 드래그 상태 변화 감지: 자동 재선택 로직 제거
   // - 드래그 종료 시 선택 처리는 handleDragEnd 또는 클릭 핸들러에서 수행
@@ -759,6 +782,12 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
       window.removeEventListener('mouseup', handlePointerUp as any);
       window.removeEventListener('touchmove', handlePointerMove as any);
       window.removeEventListener('touchend', handlePointerUp as any);
+
+      // 전역 단일 드래그 락 보정: 언마운트 시 내 락이면 해제
+      try {
+        const { draggingItemId, endDraggingItem } = useEditorStore.getState();
+        if (draggingItemId === item.id) endDraggingItem(item.id);
+      } catch {}
     };
   }, [handlePointerMove, handlePointerUp, handlePointerCancel]);
 
@@ -810,7 +839,7 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
           // 카탈로그에 없는 임시 에셋: PlacedItem.modelPath로 직접 로드 시도
           if (item.modelPath && (item.modelPath.startsWith('blob:') || item.modelPath.endsWith('.glb'))) {
             try {
-              const gltfModel = await loadModel(item.modelPath, { useCache: false, priority: 'normal' });
+              const gltfModel = await loadModel(item.modelPath, { useCache: true, priority: 'normal' });
               const adjustedModel = adjustModelToFootprint(gltfModel, item.footprint);
               setModel(adjustedModel);
               setIsLoading(false);
@@ -1048,25 +1077,22 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
           const materials = Array.isArray(child.material) ? child.material : [child.material];
           
           materials.forEach((material) => {
-            if (material.emissive) {
+            // emissive가 없는 머티리얼은 건드리지 않음 (원본 색상 보존)
+            if ((material as any).emissive) {
               if (isSelected) {
-                // 선택된 상태: 하이라이트 효과 적용
+                // 선택된 상태: 하이라이트 효과 적용 (원본 색 저장 후 미세 가산)
                 if (!originalEmissiveRef.current.has(material)) {
-                  // 원본 emissive 색상 저장
-                  originalEmissiveRef.current.set(material, material.emissive.clone());
+                  originalEmissiveRef.current.set(material, (material as any).emissive.clone());
                 }
-                material.emissive.setHex(0x444444);
+                (material as any).emissive.setHex(0x444444);
               } else {
-                // 선택 해제된 상태: 원본 색상으로 복원
+                // 선택 해제: 저장된 원본이 있으면 복원, 없으면 변경하지 않음
                 const originalEmissive = originalEmissiveRef.current.get(material);
                 if (originalEmissive) {
-                  material.emissive.copy(originalEmissive);
-                } else {
-                  // 원본 색상이 저장되지 않은 경우 검은색으로 설정
-                  material.emissive.setHex(0x000000);
+                  (material as any).emissive.copy(originalEmissive);
                 }
               }
-              }
+            }
             // 벽 페이드: 유니폼 값만 업데이트, 플래그는 그룹 대상으로 일괄 적용
           });
         }
@@ -1074,13 +1100,11 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
     }
   });
 
-  // 그룹 단위로 페이드 값/플래그 적용
+  // 그룹 단위로 페이드 플래그 적용 (유니폼은 벽에만 적용)
   useFrame(() => {
     if (item.mount?.type !== 'wall') return;
     if (!meshRef.current) return;
-    const side = item.mount.side;
     const fade = currentWallFade;
-    setWallFadeValue(side, fade);
     applyFadeFlagsToObject(meshRef.current, fade);
   });
 
@@ -1093,9 +1117,10 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         position={safePosition(item.position)}
         rotation={safeRotation(item.rotation)}
         scale={safeScale(item.scale)}
-        visible={item.mount?.type !== 'wall' ? true : currentWallFade > 0.02}
+        // 편집 모드에서는 벽 페이드와 무관하게 벽 부착 아이템을 항상 보이도록 유지
+        visible={item.mount?.type !== 'wall' ? true : (isEditMode ? true : currentWallFade > 0.02)}
       >
-        <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
+        <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]} userData={{ skipWallFade: true }}>
           <meshBasicMaterial color="#cccccc" transparent opacity={0.5} />
         </Box>
       </group>
@@ -1111,9 +1136,10 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         position={safePosition(item.position)}
         rotation={safeRotation(item.rotation)}
         scale={safeScale(item.scale)}
-        visible={item.mount?.type !== 'wall' ? true : currentWallFade > 0.02}
+        // 편집 모드에서는 벽 페이드와 무관하게 벽 부착 아이템을 항상 보이도록 유지
+        visible={item.mount?.type !== 'wall' ? true : (isEditMode ? true : currentWallFade > 0.02)}
       >
-        <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
+        <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]} userData={{ skipWallFade: true }}>
           <meshBasicMaterial color="#ff0000" transparent opacity={0.5} />
         </Box>
       </group>
@@ -1129,7 +1155,8 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         position={safePosition(item.position)}
         rotation={safeRotation(item.rotation)}
         scale={safeScale(item.scale)}
-        visible={item.mount?.type !== 'wall' ? true : currentWallFade > 0.02}
+        // 편집 모드에서는 벽 페이드와 무관하게 벽 부착 아이템을 항상 보이도록 유지
+        visible={item.mount?.type !== 'wall' ? true : (isEditMode ? true : currentWallFade > 0.02)}
         onClick={handleClick}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -1162,34 +1189,36 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
             <primitive
               object={model}
               onClick={(e: any) => { try { e.stopPropagation?.(); } catch {}; handleClick(e); }}
-              onPointerDown={(e: any) => { try { e.stopPropagation?.(); } catch {}; handlePointerDown(e); }}
-              onPointerMove={(e: any) => { try { e.stopPropagation?.(); } catch {}; handlePointerMove(e); }}
-              onPointerUp={(e: any) => { try { e.stopPropagation?.(); } catch {}; handlePointerUp(e); }}
-              onPointerCancel={(e: any) => { try { e.stopPropagation?.(); } catch {}; handlePointerCancel(e); }}
-              onPointerOver={(_e: any) => { /* e.stopPropagation() */ }}
-              onPointerOut={(_e: any) => { /* e.stopPropagation() */ }}
-              onWheel={(_e: any) => { /* e.stopPropagation() */ }}
+              onPointerDown={(e: any) => { handlePointerDown(e); }}
+              onPointerMove={(e: any) => { handlePointerMove(e); }}
+              onPointerUp={(e: any) => { handlePointerUp(e); }}
+              onPointerCancel={(e: any) => { handlePointerCancel(e); }}
+              onPointerOver={(_e: any) => { /* noop */ }}
+              onPointerOut={(_e: any) => { /* noop */ }}
+              onWheel={(_e: any) => { /* noop */ }}
             />
           </>
         )}
         
         {/* 폴백 모델이 없을 때 기본 박스 표시 */}
         {!model && !isLoading && !loadError && (
-          <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
+          <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]} userData={{ skipWallFade: true }}>
             <meshPhongMaterial color="#8B4513" />
           </Box>
         )}
 
         {/* 드래그/선택 히트박스 확장 - 조건부 활성화 */}
-        {isEditMode && !item.isLocked && (!isSelected || isDragging) && (
+        {isEditMode && !item.isLocked && (isSelected || isDragging) && (
           <Box
             args={[item.footprint.width + 0.6, item.footprint.height + 0.6, item.footprint.depth + 0.6]}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerCancel}
+            userData={{ skipWallFade: true }}
           >
-            <meshBasicMaterial transparent opacity={0} />
+            {/* 완전 투명 히트박스가 깊이 버퍼에 쓰여 모델을 가리지 않도록 설정 */}
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} depthTest={false} colorWrite={false} />
           </Box>
         )}
 
@@ -1198,20 +1227,29 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
           <>
             {/* 드래그 중 그림자 */}
             <Box args={[item.footprint.width, 0.01, item.footprint.depth]} position={[0, -0.01, 0]}>
-              <meshBasicMaterial color="#000000" transparent opacity={0.3} />
+              <meshBasicMaterial color="#000000" transparent opacity={0.18} depthWrite={false} depthTest={false} />
             </Box>
             {/* 드래그 중 하이라이트 - 충돌 시 빨간색, 정상 시 파란색 */}
             <Box args={[item.footprint.width + 0.2, item.footprint.height + 0.2, item.footprint.depth + 0.2]}>
-              <meshBasicMaterial 
-                color={isColliding ? "#ef4444" : "#3b82f6"} 
-                transparent 
-                opacity={0.4} 
+              <meshBasicMaterial
+                color={isColliding ? "#ef4444" : "#3b82f6"}
+                transparent
+                opacity={item.mount?.type === 'wall' ? 0.15 : 0.25}
+                depthWrite={false}
+                depthTest={false}
+                toneMapped={false}
               />
             </Box>
             {/* 충돌 시 추가 경고 표시 */}
             {isColliding && (
               <Box args={[item.footprint.width + 0.4, item.footprint.height + 0.4, item.footprint.depth + 0.4]}>
-                <meshBasicMaterial color="#ef4444" transparent opacity={0.2} />
+                <meshBasicMaterial 
+                  color="#ef4444" 
+                  transparent 
+                  opacity={item.mount?.type === 'wall' ? 0.08 : 0.18} 
+                  depthWrite={false} 
+                  depthTest={false} 
+                />
               </Box>
             )}
           </>
@@ -1220,7 +1258,14 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         {/* 호버 효과 */}
         {isHovered && !isDragging && (
           <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
-            <meshBasicMaterial color="#ffff00" transparent opacity={0.2} />
+            <meshBasicMaterial 
+              color="#ffff00" 
+              transparent 
+              opacity={item.mount?.type === 'wall' ? 0.08 : 0.18} 
+              depthWrite={false} 
+              depthTest={false} 
+              toneMapped={false} 
+            />
           </Box>
         )}
 
@@ -1228,16 +1273,29 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         {isSelected && (
           <Box
             args={[item.footprint.width + 0.1, item.footprint.height + 0.1, item.footprint.depth + 0.1]}
-            position={[0, item.footprint.height / 2, 0]}
           >
-            <meshBasicMaterial color="#3b82f6" transparent opacity={0.4} />
+            <meshBasicMaterial 
+              color="#3b82f6" 
+              transparent 
+              opacity={item.mount?.type === 'wall' ? 0.12 : 0.22} 
+              depthWrite={false} 
+              depthTest={false} 
+              toneMapped={false} 
+            />
           </Box>
         )}
 
         {/* 고정 표시기 */}
         {item.isLocked && (
           <Box args={[item.footprint.width + 0.2, item.footprint.height + 0.2, item.footprint.depth + 0.2]}>
-            <meshBasicMaterial color="#ffd700" transparent opacity={0.4} />
+            <meshBasicMaterial 
+              color="#ffd700" 
+              transparent 
+              opacity={item.mount?.type === 'wall' ? 0.12 : 0.22} 
+              depthWrite={false} 
+              depthTest={false} 
+              toneMapped={false} 
+            />
           </Box>
         )}
       </group>

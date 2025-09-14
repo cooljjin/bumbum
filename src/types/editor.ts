@@ -105,6 +105,7 @@ export interface EditorState {
 
   // UI 상태
   isDragging: boolean;
+  draggingItemId?: string | null; // 현재 드래그 중인 아이템 ID (단일 드래그 보장)
   showGrid: boolean;
   showBoundingBoxes: boolean;
 
@@ -175,6 +176,8 @@ export interface EditorActions {
 
   // UI 상태
   setDragging: (isDragging: boolean) => void;
+  beginDraggingItem: (id: string) => boolean; // 성공 시 true (락 획득)
+  endDraggingItem: (id: string) => void;      // 본인이면 해제
   toggleGrid: () => void;
   toggleBoundingBoxes: () => void;
 

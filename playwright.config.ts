@@ -5,7 +5,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!(process.env as any).CI,
   retries: (process.env as any).CI ? 2 : 0,
-  workers: (process.env as any).CI ? 1 : 4,
+  workers: 1, // isolated 모드를 위해 1개 워커로 제한
+  maxFailures: 1, // isolated 모드에서는 첫 번째 실패에서 중단
   timeout: (process.env as any).CI ? 30000 : 15000,
   expect: {
     timeout: 5000,

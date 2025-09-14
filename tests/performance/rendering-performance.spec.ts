@@ -21,15 +21,19 @@ test.describe('3D 렌더링 성능 테스트', () => {
     const fps = await page.evaluate(() => {
       return new Promise<number>((resolve) => {
         let frameCount = 0;
-        let lastTime = performance.now();
-        
+        const start = performance.now();
+
+        const fallback = setTimeout(() => {
+          resolve(frameCount);
+        }, 2000);
+
         function countFrames() {
           frameCount++;
-          const currentTime = performance.now();
+          const elapsed = performance.now() - start;
           
-          if (currentTime - lastTime >= 1000) { // 1초 후 측정
-            const fps = frameCount;
-            resolve(fps);
+          if (elapsed >= 1000) { // 1초 후 측정
+            clearTimeout(fallback);
+            resolve(frameCount);
             return;
           }
           
@@ -48,7 +52,9 @@ test.describe('3D 렌더링 성능 테스트', () => {
     const initialRenderTime = await page.evaluate(() => {
       return new Promise<number>((resolve) => {
         const start = performance.now();
+        const fallback = setTimeout(() => resolve(10_000), 2000);
         requestAnimationFrame(() => {
+          clearTimeout(fallback);
           const end = performance.now();
           resolve(end - start);
         });
@@ -63,7 +69,9 @@ test.describe('3D 렌더링 성능 테스트', () => {
     const afterAddRenderTime = await page.evaluate(() => {
       return new Promise<number>((resolve) => {
         const start = performance.now();
+        const fallback = setTimeout(() => resolve(10_000), 2000);
         requestAnimationFrame(() => {
+          clearTimeout(fallback);
           const end = performance.now();
           resolve(end - start);
         });
@@ -118,13 +126,15 @@ test.describe('3D 렌더링 성능 테스트', () => {
     const isSmooth = await page.evaluate(() => {
       return new Promise<boolean>((resolve) => {
         let frameCount = 0;
-        let lastTime = performance.now();
+        const start = performance.now();
+        const fallback = setTimeout(() => resolve(false), 2000);
         
         function checkSmoothness() {
           frameCount++;
-          const currentTime = performance.now();
+          const elapsed = performance.now() - start;
           
-          if (currentTime - lastTime >= 500) { // 0.5초 후 측정
+          if (elapsed >= 500) { // 0.5초 후 측정
+            clearTimeout(fallback);
             const fps = frameCount * 2; // 0.5초를 1초로 변환
             resolve(fps >= 25); // 25fps 이상이면 부드럽다고 판단
             return;
@@ -140,4 +150,3 @@ test.describe('3D 렌더링 성능 테스트', () => {
     expect(isSmooth).toBe(true);
   });
 });
-
