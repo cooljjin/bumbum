@@ -203,7 +203,7 @@ export const FurniturePerformanceMonitor: React.FC<FurniturePerformanceMonitorPr
   return (
     <div 
       ref={panelRef}
-      className={`fixed bg-black bg-opacity-75 text-white p-3 rounded-lg text-xs font-mono z-[9999] select-none ${
+      className={`fixed bg-black bg-opacity-75 text-white p-3 rounded-lg text-xs font-mono z-devtools select-none ${
         isDragging ? 'cursor-grabbing' : 'cursor-grab'
       }`}
       style={{

@@ -18,7 +18,7 @@ export default function DevNavbar({ active, className = '' }: Props) {
 
   return (
     <nav
-      className={`sticky top-0 z-50 w-full bg-white/90 backdrop-blur border-b border-gray-200 ${className}`}
+      className={`sticky top-0 z-hud w-full bg-white/90 backdrop-blur border-b border-gray-200 ${className}`}
       aria-label="Dev navigation"
     >
       <div className="max-w-6xl mx-auto px-4 py-2 flex items-center gap-2">
@@ -33,4 +33,3 @@ export default function DevNavbar({ active, className = '' }: Props) {
     </nav>
   );
 }
-

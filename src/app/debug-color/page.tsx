@@ -76,7 +76,7 @@ export default function DebugColorPage() {
   return (
     <div className="min-h-screen bg-gray-50 relative">
       {/* 상단 툴바 */}
-      <div className="absolute top-4 left-4 z-50">
+      <div className="absolute top-4 left-4 z-hud">
         <EditToolbar
           onToggleFurnitureCatalog={handleToggleFurnitureCatalog}
           showFurnitureCatalog={showFurnitureCatalog}

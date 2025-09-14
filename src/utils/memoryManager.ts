@@ -209,18 +209,31 @@ class MemoryManager {
   private clearWebGLResources(): void {
     if (typeof document === 'undefined') return;
     
-    // WebGL 컨텍스트가 있는지 확인
-    const canvas = document.querySelector('canvas');
-    if (!canvas) return;
-
-    const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
-    if (!gl) return;
-
-    // WebGL 리소스 정리
-    const ext = gl.getExtension('WEBGL_lose_context');
-    if (ext) {
-      // 컨텍스트 손실 (필요시에만)
-      // ext.loseContext();
+    try {
+      // 모든 canvas 요소를 확인
+      const canvases = document.querySelectorAll('canvas');
+      
+      for (const canvas of canvases) {
+        try {
+          // 이미 WebGL 컨텍스트가 있는지 확인
+          const existingContext = canvas.getContext('webgl') || canvas.getContext('webgl2');
+          
+          if (existingContext && (existingContext instanceof WebGLRenderingContext || existingContext instanceof WebGL2RenderingContext)) {
+            // WebGL 리소스 정리
+            const ext = existingContext.getExtension('WEBGL_lose_context');
+            if (ext) {
+              // 컨텍스트 손실 (필요시에만)
+              // ext.loseContext();
+            }
+          }
+        } catch (canvasError) {
+          // 개별 canvas 처리 오류는 무시
+          console.warn('Canvas WebGL 정리 중 오류 (무시됨):', canvasError);
+        }
+      }
+    } catch (error) {
+      // 전체 WebGL 리소스 정리 오류는 로그만 출력
+      console.warn('WebGL 리소스 정리 중 오류 (무시됨):', error);
     }
   }
 

@@ -70,7 +70,7 @@ export default function RoomSizeSettings({
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal"
       onClick={onClose}
     >
       <motion.div

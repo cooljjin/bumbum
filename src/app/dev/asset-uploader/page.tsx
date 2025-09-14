@@ -2,9 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Vector3, Euler } from 'three';
 import { useEditorStore } from '@/store/editorStore';
-import type { PlacedItem } from '@/types/editor';
 import { saveCustomFurniture, getCustomFurnitureById } from '@/utils/customLibrary';
 import { createPlacedItemFromFurniture } from '@/data/furnitureCatalog';
 import DevNavbar from '@/components/dev/DevNavbar';
@@ -26,7 +24,7 @@ export default function AssetUploaderPage() {
   const addItem = useEditorStore(s => s.addItem);
 
   // 개발자 전용 게이트
-  const devEnabled = process.env.NEXT_PUBLIC_DEV_TOOLS === '1' || process.env.NEXT_PUBLIC_DEV_TOOLS === 'true';
+  const devEnabled = process.env['NEXT_PUBLIC_DEV_TOOLS'] === '1' || process.env['NEXT_PUBLIC_DEV_TOOLS'] === 'true';
 
   const [name, setName] = React.useState('');
   const [glbFile, setGlbFile] = React.useState<File | null>(null);
@@ -85,10 +83,10 @@ export default function AssetUploaderPage() {
       const id = await saveCustomFurniture({
         name: name.trim(),
         modelBlob: glbFile!,
-        thumbnailBlob: thumbFile || undefined,
+        thumbnailBlob: thumbFile || null,
         footprint: { width, depth, height },
         wallMounted: isWall || isDoor,
-        wallHeight: (isDoor ? 0 : undefined) ?? (isWall ? wallH : undefined),
+        ...(isWall || isDoor ? { wallHeight: isDoor ? 0 : wallH } : {}),
         isDoor,
         category,
         tags: tagsInput.split(',').map(s=>s.trim()).filter(Boolean)

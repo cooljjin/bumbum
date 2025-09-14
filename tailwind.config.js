@@ -8,6 +8,14 @@ module.exports = {
   ],
   theme: {
     extend: {
+      zIndex: {
+        'devtools': '5',
+        'hud': '10',
+        'floating': '20',
+        'sheet': '80',
+        'overlay': '90',
+        'modal': '100',
+      },
       fontFamily: {
         'kr': ['Noto Sans KR', 'Inter', 'sans-serif'],
       },

@@ -37,7 +37,7 @@ export function BaseModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-overlay"
             onClick={onClose}
           />
 
@@ -47,7 +47,7 @@ export function BaseModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${sizeClasses[size]} w-full mx-4 bg-white rounded-xl shadow-2xl z-50 max-h-[90vh] overflow-y-auto`}
+            className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${sizeClasses[size]} w-full mx-4 bg-white rounded-xl shadow-2xl z-modal max-h-[90vh] overflow-y-auto`}
           >
             {/* Header */}
             {(title || showCloseButton) && (

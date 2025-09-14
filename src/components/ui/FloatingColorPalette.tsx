@@ -87,7 +87,7 @@ export const FloatingColorPalette: React.FC<FloatingColorPaletteProps> = ({
   return (
     <motion.div
       ref={paletteRef}
-      className={`fixed z-50 ${className}`}
+      className={`fixed z-floating ${className}`}
       style={{
         x: position.x,
         y: position.y,

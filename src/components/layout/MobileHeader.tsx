@@ -42,7 +42,7 @@ export function MobileHeader({
   return (
     <motion.header
       data-occlude-floating="mobile-header"
-      className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-b border-gray-200/50 z-50"
+      className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-b border-gray-200/50 z-hud"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}

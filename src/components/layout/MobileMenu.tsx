@@ -54,7 +54,7 @@ export function MobileMenu({
         <>
           {/* 배경 오버레이 */}
           <motion.div
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/50 z-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -63,7 +63,7 @@ export function MobileMenu({
 
           {/* 메뉴 패널 */}
           <motion.div
-            className="fixed top-0 left-0 right-0 bg-white z-50 shadow-lg"
+            className="fixed top-0 left-0 right-0 bg-white z-modal shadow-lg"
             initial={{ y: -300 }}
             animate={{ y: 0 }}
             exit={{ y: -300 }}

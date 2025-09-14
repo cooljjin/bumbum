@@ -100,7 +100,7 @@ export const EditModeTransition: React.FC<EditModeTransitionProps> = ({
     const currentTool = toolInfo[tool as keyof typeof toolInfo];
 
     return (
-      <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
+      <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-hud animate-fade-in">
         <div className={`px-6 py-4 rounded-xl shadow-xl border-2 ${getToolTheme()} max-w-md`}>
           <div className="flex items-center gap-3 mb-2">
             <span className="text-2xl">{currentTool.icon}</span>
@@ -128,7 +128,7 @@ export const EditModeTransition: React.FC<EditModeTransitionProps> = ({
     if (!isTransitioning) return null;
 
     return (
-      <div className="fixed inset-0 z-40 pointer-events-none">
+      <div className="fixed inset-0 z-overlay pointer-events-none">
         <div 
           className={`w-full h-full bg-gradient-to-br ${getBackgroundGradient()} opacity-50`}
           style={{
@@ -175,7 +175,7 @@ export const EditModeTransition: React.FC<EditModeTransitionProps> = ({
       </div>
       
       {/* 모드 표시기 */}
-      <div className="fixed top-4 left-4 z-30">
+      <div className="fixed top-4 left-4 z-35">
         <div className={`px-3 py-2 rounded-lg shadow-lg border-2 ${getToolTheme()} transition-all duration-300`}>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-700">

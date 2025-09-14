@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { useOverlayRoot } from './shared/OverlayRoot';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
@@ -138,6 +140,7 @@ function BottomSheetCatalog({
   children: React.ReactNode;
 }) {
   const sheetRef = useRef<HTMLDivElement | null>(null);
+  const overlayRoot = useOverlayRoot();
   const [heightPx, setHeightPx] = useState(0);
   const snaps = [0.25, 0.66, 1.0];
 
@@ -181,11 +184,11 @@ function BottomSheetCatalog({
 
   if (!isOpen) return null;
 
-  return (
+  const sheet = (
     <div
       data-occlude-floating="bottom-sheet"
       ref={sheetRef}
-      className="fixed left-0 right-0 bottom-0 w-full bg-white border-t shadow-2xl z-[9999] flex flex-col furniture-library-container"
+      className="fixed left-0 right-0 bottom-0 w-full bg-white border-t shadow-2xl z-sheet flex flex-col furniture-library-container"
       style={{
         height: `${heightPx}px`,
         paddingBottom: 'env(safe-area-inset-bottom)'
@@ -206,6 +209,12 @@ function BottomSheetCatalog({
       </div>
     </div>
   );
+
+  // 오버레이 루트로 포털 렌더링 (fallback: body)
+  if (typeof document !== 'undefined') {
+    return createPortal(sheet, overlayRoot ?? document.body);
+  }
+  return sheet;
 }
 
 const Real3DRoomComponent = React.memo(({
@@ -1220,7 +1229,7 @@ const Real3DRoomComponent = React.memo(({
       {/* 전환 중 입력 락 오버레이 */}
       {isTransitionInputLocked && (
         <div
-          className="absolute inset-0 z-[9999]"
+          className="absolute inset-0 z-overlay"
           style={{ cursor: 'wait' }}
           onWheel={(e) => { e.preventDefault(); /* e.stopPropagation(); */ }}
           onPointerDown={(e) => { e.preventDefault(); /* e.stopPropagation(); */ }}
@@ -1234,7 +1243,7 @@ const Real3DRoomComponent = React.memo(({
 
       {/* 가구 드래그 중 시각적 피드백 */}
       {isDragging && (
-        <div className="absolute top-4 left-4 z-[9999] bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+        <div className="absolute top-4 left-4 z-hud bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
           <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
           <span className="text-sm font-medium">가구 이동 중 - 시점 고정됨</span>
         </div>
@@ -1256,7 +1265,7 @@ const Real3DRoomComponent = React.memo(({
               // console.log('모든 객체가 삭제되었습니다.');
             }
           }}
-          className="absolute bottom-4 right-4 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-2xl hover:from-red-700 hover:to-red-800 hover:scale-105 border-2 border-red-800 z-[9999] flex items-center gap-2"
+          className="absolute bottom-4 right-4 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-2xl hover:from-red-700 hover:to-red-800 hover:scale-105 border-2 border-red-800 z-hud flex items-center gap-2"
         >
           <span className="text-lg">🗑️</span>
           <span>모든 객체 삭제 ({placedItems.length}개)</span>
@@ -1328,7 +1337,7 @@ const Real3DRoomComponent = React.memo(({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             onClick={handleFurniturePlaced}
-            className="fixed top-4 right-4 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-2xl hover:from-green-700 hover:to-green-800 hover:scale-105 border-2 border-green-800 z-[99999] flex items-center gap-2"
+            className="fixed top-4 right-4 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-2xl hover:from-green-700 hover:to-green-800 hover:scale-105 border-2 border-green-800 z-hud flex items-center gap-2"
           >
             <span className="text-lg">✅</span>
             <span>배치 완료</span>
@@ -1372,7 +1381,7 @@ const Real3DRoomComponent = React.memo(({
 
       {/* 템플릿 적용 중 로딩 오버레이 */}
       {isApplyingTemplate && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-overlay">
           <div className="bg-white rounded-lg p-6 flex items-center gap-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
             <div>
@@ -1420,7 +1429,7 @@ const Real3DRoomComponent = React.memo(({
               background: 'red',
               borderRadius: 9999,
               transform: 'translate(-50%, -50%)',
-              zIndex: 99999
+              zIndex: 20
             }}
           />
           {(() => {
@@ -1447,7 +1456,7 @@ const Real3DRoomComponent = React.memo(({
               <div
                 style={{
                   ...posStyle,
-                  zIndex: 99999,
+                  zIndex: 20,
                   background: 'rgba(0,0,0,0.6)',
                   color: 'white',
                   padding: '8px 10px',
@@ -1500,7 +1509,7 @@ const Real3DRoomComponent = React.memo(({
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            zIndex: 9999,
+            zIndex: 20,
             background: 'red',
             color: 'white',
             padding: '10px',

@@ -176,7 +176,7 @@ export const EnhancedDragDrop: React.FC<EnhancedDragDropProps> = ({
     return (
       <div
         ref={dragPreviewRef}
-        className="fixed pointer-events-none z-50 transition-transform duration-100"
+        className="fixed pointer-events-none z-hud transition-transform duration-100"
         style={{
           left: 0,
           top: 0
@@ -237,7 +237,7 @@ export const EnhancedDragDrop: React.FC<EnhancedDragDropProps> = ({
 
     return (
       <svg
-        className="absolute inset-0 w-full h-full pointer-events-none z-40"
+        className="absolute inset-0 w-full h-full pointer-events-none z-overlay"
         style={{ left: 0, top: 0 }}
       >
         {/* 시작점 표시 */}
@@ -293,7 +293,7 @@ export const EnhancedDragDrop: React.FC<EnhancedDragDropProps> = ({
       
       {/* 드래그 상태 표시 */}
       {dragState.isDragging && (
-        <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg z-50">
+        <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg z-hud">
           <div className="flex items-center gap-2">
             <span className="text-sm">🚀</span>
             <span className="text-sm font-medium">

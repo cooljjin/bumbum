@@ -14,6 +14,8 @@ import { useColorChanger } from '../../../hooks/useColorChanger';
 import { useFurnitureOptimization, useMemoryOptimization } from '../../../hooks/useFurnitureOptimization';
 import { memoryManager } from '../../../utils/memoryManager';
 import * as THREE from 'three';
+import { useScreenAnchor } from '../../../hooks/useScreenAnchor';
+import { FloatingLayerFUI } from '../../shared/FloatingLayerFUI';
 
 /**
  * 모델을 footprint 크기에 맞게 조정하는 함수
@@ -103,13 +105,13 @@ const EditableFurnitureComponent: React.FC<EditableFurnitureProps> = ({
       if (memoryManager.isMemoryHigh()) {
         console.warn('🚨 메모리 압박 감지 - 가구 모델 정리 시작');
         // 불필요한 3D 리소스 정리
-        if (groupRef.current) {
-          groupRef.current.traverse((child) => {
+        if (meshRef.current) {
+          meshRef.current.traverse((child: any) => {
             if (child instanceof THREE.Mesh) {
               if (child.geometry) child.geometry.dispose();
               if (child.material) {
                 if (Array.isArray(child.material)) {
-                  child.material.forEach(mat => mat.dispose());
+                  child.material.forEach((mat: any) => mat.dispose());
                 } else {
                   child.material.dispose();
                 }
@@ -1012,54 +1014,68 @@ const EditableFurnitureComponent: React.FC<EditableFurnitureProps> = ({
         />
       )}
 
-      {/* 색상 변경 UI - 선택된 상태에서만 표시 */}
+      {/* 색상 변경 UI - 선택된 상태에서만 표시 (DOM 포털 + Floating UI) */}
       {isSelected && isEditMode && (
-        <Html>
-          <div className={`absolute top-4 left-4 bg-white rounded-lg shadow-lg z-50 transition-all duration-300 ${
-            isColorPanelExpanded ? 'p-4 min-w-[200px]' : 'p-2 min-w-[40px]'
-          }`}>
-            {/* 색상 패널 헤더 - 접기/펼치기 버튼 */}
-            <button
-              onClick={toggleColorPanel}
-              className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-all duration-200 w-full"
-              title={isColorPanelExpanded ? '색상 패널 접기' : '색상 패널 펼치기'}
-            >
-              <span className="text-base">🎨</span>
-              {isColorPanelExpanded && (
-                <span className="transition-all duration-200">색상 변경</span>
-              )}
-              <span className={`text-xs transition-transform duration-200 ${isColorPanelExpanded ? 'rotate-0' : 'rotate-180'}`}>
-                ▼
-              </span>
-            </button>
-            
-            {/* 색상 선택 영역 - 접기/펼치기 상태에 따라 표시 */}
-            <div className={`overflow-hidden transition-all duration-300 ${isColorPanelExpanded ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {predefinedColors.map((colorOption) => (
+        (() => {
+          const anchor = useScreenAnchor(() => {
+            if (!meshRef.current) return null;
+            const wp = new THREE.Vector3();
+            meshRef.current.getWorldPosition(wp);
+            // 패널을 모델 상단 근처에 배치
+            const h = item.footprint?.height || 0;
+            wp.y += h + 0.5;
+            return wp;
+          });
+          if (!anchor) return null;
+          return (
+            <FloatingLayerFUI anchor={anchor} placement="top" offset={12} zClass="z-floating">
+              <div className={`bg-white rounded-lg shadow-lg transition-all duration-300 ${
+                isColorPanelExpanded ? 'p-4 min-w-[200px]' : 'p-2 min-w-[40px]'
+              }`}>
+                {/* 색상 패널 헤더 - 접기/펼치기 버튼 */}
+                <button
+                  onClick={toggleColorPanel}
+                  className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-all duration-200 w-full"
+                  title={isColorPanelExpanded ? '색상 패널 접기' : '색상 패널 펼치기'}
+                >
+                  <span className="text-base">🎨</span>
+                  {isColorPanelExpanded && (
+                    <span className="transition-all duration-200">색상 변경</span>
+                  )}
+                  <span className={`text-xs transition-transform duration-200 ${isColorPanelExpanded ? 'rotate-0' : 'rotate-180'}`}>
+                    ▼
+                  </span>
+                </button>
+                
+                {/* 색상 선택 영역 - 접기/펼치기 상태에 따라 표시 */}
+                <div className={`overflow-hidden transition-all duration-300 ${isColorPanelExpanded ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {predefinedColors.map((colorOption) => (
+                      <button
+                        key={colorOption.color}
+                        onClick={() => handleColorChange(colorOption.color)}
+                        className={`w-8 h-8 rounded border-2 transition-all duration-200 ${
+                          currentColor === colorOption.color ? 'border-blue-500 scale-110' : 'border-gray-300 hover:scale-105'
+                        }`}
+                        style={{ backgroundColor: colorOption.color }}
+                        title={colorOption.name}
+                      />
+                    ))}
+                  </div>
                   <button
-                    key={colorOption.color}
-                    onClick={() => handleColorChange(colorOption.color)}
-                    className={`w-8 h-8 rounded border-2 transition-all duration-200 ${
-                      currentColor === colorOption.color ? 'border-blue-500 scale-110' : 'border-gray-300 hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: colorOption.color }}
-                    title={colorOption.name}
-                  />
-                ))}
+                    onClick={() => {
+                      handleColorReset();
+                      handleModelColorReset();
+                    }}
+                    className="text-xs text-gray-600 hover:text-gray-800 transition-colors duration-200"
+                  >
+                    🔄 원본으로 복원
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  handleColorReset();
-                  handleModelColorReset();
-                }}
-                className="text-xs text-gray-600 hover:text-gray-800 transition-colors duration-200"
-              >
-                🔄 원본으로 복원
-              </button>
-            </div>
-          </div>
-        </Html>
+            </FloatingLayerFUI>
+          );
+        })()
       )}
     </>
   );

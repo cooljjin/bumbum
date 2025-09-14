@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { FloatingLayerFUI } from '../../shared/FloatingLayerFUI';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiRotateCcw,
@@ -74,13 +74,16 @@ export const FurnitureFloatingControls: React.FC<FurnitureFloatingControlsProps>
     const margin = isMobile() ? Math.max(safeArea.left, safeArea.right, 20) : 16;
     const offsetY = isMobile() ? 30 : 20; // 세로 간격
     const offsetX = isMobile() ? 12 : 10; // 가로 간격
+    
+    // 편집모드 UI와의 겹침 방지를 위한 추가 여백
+    const editModeOffset = 120; // 편집모드 UI 높이 고려
 
     let x = position.x;
 
     // 경계 및 가용공간
     const leftBound = margin + occlude.left;
     const rightBound = window.innerWidth - margin - occlude.right;
-    const topBound = safeArea.top + occlude.top + margin;
+    const topBound = safeArea.top + occlude.top + margin + editModeOffset; // 편집모드 UI 여백 추가
     const bottomBound = window.innerHeight - safeArea.bottom - occlude.bottom - margin;
     const availableWidth = Math.max(0, rightBound - leftBound);
     const availableHeight = Math.max(0, bottomBound - topBound);
@@ -192,9 +195,10 @@ export const FurnitureFloatingControls: React.FC<FurnitureFloatingControlsProps>
       const safe = getSafeTouchArea();
       const occ = getUIOcclusionInsets();
       const margin = isMobile() ? Math.max(safe.left, safe.right, 20) : 16;
+      const editModeOffset = 120; // 편집모드 UI 높이 고려
       const leftBound = margin + occ.left;
       const rightBound = vw - margin - occ.right;
-      const topBound = safe.top + occ.top + margin;
+      const topBound = safe.top + occ.top + margin + editModeOffset; // 편집모드 UI 여백 추가
       const bottomBound = vh - safe.bottom - occ.bottom - margin;
 
       let dx = 0;
@@ -227,18 +231,15 @@ export const FurnitureFloatingControls: React.FC<FurnitureFloatingControlsProps>
   }, [constrainedPosition.x, constrainedPosition.y, panelSize.width, panelSize.height]);
 
   const panel = (
-    <div
-      data-floating-controls="true"
-      className="fixed z-[99999] pointer-events-auto"
-      style={{
-        left: correctedPos?.x ?? constrainedPosition.x,
-        top: correctedPos?.y ?? constrainedPosition.y,
-        transform:
-          constrainedPosition.placement === 'above' ? 'translate(-50%, -100%)' :
-          constrainedPosition.placement === 'below' ? 'translate(-50%, 0)' :
-          constrainedPosition.placement === 'left' ? 'translate(-100%, -50%)' :
-          'translate(0, -50%)' // right
-      }}
+    <FloatingLayerFUI
+      anchor={{ x: correctedPos?.x ?? constrainedPosition.x, y: correctedPos?.y ?? constrainedPosition.y }}
+      placement={
+        constrainedPosition.placement === 'above' ? 'top' :
+        constrainedPosition.placement === 'below' ? 'bottom' :
+        constrainedPosition.placement === 'left' ? 'left' : 'right'
+      }
+      offset={10}
+      zClass="z-floating"
     >
       <AnimatePresence>
         <motion.div
@@ -323,13 +324,9 @@ export const FurnitureFloatingControls: React.FC<FurnitureFloatingControlsProps>
           )}
         </motion.div>
       </AnimatePresence>
-    </div>
+    </FloatingLayerFUI>
   );
 
-  // transform이 적용된 조상 요소의 영향을 피하기 위해 Portal로 body에 렌더링
-  if (typeof document !== 'undefined' && document.body) {
-    return createPortal(panel, document.body);
-  }
   return panel;
 };
 

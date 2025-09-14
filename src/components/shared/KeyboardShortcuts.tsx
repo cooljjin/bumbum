@@ -114,7 +114,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = ({
     if (!showShortcutHint) return null;
 
     return (
-      <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50">
+      <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-hud">
         <div className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg animate-fade-in">
           <span className="text-sm font-medium">{showShortcutHint}</span>
         </div>
@@ -127,7 +127,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = ({
     if (!lastAction) return null;
 
     return (
-      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
+      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-hud">
         <div className="bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg opacity-80">
           <span className="text-sm">{lastAction}</span>
         </div>

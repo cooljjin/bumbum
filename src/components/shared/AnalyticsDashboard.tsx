@@ -231,7 +231,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-modal">
         <motion.div
           className={`bg-white rounded-2xl shadow-2xl overflow-hidden ${
             isMobile ? 'w-full max-h-[90vh]' : 'w-full max-w-4xl max-h-[80vh]'

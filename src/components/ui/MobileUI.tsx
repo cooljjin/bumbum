@@ -134,7 +134,7 @@ export const MobileUI: React.FC<MobileUIProps> = ({
         {showToolPanel && (
           <motion.div
             data-occlude-floating="mobile-tool-panel"
-            className="fixed bottom-24 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 z-35 overflow-hidden max-w-[calc(100vw-2rem)]"
+            className="fixed bottom-24 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 z-45 overflow-hidden max-w-[calc(100vw-2rem)]"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}

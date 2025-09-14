@@ -162,7 +162,7 @@ export const AccessibilityProvider: React.FC<AccessibilityProviderProps> = ({ ch
       {/* 스킵 링크 */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded z-50"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded z-hud"
       >
         메인 콘텐츠로 건너뛰기
       </a>
@@ -243,7 +243,7 @@ export const AccessibleModal: React.FC<AccessibleModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-overlay"
     >
       <div
         id="modal-content"

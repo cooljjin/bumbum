@@ -1,12 +1,16 @@
 import React, { useRef, useEffect } from 'react';
 
-import { TransformControls, Box, Html } from '@react-three/drei';
+import { TransformControls, Box } from '@react-three/drei';
 import { Vector3, Euler, Group } from 'three';
 import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
 import { constrainFurnitureToRoom, isFurnitureInRoom } from '../../../utils/roomBoundary';
-import { getMobileHtmlStyle, getMobileDistanceFactor, getMobileZIndexRange } from '../../../utils/mobileHtmlConstraints';
+import { getMobileHtmlStyle } from '../../../utils/mobileHtmlConstraints';
+import * as THREE from 'three';
+import { useScreenAnchor } from '../../../hooks/useScreenAnchor';
+import { FloatingLayerFUI } from '../../shared/FloatingLayerFUI';
+import { useViewportClamp } from '../../../hooks/useViewportClamp';
 
 interface EditableRoomFurnitureProps {
   item: PlacedItem;
@@ -188,6 +192,16 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
     return categoryMap[category] || category;
   };
 
+  // Overlay clamp for mobile: keep label inside viewport
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const { style: overlayClampStyle } = useViewportClamp(overlayRef, {
+    margin: 12,
+    includeSafeAreas: true,
+    includeOcclusions: true,
+    enabled: true,
+  });
+  const overlayStyle = { ...getMobileHtmlStyle(200), ...overlayClampStyle } as React.CSSProperties;
+
   return (
     <group
       ref={groupRef}
@@ -203,15 +217,19 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
       {renderBoundingBox()}
 
       {/* 가구 정보 오버레이 - 편집모드에서만 표시 */}
-      {mode === 'edit' && (
-        <Html
-          position={[0, (item.footprint?.height || 0) + 0.5, 0]}
-          center
-          distanceFactor={getMobileDistanceFactor(8)}
-          zIndexRange={getMobileZIndexRange([100, 0])}
-          style={getMobileHtmlStyle(200)}
-        >
-          <div className={`
+      {mode === 'edit' && (() => {
+        const anchor = useScreenAnchor(() => {
+          if (!groupRef.current) return null;
+          const wp = new THREE.Vector3();
+          groupRef.current.getWorldPosition(wp);
+          const h = item.footprint?.height || 0;
+          wp.y += h + 0.5;
+          return wp;
+        });
+        if (!anchor) return null;
+        return (
+          <FloatingLayerFUI anchor={anchor} placement="top" offset={10} zClass="z-floating">
+            <div ref={overlayRef} style={overlayStyle} className={`
             px-3 py-2 rounded-lg font-medium text-sm shadow-lg border-2
             ${isSelected
               ? 'bg-blue-600 text-white border-blue-700'
@@ -222,19 +240,20 @@ export const EditableRoomFurniture: React.FC<EditableRoomFurnitureProps> = ({
             break-words
             mobile-text-constraint
           `}>
-            <div className="text-center">
-              <div className="font-bold">
-                {getFurnitureName(item.name)}
-              </div>
-              {item.metadata?.category && (
-                <div className="text-xs opacity-80">
-                  {getCategoryName(item.metadata.category)}
+              <div className="text-center">
+                <div className="font-bold">
+                  {getFurnitureName(item.name)}
                 </div>
-              )}
+                {item.metadata?.category && (
+                  <div className="text-xs opacity-80">
+                    {getCategoryName(item.metadata.category)}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </Html>
-      )}
+          </FloatingLayerFUI>
+        );
+      })()}
 
       {/* TransformControls */}
       {isSelected && mode === 'edit' && (

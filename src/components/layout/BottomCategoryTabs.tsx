@@ -60,7 +60,7 @@ export default function BottomCategoryTabs({
 
   return (
     <motion.div
-      className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50"
+      className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-hud"
       initial={{ y: 100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}

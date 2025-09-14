@@ -1,14 +1,9 @@
 import React from 'react';
-import { Html } from '@react-three/drei';
 import { Vector3 } from 'three';
-import {
-  getMobileHtmlStyle,
-  getMobileDistanceFactor,
-  getMobileZIndexRange,
-  constrainHtmlPosition,
-  getOptimalFloatingSize,
-  isMobile
-} from '../../utils/mobileHtmlConstraints';
+import * as THREE from 'three';
+import { useScreenAnchor } from '../../hooks/useScreenAnchor';
+import { FloatingLayerFUI } from './FloatingLayerFUI';
+import { getMobileHtmlStyle, getOptimalFloatingSize, isMobile } from '../../utils/mobileHtmlConstraints';
 
 interface FloatingControlsProps {
   position: Vector3;
@@ -40,18 +35,14 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
   const elementWidth = optimalSize.width;
   const elementHeight = optimalSize.height;
 
-  // 모바일에서 위치 제약 적용
-  const basePosition: [number, number, number] = [position.x, position.y + 1.5, position.z];
-  const constrainedPosition = constrainHtmlPosition(basePosition, elementWidth, elementHeight);
+  // 3D 세계 좌표를 화면 좌표로 투영하여 포털 플로팅으로 렌더링
+  const anchor = useScreenAnchor(() => {
+    const wp = new THREE.Vector3(position.x, position.y + 1.5, position.z);
+    return wp;
+  });
 
   return (
-    <Html
-      position={constrainedPosition}
-      center
-      distanceFactor={getMobileDistanceFactor(8)}
-      zIndexRange={getMobileZIndexRange([200, 0])}
-      style={getMobileHtmlStyle(elementWidth)}
-    >
+    <FloatingLayerFUI anchor={anchor} placement="top" offset={10} zClass="z-floating">
       <div
         className={`bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200 p-3 flex items-center gap-2 flex-wrap mobile-floating-ui ${
           isMobile() ? 'max-w-full overflow-x-auto' : ''
@@ -215,7 +206,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
           </svg>
         </button>
       </div>
-    </Html>
+    </FloatingLayerFUI>
   );
 };
 
