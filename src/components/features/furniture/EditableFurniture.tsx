@@ -1,16 +1,17 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
 
 import { TransformControls, Box, Html, useGLTF, Edges } from '@react-three/drei';
 import { Vector3, Euler, Group } from 'three';
 import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
-import { createFallbackModel, createFurnitureModel, loadModel, adjustModelToFootprint } from '../../../utils/modelLoader';
+import { createFallbackModel } from '../../../utils/modelLoader';
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
-import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
+import { safePosition } from '../../../utils/safePosition';
 // import MobileTouchHandler from '../ui/MobileTouchHandler';
 import { constrainFurnitureToRoom, isFurnitureInRoom } from '../../../utils/roomBoundary';
 import { FurnitureColorChanger } from '../../../utils/colorChanger';
 import { useColorChanger } from '../../../hooks/useColorChanger';
+import { useFurnitureOptimization, useMemoryOptimization } from '../../../hooks/useFurnitureOptimization';
 import * as THREE from 'three';
 
 /**
@@ -21,11 +22,9 @@ const adjustModelToFootprint = (model: THREE.Group, footprint: { width: number; 
   // 모델의 바운딩 박스 계산
   const box = new THREE.Box3().setFromObject(model);
   const size = box.getSize(new THREE.Vector3());
-  const center = box.getCenter(new THREE.Vector3());
   
   // console.log(`📐 원본 모델 크기: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`);
   // console.log(`📏 목표 footprint: ${footprint.width} x ${footprint.height} x ${footprint.depth}`);
-  // console.log(`🎯 원본 모델 중심점: (${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)})`);
   
   // 스케일 비율 계산 (각 축별로 정확히 맞춤)
   const scaleX = footprint.width / size.x;
@@ -69,7 +68,7 @@ interface EditableFurnitureProps {
   onDelete: (id: string) => void;
 }
 
-export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
+const EditableFurnitureComponent: React.FC<EditableFurnitureProps> = ({
   item,
   isSelected,
   isEditMode,
@@ -90,9 +89,12 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
   const [isHovered, setIsHovered] = useState(false);
 
   // useGLTF 훅으로 직접 모델 로드
-  const furniture = getFurnitureFromPlacedItem(item);
+  const furniture = useMemo(() => getFurnitureFromPlacedItem(item), [item.id, item.name]);
   const gltf = furniture?.modelPath ? useGLTF(furniture.modelPath, true) : null; // draco 옵션 활성화
-  const lastUpdateTime = useRef<number>(0);
+  
+  // 성능 최적화 훅
+  const { shouldUpdate, vectorsEqual, eulersEqual } = useFurnitureOptimization();
+  const { addCleanup, cleanupOnUnmount } = useMemoryOptimization();
 
   // 색상 변경 기능
   const {
@@ -133,10 +135,10 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, [isSelected, isEditMode, item.isLocked]);
 
-  // 터치 변환 핸들러
-  const handleTouchTransform = useCallback((position: Vector3, rotation: Euler, scale: Vector3) => {
-    onUpdate(item.id, { position, rotation, scale });
-  }, [item.id, onUpdate]);
+  // 터치 변환 핸들러 (현재 사용하지 않음)
+  // const handleTouchTransform = useCallback((position: Vector3, rotation: Euler, scale: Vector3) => {
+  //   onUpdate(item.id, { position, rotation, scale });
+  // }, [item.id, onUpdate]);
 
   // 색상 변경 핸들러 (모델에 적용)
   const handleModelColorChange = useCallback((color: string) => {
@@ -353,6 +355,9 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
   const handleTransformChange = React.useCallback(() => {
     if (!meshRef.current || !transformControlsRef.current) return;
 
+    // 성능 최적화: 프레임 기반 스로틀링
+    if (!shouldUpdate()) return;
+
     // 단일 드래그 락: 내가 소유한 드래그만 처리
     try {
       const { draggingItemId } = useEditorStore.getState();
@@ -360,11 +365,6 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
         return;
       }
     } catch {}
-
-    const now = Date.now();
-    // 최소 16ms (약 60fps) 간격으로 업데이트 제한
-    if (now - lastUpdateTime.current < 16) return;
-    lastUpdateTime.current = now;
     
     // TransformControls 사용 중에는 호버 효과 제거
     setIsHovered(false);
@@ -413,16 +413,11 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
       const itemRotation = new Euler(item.rotation.x, item.rotation.y, item.rotation.z);
       const itemScale = new Vector3(item.scale.x, item.scale.y, item.scale.z);
 
-      // 값이 실제로 변경된 경우에만 업데이트 (약간의 오차 허용)
+      // 성능 최적화: 최적화된 벡터 비교 함수 사용
       const TOLERANCE = 0.001;
-      const positionChanged = !currentPosition.equals(itemPosition) &&
-        Math.abs(currentPosition.distanceTo(itemPosition)) > TOLERANCE;
-      const rotationChanged = !currentRotation.equals(itemRotation) &&
-        (Math.abs(currentRotation.x - itemRotation.x) > TOLERANCE ||
-         Math.abs(currentRotation.y - itemRotation.y) > TOLERANCE ||
-         Math.abs(currentRotation.z - itemRotation.z) > TOLERANCE);
-      const scaleChanged = !currentScale.equals(itemScale) &&
-        Math.abs(currentScale.distanceTo(itemScale)) > TOLERANCE;
+      const positionChanged = !vectorsEqual(currentPosition, itemPosition, TOLERANCE);
+      const rotationChanged = !eulersEqual(currentRotation, itemRotation, TOLERANCE);
+      const scaleChanged = !vectorsEqual(currentScale, itemScale, TOLERANCE);
 
       if (positionChanged || rotationChanged || scaleChanged) {
         // 스냅된 값으로 업데이트
@@ -482,15 +477,44 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     try { useEditorStore.getState().endDraggingItem(item.id); } catch {}
   }, [isSelected, item.id, item.isLocked, onUpdate]);
 
-  // 컴포넌트 언마운트 시 드래그 락 정리
+  // 컴포넌트 언마운트 시 드래그 락 정리 및 메모리 정리
   useEffect(() => {
-    return () => {
+    // 메모리 정리 함수 등록
+    addCleanup(() => {
       try {
         const { draggingItemId, endDraggingItem } = useEditorStore.getState();
         if (draggingItemId === item.id) endDraggingItem(item.id);
       } catch {}
-    };
-  }, [item.id]);
+    });
+
+    // 모델 정리
+    if (model) {
+      addCleanup(() => {
+        model.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach(mat => {
+                  if (mat.map) mat.map.dispose();
+                  if (mat.normalMap) mat.normalMap.dispose();
+                  if (mat.bumpMap) mat.bumpMap.dispose();
+                  mat.dispose();
+                });
+              } else {
+                if (child.material.map) child.material.map.dispose();
+                if (child.material.normalMap) child.material.normalMap.dispose();
+                if (child.material.bumpMap) child.material.bumpMap.dispose();
+                child.material.dispose();
+              }
+            }
+          }
+        });
+      });
+    }
+
+    return cleanupOnUnmount();
+  }, [item.id, model, addCleanup, cleanupOnUnmount]);
 
   // 객체 표시 상태 관리 - 고정 상태 변경 시에도 객체가 사라지지 않도록
   const [isVisible, setIsVisible] = React.useState(true);
@@ -543,8 +567,9 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
   }, []);
 
   // 클릭 이벤트 처리 - 선택/해제 토글 (고정된 객체는 선택 불가)
-  const handleClick = (event: any) => {
-    // event.stopPropagation(); // 이벤트 전파 허용
+  const handleClick = () => {
+    // 클릭은 선택을 위해 허용하되, 빈 공간 해제와 경합 방지를 위해 타임스탬프 기록
+    try { (window as any).lastFurnitureClickTime = Date.now(); } catch {}
 
     // 고정된 객체는 선택할 수 없음
     if (item.isLocked) {
@@ -670,8 +695,8 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [isSelected, onDelete, onSelect, item.id]);
 
-  // 바운딩 박스 렌더링 (고정된 객체는 표시하지 않음)
-  const renderBoundingBox = () => {
+  // 바운딩 박스 렌더링 (고정된 객체는 표시하지 않음) - useMemo로 최적화
+  const renderBoundingBox = useMemo(() => {
     if (!isSelected || !isEditMode || !model || item.isLocked) return null;
 
     return (
@@ -688,7 +713,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
         />
       </Box>
     );
-  };
+  }, [isSelected, isEditMode, model, item.isLocked, item.footprint]);
 
   // 고정 표시기 렌더링 (개선된 버전)
   const renderLockIndicator = () => {
@@ -696,7 +721,6 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
 
     // 애니메이션 효과 적용
     const animationScale = lockAnimation ? 1.2 : 1.0;
-    const animationOpacity = lockAnimation ? 1.0 : 0.95;
 
     return (
       <group>
@@ -711,7 +735,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
             color="#ffd700" // 밝은 황금색
             wireframe={true}
             transparent={true}
-            opacity={animationOpacity}
+            opacity={0.95}
           />
         </Box>
 
@@ -761,7 +785,6 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
 
     const isTouching = isTouchMode;
     const indicatorColor = isTouching ? '#f97316' : '#3b82f6'; // 터치 중 주황색, 일반 선택 파란색
-    const indicatorOpacity = isTouching ? 1.0 : 0.8; // 일반 선택은 약간 투명도 유지
 
     return (
       <group>
@@ -890,24 +913,24 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
       <group
         ref={meshRef}
         onClick={handleClick}
-        onPointerDown={(e) => { /* e.stopPropagation() */ }}
-        onPointerMove={(e) => { /* e.stopPropagation() */ }}
-        onPointerUp={(e) => { /* e.stopPropagation() */ }}
+        onPointerDown={(e) => { if (isSelected) { try { (e as any).stopPropagation?.(); } catch {} } }}
+        onPointerMove={(e) => { if (isSelected) { try { (e as any).stopPropagation?.(); } catch {} } }}
+        onPointerUp={(e) => { if (isSelected) { try { (e as any).stopPropagation?.(); } catch {} } }}
         onPointerOver={handlePointerEnter}
         onPointerOut={handlePointerLeave}
-        onWheel={(e) => { /* e.stopPropagation() */ }}
+        onWheel={(e) => { if (isSelected) { try { (e as any).stopPropagation?.(); } catch {} } }}
         visible={isVisible}
       >
         {/* 3D 모델 - 실제 조작이 필요한 요소에만 포인터 이벤트 활성화 */}
         {model && (
           <primitive
             object={model}
-            onPointerDown={(e: any) => { /* e.stopPropagation() */ }}
-            onPointerMove={(e: any) => { /* e.stopPropagation() */ }}
-            onPointerUp={(e: any) => { /* e.stopPropagation() */ }}
-            onPointerOver={(e: any) => { /* e.stopPropagation() */ }}
-            onPointerOut={(e: any) => { /* e.stopPropagation() */ }}
-            onWheel={(e: any) => { /* e.stopPropagation() */ }}
+            onPointerDown={(e: any) => { if (isSelected) { try { e.stopPropagation?.(); } catch {} } }}
+            onPointerMove={(e: any) => { if (isSelected) { try { e.stopPropagation?.(); } catch {} } }}
+            onPointerUp={(e: any) => { if (isSelected) { try { e.stopPropagation?.(); } catch {} } }}
+            onPointerOver={(e: any) => { if (isSelected) { try { e.stopPropagation?.(); } catch {} } }}
+            onPointerOut={(e: any) => { if (isSelected) { try { e.stopPropagation?.(); } catch {} } }}
+            onWheel={(e: any) => { if (isSelected) { try { e.stopPropagation?.(); } catch {} } }}
           />
         )}
 
@@ -918,7 +941,7 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
         {renderSelectionIndicator()}
 
         {/* 바운딩 박스 */}
-        {renderBoundingBox()}
+        {renderBoundingBox}
 
         {/* 고정 표시기 */}
         {renderLockIndicator()}
@@ -1013,5 +1036,25 @@ export const EditableFurniture: React.FC<EditableFurnitureProps> = ({
     </>
   );
 };
+
+// 성능 최적화를 위한 memo 적용
+export const EditableFurniture = memo(EditableFurnitureComponent, (prevProps, nextProps) => {
+  // 선택 상태와 편집 모드가 변경된 경우에만 리렌더링
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.item.position.x === nextProps.item.position.x &&
+    prevProps.item.position.y === nextProps.item.position.y &&
+    prevProps.item.position.z === nextProps.item.position.z &&
+    prevProps.item.rotation.x === nextProps.item.rotation.x &&
+    prevProps.item.rotation.y === nextProps.item.rotation.y &&
+    prevProps.item.rotation.z === nextProps.item.rotation.z &&
+    prevProps.item.scale.x === nextProps.item.scale.x &&
+    prevProps.item.scale.y === nextProps.item.scale.y &&
+    prevProps.item.scale.z === nextProps.item.scale.z &&
+    prevProps.item.isLocked === nextProps.item.isLocked &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isEditMode === nextProps.isEditMode
+  );
+});
 
 export default EditableFurniture;

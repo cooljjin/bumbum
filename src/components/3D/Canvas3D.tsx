@@ -5,6 +5,9 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { AdaptiveEvents, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 
+// React Three Fiber 확장 설정
+import { extend } from '@react-three/fiber';
+
 interface Canvas3DProps {
   isMobile: boolean;
   isEditMode: boolean;
@@ -12,6 +15,7 @@ interface Canvas3DProps {
   maxDpr: number;
   children: React.ReactNode;
   onClick?: () => void;
+  onCreated?: (scene: any, gl: any) => void;
 }
 
 // (보강 핸들러 제거) onPointerMissed만 사용해 빈 공간 클릭 처리
@@ -39,7 +43,8 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
   minDpr,
   maxDpr,
   children,
-  onClick
+  onClick,
+  onCreated
 }) => {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -140,6 +145,11 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
               try {
                 (window as any).__R3F = { gl, scene, camera };
               } catch {}
+            }
+
+            // 성능 모니터링을 위한 씬 정보 전달
+            if (onCreated) {
+              onCreated(scene, gl);
             }
 
             // console.log(`🎨 3D 품질 설정 완료:`, {

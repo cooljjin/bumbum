@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 
 // 클라이언트 사이드에서만 실행되는 컴포넌트들
 import { AdaptiveEvents } from '@react-three/drei';
+import FurniturePerformanceMonitor from './shared/FurniturePerformanceMonitor';
 // const ContactShadows = dynamic(() => import('@react-three/drei').then(mod => ({ default: mod.ContactShadows })), { 
 //   ssr: false,
 //   loading: () => null
@@ -226,6 +227,9 @@ const Real3DRoomComponent = React.memo(({
   // 커스텀 라이브러리 로드 후 카탈로그에 병합
   const [customFurniture, setCustomFurniture] = useState<any[]>([]);
   const [assetOverrides, setAssetOverrides] = useState<Record<string, { modelUrl?: string; thumbUrl?: string }>>({});
+  
+  // 성능 모니터링을 위한 3D 씬 정보
+  const [sceneInfo, setSceneInfo] = useState<{ scene: any; gl: any } | null>(null);
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -1076,6 +1080,10 @@ const Real3DRoomComponent = React.memo(({
         isEditMode={isEditMode}
         minDpr={minDpr}
         maxDpr={maxDpr}
+        onCreated={(scene, gl) => {
+          // 3D 씬 정보를 성능 모니터링을 위해 저장
+          setSceneInfo({ scene, gl });
+        }}
         onClick={() => {
           // 빈 공간 클릭 시 선택 해제 (가구 클릭 직후에는 무시)
           try {
@@ -1153,6 +1161,7 @@ const Real3DRoomComponent = React.memo(({
           />
         )}
 
+
         {/* 윤곽선 효과 - 편집 모드에서만 활성화 */}
         {isEditMode && (
           <OutlineEffect
@@ -1192,6 +1201,21 @@ const Real3DRoomComponent = React.memo(({
         <AdaptiveEvents />
       </Canvas3D>
 
+      {/* 성능 모니터링 - 개발 모드에서만 표시 (Canvas 밖에 위치) */}
+      {process.env.NODE_ENV === 'development' && (
+        <FurniturePerformanceMonitor
+          enabled={true}
+          showUI={true}
+          scene={sceneInfo?.scene}
+          gl={sceneInfo?.gl}
+          onMetricsUpdate={(metrics) => {
+            // 성능 지표를 콘솔에 출력 (선택사항)
+            if (metrics.fps < 30) {
+              console.warn('성능 저하 감지:', metrics);
+            }
+          }}
+        />
+      )}
 
       {/* 전환 중 입력 락 오버레이 */}
       {isTransitionInputLocked && (
