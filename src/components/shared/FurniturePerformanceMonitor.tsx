@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { memoryManager } from '../../utils/memoryManager';
 
 interface PerformanceMetrics {
   fps: number;
   frameTime: number;
   memoryUsage: number;
+  memoryLimit: number;
+  memoryUsagePercent: number;
   objectCount: number;
   visibleObjects: number;
+  isLowMemory: boolean;
 }
 
 interface FurniturePerformanceMonitorProps {
@@ -27,8 +31,11 @@ export const FurniturePerformanceMonitor: React.FC<FurniturePerformanceMonitorPr
     fps: 0,
     frameTime: 0,
     memoryUsage: 0,
+    memoryLimit: 0,
+    memoryUsagePercent: 0,
     objectCount: 0,
-    visibleObjects: 0
+    visibleObjects: 0,
+    isLowMemory: false
   });
 
   // 드래그 관련 상태
@@ -56,8 +63,12 @@ export const FurniturePerformanceMonitor: React.FC<FurniturePerformanceMonitorPr
         const fps = Math.round((frameCount.current * 1000) / deltaTime);
         const frameTime = renderStartTime.current ? currentTime - renderStartTime.current : 0;
 
-        // 메모리 사용량 추정 (간단한 방법)
-        const memoryUsage = (performance as any).memory?.usedJSHeapSize || 0;
+        // 메모리 정보 가져오기 (메모리 관리자 사용)
+        const memoryInfo = memoryManager.getMemoryUsage();
+        const memoryUsage = memoryInfo?.memoryUsage || 0;
+        const memoryLimit = memoryInfo?.memoryLimit || 0;
+        const memoryUsagePercent = memoryInfo?.memoryUsagePercent || 0;
+        const isLowMemory = memoryInfo?.isLowMemory || false;
 
         // 객체 개수 계산
         let objectCount = 0;
@@ -73,13 +84,22 @@ export const FurniturePerformanceMonitor: React.FC<FurniturePerformanceMonitorPr
         const newMetrics: PerformanceMetrics = {
           fps,
           frameTime: Math.round(frameTime),
-          memoryUsage: Math.round(memoryUsage / 1024 / 1024), // MB 단위
+          memoryUsage,
+          memoryLimit,
+          memoryUsagePercent: Math.round(memoryUsagePercent * 100) / 100,
           objectCount,
-          visibleObjects
+          visibleObjects,
+          isLowMemory
         };
 
         setMetrics(newMetrics);
         onMetricsUpdate?.(newMetrics);
+
+        // 메모리 사용량이 높을 때 자동 정리
+        if (isLowMemory) {
+          console.warn('⚠️ 메모리 사용량이 높습니다. 자동 정리를 시작합니다.');
+          memoryManager.cleanupTemporaryResources();
+        }
 
         frameCount.current = 0;
         lastTime.current = currentTime;
@@ -221,7 +241,15 @@ export const FurniturePerformanceMonitor: React.FC<FurniturePerformanceMonitorPr
         </div>
         <div className="flex justify-between">
           <span>Memory:</span>
-          <span className="text-blue-400">{metrics.memoryUsage}MB</span>
+          <span className={metrics.isLowMemory ? 'text-red-400' : 'text-blue-400'}>
+            {metrics.memoryUsage}MB / {metrics.memoryLimit}MB
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span>Memory %:</span>
+          <span className={metrics.memoryUsagePercent > 80 ? 'text-red-400' : metrics.memoryUsagePercent > 60 ? 'text-yellow-400' : 'text-green-400'}>
+            {metrics.memoryUsagePercent}%
+          </span>
         </div>
         <div className="flex justify-between">
           <span>Objects:</span>

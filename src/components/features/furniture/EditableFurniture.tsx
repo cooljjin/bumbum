@@ -12,6 +12,7 @@ import { constrainFurnitureToRoom, isFurnitureInRoom } from '../../../utils/room
 import { FurnitureColorChanger } from '../../../utils/colorChanger';
 import { useColorChanger } from '../../../hooks/useColorChanger';
 import { useFurnitureOptimization, useMemoryOptimization } from '../../../hooks/useFurnitureOptimization';
+import { memoryManager } from '../../../utils/memoryManager';
 import * as THREE from 'three';
 
 /**
@@ -95,6 +96,33 @@ const EditableFurnitureComponent: React.FC<EditableFurnitureProps> = ({
   // 성능 최적화 훅
   const { shouldUpdate, vectorsEqual, eulersEqual } = useFurnitureOptimization();
   const { addCleanup, cleanupOnUnmount } = useMemoryOptimization();
+
+  // 메모리 압박 감지 및 자동 정리
+  useEffect(() => {
+    const checkMemoryPressure = () => {
+      if (memoryManager.isMemoryHigh()) {
+        console.warn('🚨 메모리 압박 감지 - 가구 모델 정리 시작');
+        // 불필요한 3D 리소스 정리
+        if (groupRef.current) {
+          groupRef.current.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              if (child.geometry) child.geometry.dispose();
+              if (child.material) {
+                if (Array.isArray(child.material)) {
+                  child.material.forEach(mat => mat.dispose());
+                } else {
+                  child.material.dispose();
+                }
+              }
+            }
+          });
+        }
+      }
+    };
+
+    const interval = setInterval(checkMemoryPressure, 5000); // 5초마다 체크
+    return () => clearInterval(interval);
+  }, []);
 
   // 색상 변경 기능
   const {

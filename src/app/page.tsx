@@ -17,10 +17,20 @@ import ExportShareTools from '../components/features/modals/ExportShareTools';
 import AnalyticsDashboard from '../components/shared/AnalyticsDashboard';
 import { useSelectedItemId, removeItem, undo, redo, canUndo, canRedo, selectItem } from '../store/editorStore';
 import { useUIManager } from '../hooks/useUIManager';
+import { memoryManager } from '../utils/memoryManager';
 
 export default function HomePage() {
   // UI 상태 관리 훅 사용
   const uiManager = useUIManager();
+
+  // 메모리 관리자 초기화
+  React.useEffect(() => {
+    memoryManager.startMonitoring();
+    
+    return () => {
+      memoryManager.stopMonitoring();
+    };
+  }, []);
 
   // Zustand store에서 상태 가져오기
   const selectedItemId = useSelectedItemId();
