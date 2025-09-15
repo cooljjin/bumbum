@@ -205,34 +205,34 @@ class MemoryManager {
 
   /**
    * WebGL 리소스 정리
+   * Three.js는 자체적으로 메모리를 관리하므로 직접적인 WebGL 컨텍스트 조작은 피합니다.
    */
   private clearWebGLResources(): void {
     if (typeof document === 'undefined') return;
     
     try {
-      // 모든 canvas 요소를 확인
-      const canvases = document.querySelectorAll('canvas');
-      
-      for (const canvas of canvases) {
-        try {
-          // 이미 WebGL 컨텍스트가 있는지 확인
-          const existingContext = canvas.getContext('webgl') || canvas.getContext('webgl2');
-          
-          if (existingContext && (existingContext instanceof WebGLRenderingContext || existingContext instanceof WebGL2RenderingContext)) {
-            // WebGL 리소스 정리
-            const ext = existingContext.getExtension('WEBGL_lose_context');
-            if (ext) {
-              // 컨텍스트 손실 (필요시에만)
-              // ext.loseContext();
-            }
-          }
-        } catch (canvasError) {
-          // 개별 canvas 처리 오류는 무시
-          console.warn('Canvas WebGL 정리 중 오류 (무시됨):', canvasError);
+      // Three.js 렌더러가 있는 경우 dispose 호출
+      // 이는 Three.js 인스턴스가 전역에 저장되어 있다고 가정합니다
+      if (typeof window !== 'undefined' && (window as any).__THREE_RENDERER__) {
+        const renderer = (window as any).__THREE_RENDERER__;
+        if (renderer && typeof renderer.dispose === 'function') {
+          renderer.dispose();
         }
       }
+
+      // Canvas 요소들의 메모리 정리 (WebGL 컨텍스트 직접 접근 없이)
+      const canvases = document.querySelectorAll('canvas');
+      canvases.forEach(canvas => {
+        // Canvas 크기를 0으로 설정하여 메모리 해제 유도
+        if (canvas.width > 0 || canvas.height > 0) {
+          canvas.width = 1;
+          canvas.height = 1;
+        }
+      });
+
+      console.log('🧹 WebGL 리소스 정리 완료 (안전 모드)');
     } catch (error) {
-      // 전체 WebGL 리소스 정리 오류는 로그만 출력
+      // WebGL 리소스 정리 오류는 로그만 출력
       console.warn('WebGL 리소스 정리 중 오류 (무시됨):', error);
     }
   }
