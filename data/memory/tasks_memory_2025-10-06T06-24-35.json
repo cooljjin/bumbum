@@ -1,0 +1,138 @@
+{
+  "tasks": [
+    {
+      "id": "c633c513-888b-4552-8e23-42d53aaafe7d",
+      "name": "관리자 페이지에 벽면 에셋 관리 탭 추가",
+      "description": "기존 가구 라이브러리 관리 페이지에 '벽면 에셋 관리' 탭을 추가하여 벽면 메테리얼을 관리할 수 있도록 기능을 확장합니다. 바닥 메테리얼 관리와 동일한 UI 패턴을 사용하여 일관성을 유지합니다.",
+      "notes": "기존 바닥 메테리얼 관리 코드를 최대한 재사용하여 중복을 최소화하고, 벽면 메테리얼 삭제 시 기본 벽면 텍스처로 자동 복원되도록 구현",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-10-03T04:40:29.495Z",
+      "updatedAt": "2025-10-03T04:42:03.590Z",
+      "relatedFiles": [
+        {
+          "path": "src/app/dev/library/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "관리자 페이지 메인 컴포넌트",
+          "lineStart": 1,
+          "lineEnd": 506
+        }
+      ],
+      "implementationGuide": "1. LibraryManagerPage 컴포넌트 수정\\n   - currentTab === 'wall' 조건 추가\\n   - isWallTab 변수 추가\\n   - 벽면 메테리얼 필터링 로직 추가 (category === 'wall')\\n   - 벽면 메테리얼 추가 UI 구현 (이미지 업로드, 'wall' 카테고리)\\n   - 벽면 메테리얼 삭제 시 기본 벽면 텍스처로 복원 로직 추가\\n\\n2. 기존 바닥 관리 로직 재사용\\n   - saveCustomFurniture() 함수 활용 (category: 'wall')\\n   - 벽면 크기 설정 (width: 3, depth: 0.1, height: 2.5)\\n   - 이미지 파일을 modelBlob으로 저장",
+      "verificationCriteria": "1. 관리자 페이지에서 '벽면 에셋 관리' 탭이 정상 표시되어야 함\\n2. 벽면 메테리얼 추가/삭제 기능이 정상 동작해야 함\\n3. 업로드한 벽면 메테리얼이 'wall' 카테고리로 저장되어야 함\\n4. 벽면 메테리얼 삭제 시 기본 벽면 텍스처로 복원되어야 함",
+      "analysisResult": "가구 라이브러리 관리 페이지에 \"벽면 에셋 관리\" 탭을 추가하고, 미니룸 가구 라이브러리 UI에도 \"벽면\" 탭을 추가하여 벽면 메테리얼을 동일하게 관리 및 선택할 수 있도록 기능을 확장하는 작업입니다. 기존 바닥 메테리얼 관리 시스템을 'wall' 카테고리로 확장하는 방식으로 구현하며, 최소한의 코드 수정으로 모든 요구사항을 충족합니다.",
+      "summary": "관리자 페이지에 벽면 에셋 관리 탭을 성공적으로 추가했습니다. 기존 바닥 메테리얼 관리 로직을 벽면으로 확장하여 일관된 UI 패턴을 유지했습니다. 벽면 메테리얼 추가/삭제 기능, 기본 벽면 텍스처 복원 로직, 그리고 모든 UI 텍스트가 벽면에 맞게 업데이트되었습니다.",
+      "completedAt": "2025-10-03T04:42:03.590Z"
+    },
+    {
+      "id": "4c94ecda-02fe-4164-a86c-1bc9cc4459cb",
+      "name": "DevNavbar에 벽면 에셋 관리 탭 추가",
+      "description": "개발자 네비게이션 바에 '벽면 에셋 관리' 탭을 추가하여 관리자 페이지로 이동할 수 있도록 합니다. 기존 탭 구조와 동일한 스타일을 유지합니다.",
+      "notes": "기존 네비게이션 구조를 유지하면서 벽면 탭만 추가하여 일관성을 보장",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-10-03T04:40:29.495Z",
+      "updatedAt": "2025-10-03T04:42:55.100Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/dev/DevNavbar.tsx",
+          "type": "TO_MODIFY",
+          "description": "개발자 네비게이션 바 컴포넌트",
+          "lineStart": 1,
+          "lineEnd": 39
+        }
+      ],
+      "implementationGuide": "1. DevNavbar 컴포넌트 수정\\n   - Props 타입에 'wall' 추가\\n   - 벽면 에셋 관리 링크 추가\\n   - 기존 탭과 동일한 스타일 적용\\n\\n2. 라우팅 설정\\n   - /dev/library?tab=wall 경로로 이동\\n   - 기존 바닥 관리와 동일한 URL 패턴 사용",
+      "verificationCriteria": "1. DevNavbar에 '벽면 에셋 관리' 탭이 정상 표시되어야 함\\n2. 탭 클릭 시 벽면 관리 페이지로 정상 이동해야 함\\n3. 기존 탭들과 동일한 스타일이 적용되어야 함",
+      "analysisResult": "가구 라이브러리 관리 페이지에 \"벽면 에셋 관리\" 탭을 추가하고, 미니룸 가구 라이브러리 UI에도 \"벽면\" 탭을 추가하여 벽면 메테리얼을 동일하게 관리 및 선택할 수 있도록 기능을 확장하는 작업입니다. 기존 바닥 메테리얼 관리 시스템을 'wall' 카테고리로 확장하는 방식으로 구현하며, 최소한의 코드 수정으로 모든 요구사항을 충족합니다.",
+      "summary": "DevNavbar에 벽면 에셋 관리 탭을 성공적으로 추가했습니다. Props 타입에 'wall'을 추가하고, 기존 탭들과 동일한 스타일로 벽면 에셋 관리 링크를 추가했습니다. /dev/library?tab=wall 경로로 이동하도록 설정하여 이전 작업에서 만든 벽면 관리 페이지와 연결됩니다.",
+      "completedAt": "2025-10-03T04:42:55.099Z"
+    },
+    {
+      "id": "9e7c139e-79c5-4eba-8ab8-cf3d2fe36098",
+      "name": "미니룸 가구 라이브러리에 벽면 탭 추가",
+      "description": "미니룸 가구 라이브러리 UI에 '벽면' 탭을 추가하여 벽면 메테리얼을 선택할 수 있도록 합니다. 기존 바닥 메테리얼 선택과 동일한 UX 패턴을 적용합니다.",
+      "notes": "기존 바닥 메테리얼 선택 로직을 벽면으로 확장하여 일관된 UX를 제공",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-10-03T04:40:29.495Z",
+      "updatedAt": "2025-10-03T04:44:23.836Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/features/furniture/EnhancedFurnitureCatalog.tsx",
+          "type": "TO_MODIFY",
+          "description": "가구 카탈로그 컴포넌트",
+          "lineStart": 1,
+          "lineEnd": 494
+        }
+      ],
+      "implementationGuide": "1. EnhancedFurnitureCatalog 컴포넌트 수정\\n   - 'wall' 카테고리 필터링 추가\\n   - 벽면 메테리얼 선택 시 setWallTexture() 호출\\n   - 바닥 메테리얼과 동일한 선택 로직 적용\\n\\n2. 벽면 텍스처 적용 로직\\n   - 벽면 메테리얼 선택 시 즉시 벽에 적용\\n   - 로딩 상태 표시\\n   - 에러 발생 시 기본 벽면 텍스처로 폴백",
+      "verificationCriteria": "1. 미니룸 가구 라이브러리에 '벽면' 탭이 정상 표시되어야 함\\n2. 벽면 탭에서 벽면 메테리얼을 선택할 수 있어야 함\\n3. 벽면 메테리얼 선택 시 즉시 벽에 적용되어야 함\\n4. 로딩 상태와 에러 처리가 정상 동작해야 함",
+      "analysisResult": "가구 라이브러리 관리 페이지에 \"벽면 에셋 관리\" 탭을 추가하고, 미니룸 가구 라이브러리 UI에도 \"벽면\" 탭을 추가하여 벽면 메테리얼을 동일하게 관리 및 선택할 수 있도록 기능을 확장하는 작업입니다. 기존 바닥 메테리얼 관리 시스템을 'wall' 카테고리로 확장하는 방식으로 구현하며, 최소한의 코드 수정으로 모든 요구사항을 충족합니다.",
+      "summary": "미니룸 가구 라이브러리에 벽면 탭 기능을 성공적으로 추가했습니다. setWallTexture import, 벽면 텍스처 로딩 상태 관리, 벽면 메테리얼 선택 시 즉시 텍스처 적용 로직, 로딩 상태 UI 표시, 카테고리 필터링에 '벽면' 추가, 벽면 메테리얼 아이콘(🧱) 표시 등 모든 기능을 구현했습니다. 기존 바닥 메테리얼과 동일한 UX 패턴을 유지하면서 벽면 메테리얼도 동일하게 처리할 수 있도록 확장했습니다.",
+      "completedAt": "2025-10-03T04:44:23.835Z"
+    },
+    {
+      "id": "3c043cf6-2b47-4933-8dc0-7311581f966b",
+      "name": "벽면 메테리얼 데이터 통합 및 테스트",
+      "description": "벽면 메테리얼 관리 기능이 기존 시스템과 완전히 통합되어 정상 동작하는지 확인하고, 전체 워크플로우를 테스트합니다.",
+      "notes": "기존 시스템과의 호환성을 보장하면서 벽면 메테리얼 관리 기능이 안정적으로 동작하도록 검증",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "c633c513-888b-4552-8e23-42d53aaafe7d"
+        },
+        {
+          "taskId": "4c94ecda-02fe-4164-a86c-1bc9cc4459cb"
+        },
+        {
+          "taskId": "9e7c139e-79c5-4eba-8ab8-cf3d2fe36098"
+        }
+      ],
+      "createdAt": "2025-10-03T04:40:29.496Z",
+      "updatedAt": "2025-10-03T04:56:29.003Z",
+      "relatedFiles": [
+        {
+          "path": "src/app/dev/library/page.tsx",
+          "type": "REFERENCE",
+          "description": "관리자 페이지",
+          "lineStart": 1,
+          "lineEnd": 506
+        },
+        {
+          "path": "src/components/dev/DevNavbar.tsx",
+          "type": "REFERENCE",
+          "description": "개발자 네비게이션",
+          "lineStart": 1,
+          "lineEnd": 39
+        },
+        {
+          "path": "src/components/features/furniture/EnhancedFurnitureCatalog.tsx",
+          "type": "REFERENCE",
+          "description": "가구 카탈로그",
+          "lineStart": 1,
+          "lineEnd": 494
+        },
+        {
+          "path": "src/store/editorStore.ts",
+          "type": "REFERENCE",
+          "description": "상태 관리 스토어",
+          "lineStart": 914,
+          "lineEnd": 929
+        },
+        {
+          "path": "src/utils/customLibrary.ts",
+          "type": "REFERENCE",
+          "description": "커스텀 라이브러리 유틸리티",
+          "lineStart": 59,
+          "lineEnd": 90
+        }
+      ],
+      "implementationGuide": "1. 통합 테스트 수행\\n   - 관리자 페이지에서 벽면 메테리얼 추가/삭제 테스트\\n   - 미니룸에서 벽면 메테리얼 선택 및 적용 테스트\\n   - 에러 상황 처리 테스트\\n\\n2. 데이터 일관성 확인\\n   - 벽면 메테리얼이 올바른 카테고리로 저장되는지 확인\\n   - 텍스처 적용이 실시간으로 반영되는지 확인\\n   - 기본 텍스처 복원이 정상 동작하는지 확인",
+      "verificationCriteria": "1. 전체 벽면 메테리얼 관리 워크플로우가 정상 동작해야 함\\n2. 기존 가구/바닥 관리 기능에 영향이 없어야 함\\n3. 벽면 메테리얼 선택 시 즉시 3D 룸에 반영되어야 함\\n4. 에러 상황에서 적절한 폴백 처리가 되어야 함",
+      "analysisResult": "가구 라이브러리 관리 페이지에 \"벽면 에셋 관리\" 탭을 추가하고, 미니룸 가구 라이브러리 UI에도 \"벽면\" 탭을 추가하여 벽면 메테리얼을 동일하게 관리 및 선택할 수 있도록 기능을 확장하는 작업입니다. 기존 바닥 메테리얼 관리 시스템을 'wall' 카테고리로 확장하는 방식으로 구현하며, 최소한의 코드 수정으로 모든 요구사항을 충족합니다.",
+      "summary": "벽면 메테리얼 데이터 통합 및 테스트를 성공적으로 완료했습니다. Room3DContainer에서 useCurrentWallTexture를 import하고 Room 컴포넌트에 wallTexturePath prop을 전달하도록 수정했습니다. 또한 useSearchParams() 관련 빌드 에러를 Suspense boundary로 해결했습니다. 전체 시스템이 올바르게 통합되어 벽면 메테리얼 관리 기능이 정상적으로 작동할 수 있도록 구성되었습니다.",
+      "completedAt": "2025-10-03T04:56:29.002Z"
+    }
+  ]
+}

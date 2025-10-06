@@ -1,138 +1,165 @@
 {
   "tasks": [
     {
-      "id": "c633c513-888b-4552-8e23-42d53aaafe7d",
-      "name": "관리자 페이지에 벽면 에셋 관리 탭 추가",
-      "description": "기존 가구 라이브러리 관리 페이지에 '벽면 에셋 관리' 탭을 추가하여 벽면 메테리얼을 관리할 수 있도록 기능을 확장합니다. 바닥 메테리얼 관리와 동일한 UI 패턴을 사용하여 일관성을 유지합니다.",
-      "notes": "기존 바닥 메테리얼 관리 코드를 최대한 재사용하여 중복을 최소화하고, 벽면 메테리얼 삭제 시 기본 벽면 텍스처로 자동 복원되도록 구현",
-      "status": "completed",
+      "id": "1731ce80-6a24-461c-94ea-a302823b6d00",
+      "name": "OnboardingModal 컴포넌트 생성",
+      "description": "사용자 온보딩을 위한 모달 컴포넌트를 생성합니다. 기존 BaseModal 컴포넌트를 확장하여 단계별 온보딩 기능을 구현하고, Framer Motion을 활용한 부드러운 애니메이션을 적용합니다. 모바일과 데스크톱 환경을 모두 지원하며, 기존 모달 컴포넌트들과 동일한 Props 패턴을 사용합니다.",
+      "notes": "기존 BaseModal, UserPreferences, ExportShareTools 등의 모달 컴포넌트 패턴을 참고하여 일관된 UI/UX를 구현합니다. 애니메이션은 기존 Framer Motion 패턴을 그대로 사용합니다.",
+      "status": "pending",
       "dependencies": [],
-      "createdAt": "2025-10-03T04:40:29.495Z",
-      "updatedAt": "2025-10-03T04:42:03.590Z",
+      "createdAt": "2025-10-06T06:24:35.691Z",
+      "updatedAt": "2025-10-06T06:24:35.691Z",
       "relatedFiles": [
         {
-          "path": "src/app/dev/library/page.tsx",
-          "type": "TO_MODIFY",
-          "description": "관리자 페이지 메인 컴포넌트",
-          "lineStart": 1,
-          "lineEnd": 506
+          "path": "src/components/ui/BaseModal.tsx",
+          "type": "REFERENCE",
+          "description": "기존 모달 컴포넌트 패턴 참고"
+        },
+        {
+          "path": "src/components/features/modals/UserPreferences.tsx",
+          "type": "REFERENCE",
+          "description": "모달 Props 패턴 참고"
+        },
+        {
+          "path": "src/components/features/modals/OnboardingModal.tsx",
+          "type": "CREATE",
+          "description": "새로 생성할 온보딩 모달 컴포넌트"
         }
       ],
-      "implementationGuide": "1. LibraryManagerPage 컴포넌트 수정\\n   - currentTab === 'wall' 조건 추가\\n   - isWallTab 변수 추가\\n   - 벽면 메테리얼 필터링 로직 추가 (category === 'wall')\\n   - 벽면 메테리얼 추가 UI 구현 (이미지 업로드, 'wall' 카테고리)\\n   - 벽면 메테리얼 삭제 시 기본 벽면 텍스처로 복원 로직 추가\\n\\n2. 기존 바닥 관리 로직 재사용\\n   - saveCustomFurniture() 함수 활용 (category: 'wall')\\n   - 벽면 크기 설정 (width: 3, depth: 0.1, height: 2.5)\\n   - 이미지 파일을 modelBlob으로 저장",
-      "verificationCriteria": "1. 관리자 페이지에서 '벽면 에셋 관리' 탭이 정상 표시되어야 함\\n2. 벽면 메테리얼 추가/삭제 기능이 정상 동작해야 함\\n3. 업로드한 벽면 메테리얼이 'wall' 카테고리로 저장되어야 함\\n4. 벽면 메테리얼 삭제 시 기본 벽면 텍스처로 복원되어야 함",
-      "analysisResult": "가구 라이브러리 관리 페이지에 \"벽면 에셋 관리\" 탭을 추가하고, 미니룸 가구 라이브러리 UI에도 \"벽면\" 탭을 추가하여 벽면 메테리얼을 동일하게 관리 및 선택할 수 있도록 기능을 확장하는 작업입니다. 기존 바닥 메테리얼 관리 시스템을 'wall' 카테고리로 확장하는 방식으로 구현하며, 최소한의 코드 수정으로 모든 요구사항을 충족합니다.",
-      "summary": "관리자 페이지에 벽면 에셋 관리 탭을 성공적으로 추가했습니다. 기존 바닥 메테리얼 관리 로직을 벽면으로 확장하여 일관된 UI 패턴을 유지했습니다. 벽면 메테리얼 추가/삭제 기능, 기본 벽면 텍스처 복원 로직, 그리고 모든 UI 텍스트가 벽면에 맞게 업데이트되었습니다.",
-      "completedAt": "2025-10-03T04:42:03.590Z"
+      "implementationGuide": "1. BaseModal 컴포넌트를 기반으로 OnboardingModal 생성\\n2. 단계별 온보딩 상태 관리 (currentStep, totalSteps)\\n3. 다음/이전/건너뛰기 버튼 구현\\n4. Framer Motion 애니메이션 적용 (기존 패턴 준수)\\n5. 모바일 반응형 디자인 구현\\n6. TypeScript 인터페이스 정의\\n\\n```typescript\\ninterface OnboardingModalProps {\\n  isOpen: boolean;\\n  onClose: () => void;\\n  isMobile?: boolean;\\n  currentStep: number;\\n  onNext: () => void;\\n  onPrev: () => void;\\n  onSkip: () => void;\\n}\\n```",
+      "verificationCriteria": "1. OnboardingModal 컴포넌트가 정상적으로 렌더링되어야 함\\n2. 단계별 네비게이션이 정상 동작해야 함\\n3. 모바일과 데스크톱에서 모두 정상 표시되어야 함\\n4. 기존 모달 컴포넌트들과 동일한 애니메이션 패턴을 사용해야 함\\n5. TypeScript 타입 체크를 통과해야 함",
+      "analysisResult": "Bumbum 프로젝트의 UI/UX 개선을 통해 사용자 경험을 크게 향상시키는 것이 목표입니다. 현재 메인 페이지가 복잡하고 사용자 온보딩 시스템이 부족한 상황을 해결하기 위해, 기존 아키텍처를 완전히 준수하면서 점진적으로 개선하는 전략을 채택합니다. 기존 컴포넌트들을 최대한 재사용하고, 모달 시스템과 상태 관리 패턴을 활용하여 일관성 있는 사용자 인터페이스를 구축합니다."
     },
     {
-      "id": "4c94ecda-02fe-4164-a86c-1bc9cc4459cb",
-      "name": "DevNavbar에 벽면 에셋 관리 탭 추가",
-      "description": "개발자 네비게이션 바에 '벽면 에셋 관리' 탭을 추가하여 관리자 페이지로 이동할 수 있도록 합니다. 기존 탭 구조와 동일한 스타일을 유지합니다.",
-      "notes": "기존 네비게이션 구조를 유지하면서 벽면 탭만 추가하여 일관성을 보장",
-      "status": "completed",
+      "id": "f1a52849-7e1a-4824-a38d-5eae2a530d46",
+      "name": "useUIManager 훅에 온보딩 상태 추가",
+      "description": "기존 useUIManager 훅을 확장하여 온보딩 관련 상태를 관리합니다. 온보딩 표시 여부, 현재 단계, 완료 상태 등을 관리하고, localStorage를 활용하여 사용자의 온보딩 완료 상태를 저장합니다. 기존 상태 관리 패턴을 유지하면서 새로운 기능을 추가합니다.",
+      "notes": "기존 useUIManager 훅의 패턴을 그대로 유지하고, 새로운 상태만 추가합니다. localStorage 사용 시 에러 처리를 포함해야 합니다.",
+      "status": "pending",
       "dependencies": [],
-      "createdAt": "2025-10-03T04:40:29.495Z",
-      "updatedAt": "2025-10-03T04:42:55.100Z",
+      "createdAt": "2025-10-06T06:24:35.691Z",
+      "updatedAt": "2025-10-06T06:24:35.691Z",
       "relatedFiles": [
         {
-          "path": "src/components/dev/DevNavbar.tsx",
+          "path": "src/hooks/useUIManager.ts",
           "type": "TO_MODIFY",
-          "description": "개발자 네비게이션 바 컴포넌트",
-          "lineStart": 1,
-          "lineEnd": 39
+          "description": "온보딩 상태 관리 추가"
         }
       ],
-      "implementationGuide": "1. DevNavbar 컴포넌트 수정\\n   - Props 타입에 'wall' 추가\\n   - 벽면 에셋 관리 링크 추가\\n   - 기존 탭과 동일한 스타일 적용\\n\\n2. 라우팅 설정\\n   - /dev/library?tab=wall 경로로 이동\\n   - 기존 바닥 관리와 동일한 URL 패턴 사용",
-      "verificationCriteria": "1. DevNavbar에 '벽면 에셋 관리' 탭이 정상 표시되어야 함\\n2. 탭 클릭 시 벽면 관리 페이지로 정상 이동해야 함\\n3. 기존 탭들과 동일한 스타일이 적용되어야 함",
-      "analysisResult": "가구 라이브러리 관리 페이지에 \"벽면 에셋 관리\" 탭을 추가하고, 미니룸 가구 라이브러리 UI에도 \"벽면\" 탭을 추가하여 벽면 메테리얼을 동일하게 관리 및 선택할 수 있도록 기능을 확장하는 작업입니다. 기존 바닥 메테리얼 관리 시스템을 'wall' 카테고리로 확장하는 방식으로 구현하며, 최소한의 코드 수정으로 모든 요구사항을 충족합니다.",
-      "summary": "DevNavbar에 벽면 에셋 관리 탭을 성공적으로 추가했습니다. Props 타입에 'wall'을 추가하고, 기존 탭들과 동일한 스타일로 벽면 에셋 관리 링크를 추가했습니다. /dev/library?tab=wall 경로로 이동하도록 설정하여 이전 작업에서 만든 벽면 관리 페이지와 연결됩니다.",
-      "completedAt": "2025-10-03T04:42:55.099Z"
+      "implementationGuide": "1. useUIManager 훅의 인터페이스 확장\\n2. 온보딩 관련 상태 추가 (showOnboarding, onboardingStep, hasCompletedOnboarding)\\n3. localStorage를 활용한 온보딩 완료 상태 저장/로드\\n4. 온보딩 관련 액션 함수들 추가\\n5. 기존 상태 관리 패턴 유지\\n\\n```typescript\\ninterface UIManagerState {\\n  // 기존 상태들...\\n  showOnboarding: boolean;\\n  onboardingStep: number;\\n  hasCompletedOnboarding: boolean;\\n}\\n\\ninterface UIManagerActions {\\n  // 기존 액션들...\\n  setShowOnboarding: (show: boolean) => void;\\n  setOnboardingStep: (step: number) => void;\\n  completeOnboarding: () => void;\\n}\\n```",
+      "verificationCriteria": "1. useUIManager 훅에 온보딩 관련 상태가 정상 추가되어야 함\\n2. 온보딩 상태 변경이 정상 동작해야 함\\n3. localStorage에 온보딩 완료 상태가 저장되어야 함\\n4. 기존 UI 상태 관리 기능이 정상 동작해야 함\\n5. TypeScript 타입 체크를 통과해야 함",
+      "analysisResult": "Bumbum 프로젝트의 UI/UX 개선을 통해 사용자 경험을 크게 향상시키는 것이 목표입니다. 현재 메인 페이지가 복잡하고 사용자 온보딩 시스템이 부족한 상황을 해결하기 위해, 기존 아키텍처를 완전히 준수하면서 점진적으로 개선하는 전략을 채택합니다. 기존 컴포넌트들을 최대한 재사용하고, 모달 시스템과 상태 관리 패턴을 활용하여 일관성 있는 사용자 인터페이스를 구축합니다."
     },
     {
-      "id": "9e7c139e-79c5-4eba-8ab8-cf3d2fe36098",
-      "name": "미니룸 가구 라이브러리에 벽면 탭 추가",
-      "description": "미니룸 가구 라이브러리 UI에 '벽면' 탭을 추가하여 벽면 메테리얼을 선택할 수 있도록 합니다. 기존 바닥 메테리얼 선택과 동일한 UX 패턴을 적용합니다.",
-      "notes": "기존 바닥 메테리얼 선택 로직을 벽면으로 확장하여 일관된 UX를 제공",
-      "status": "completed",
+      "id": "0fb76b37-b4d8-4905-9d9e-d99c31355a73",
+      "name": "AppHeader 컴포넌트 단순화",
+      "description": "현재 AppHeader에 노출된 7개의 버튼을 핵심 기능만 남기고 단순화합니다. 편집모드, 시점고정, 설정 버튼만 유지하고, 나머지 기능들(내 디자인, 접근성, 내보내기, 분석)은 사이드바나 모달로 이동시킵니다. 기존 IconButton 컴포넌트를 재사용하여 일관된 UI를 유지합니다.",
+      "notes": "기존 기능을 완전히 제거하는 것이 아니라, 접근 방식을 변경하는 것입니다. 제거된 기능들은 SettingsSidebar나 모달을 통해 접근할 수 있도록 합니다.",
+      "status": "pending",
       "dependencies": [],
-      "createdAt": "2025-10-03T04:40:29.495Z",
-      "updatedAt": "2025-10-03T04:44:23.836Z",
+      "createdAt": "2025-10-06T06:24:35.691Z",
+      "updatedAt": "2025-10-06T06:24:35.691Z",
       "relatedFiles": [
         {
-          "path": "src/components/features/furniture/EnhancedFurnitureCatalog.tsx",
+          "path": "src/components/layout/AppHeader.tsx",
           "type": "TO_MODIFY",
-          "description": "가구 카탈로그 컴포넌트",
-          "lineStart": 1,
-          "lineEnd": 494
+          "description": "헤더 단순화"
+        },
+        {
+          "path": "src/app/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "AppHeader 사용 부분 수정"
         }
       ],
-      "implementationGuide": "1. EnhancedFurnitureCatalog 컴포넌트 수정\\n   - 'wall' 카테고리 필터링 추가\\n   - 벽면 메테리얼 선택 시 setWallTexture() 호출\\n   - 바닥 메테리얼과 동일한 선택 로직 적용\\n\\n2. 벽면 텍스처 적용 로직\\n   - 벽면 메테리얼 선택 시 즉시 벽에 적용\\n   - 로딩 상태 표시\\n   - 에러 발생 시 기본 벽면 텍스처로 폴백",
-      "verificationCriteria": "1. 미니룸 가구 라이브러리에 '벽면' 탭이 정상 표시되어야 함\\n2. 벽면 탭에서 벽면 메테리얼을 선택할 수 있어야 함\\n3. 벽면 메테리얼 선택 시 즉시 벽에 적용되어야 함\\n4. 로딩 상태와 에러 처리가 정상 동작해야 함",
-      "analysisResult": "가구 라이브러리 관리 페이지에 \"벽면 에셋 관리\" 탭을 추가하고, 미니룸 가구 라이브러리 UI에도 \"벽면\" 탭을 추가하여 벽면 메테리얼을 동일하게 관리 및 선택할 수 있도록 기능을 확장하는 작업입니다. 기존 바닥 메테리얼 관리 시스템을 'wall' 카테고리로 확장하는 방식으로 구현하며, 최소한의 코드 수정으로 모든 요구사항을 충족합니다.",
-      "summary": "미니룸 가구 라이브러리에 벽면 탭 기능을 성공적으로 추가했습니다. setWallTexture import, 벽면 텍스처 로딩 상태 관리, 벽면 메테리얼 선택 시 즉시 텍스처 적용 로직, 로딩 상태 UI 표시, 카테고리 필터링에 '벽면' 추가, 벽면 메테리얼 아이콘(🧱) 표시 등 모든 기능을 구현했습니다. 기존 바닥 메테리얼과 동일한 UX 패턴을 유지하면서 벽면 메테리얼도 동일하게 처리할 수 있도록 확장했습니다.",
-      "completedAt": "2025-10-03T04:44:23.835Z"
+      "implementationGuide": "1. AppHeader 컴포넌트에서 불필요한 버튼들 제거\\n2. 핵심 기능만 유지: 편집모드, 시점고정, 설정\\n3. 기존 IconButton 컴포넌트 재사용\\n4. Props 인터페이스에서 제거된 기능들 정리\\n5. 기존 스타일링과 레이아웃 유지\\n\\n```typescript\\ninterface AppHeaderProps {\\n  isViewLocked: boolean;\\n  onViewLockToggle: () => void;\\n  onShowSettings: () => void;\\n  isEditMode?: boolean;\\n  onEditModeToggle?: () => void;\\n  // 제거된 Props들: onShowUserPreferences, onShowAccessibility, onShowExport, onShowAnalytics\\n}\\n```",
+      "verificationCriteria": "1. AppHeader에 핵심 기능만 표시되어야 함\\n2. 제거된 기능들이 SettingsSidebar에서 접근 가능해야 함\\n3. 기존 스타일링과 레이아웃이 유지되어야 함\\n4. 모바일/데스크톱 반응형이 정상 동작해야 함\\n5. TypeScript 타입 체크를 통과해야 함",
+      "analysisResult": "Bumbum 프로젝트의 UI/UX 개선을 통해 사용자 경험을 크게 향상시키는 것이 목표입니다. 현재 메인 페이지가 복잡하고 사용자 온보딩 시스템이 부족한 상황을 해결하기 위해, 기존 아키텍처를 완전히 준수하면서 점진적으로 개선하는 전략을 채택합니다. 기존 컴포넌트들을 최대한 재사용하고, 모달 시스템과 상태 관리 패턴을 활용하여 일관성 있는 사용자 인터페이스를 구축합니다."
     },
     {
-      "id": "3c043cf6-2b47-4933-8dc0-7311581f966b",
-      "name": "벽면 메테리얼 데이터 통합 및 테스트",
-      "description": "벽면 메테리얼 관리 기능이 기존 시스템과 완전히 통합되어 정상 동작하는지 확인하고, 전체 워크플로우를 테스트합니다.",
-      "notes": "기존 시스템과의 호환성을 보장하면서 벽면 메테리얼 관리 기능이 안정적으로 동작하도록 검증",
-      "status": "completed",
+      "id": "8e574752-1659-41b4-812d-4d10c18983eb",
+      "name": "SettingsSidebar에 온보딩 기능 통합",
+      "description": "기존 SettingsSidebar에 온보딩 관련 기능을 추가합니다. 온보딩 시작 버튼과 온보딩 상태 표시를 추가하고, 제거된 헤더 기능들(내 디자인, 접근성, 내보내기, 분석)에 대한 접근 버튼들을 추가합니다. 기존 사이드바 구조와 스타일을 유지합니다.",
+      "notes": "기존 SettingsSidebar의 구조와 스타일을 유지하면서 새로운 기능만 추가합니다. 섹션별로 구분하여 정리된 UI를 제공합니다.",
+      "status": "pending",
       "dependencies": [
         {
-          "taskId": "c633c513-888b-4552-8e23-42d53aaafe7d"
-        },
-        {
-          "taskId": "4c94ecda-02fe-4164-a86c-1bc9cc4459cb"
-        },
-        {
-          "taskId": "9e7c139e-79c5-4eba-8ab8-cf3d2fe36098"
+          "taskId": "f1a52849-7e1a-4824-a38d-5eae2a530d46"
         }
       ],
-      "createdAt": "2025-10-03T04:40:29.496Z",
-      "updatedAt": "2025-10-03T04:56:29.003Z",
+      "createdAt": "2025-10-06T06:24:35.691Z",
+      "updatedAt": "2025-10-06T06:24:35.691Z",
       "relatedFiles": [
         {
-          "path": "src/app/dev/library/page.tsx",
-          "type": "REFERENCE",
-          "description": "관리자 페이지",
-          "lineStart": 1,
-          "lineEnd": 506
+          "path": "src/components/layout/SettingsSidebar.tsx",
+          "type": "TO_MODIFY",
+          "description": "온보딩 기능 및 제거된 헤더 기능들 추가"
         },
         {
-          "path": "src/components/dev/DevNavbar.tsx",
-          "type": "REFERENCE",
-          "description": "개발자 네비게이션",
-          "lineStart": 1,
-          "lineEnd": 39
-        },
-        {
-          "path": "src/components/features/furniture/EnhancedFurnitureCatalog.tsx",
-          "type": "REFERENCE",
-          "description": "가구 카탈로그",
-          "lineStart": 1,
-          "lineEnd": 494
-        },
-        {
-          "path": "src/store/editorStore.ts",
-          "type": "REFERENCE",
-          "description": "상태 관리 스토어",
-          "lineStart": 914,
-          "lineEnd": 929
-        },
-        {
-          "path": "src/utils/customLibrary.ts",
-          "type": "REFERENCE",
-          "description": "커스텀 라이브러리 유틸리티",
-          "lineStart": 59,
-          "lineEnd": 90
+          "path": "src/app/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "SettingsSidebar Props 업데이트"
         }
       ],
-      "implementationGuide": "1. 통합 테스트 수행\\n   - 관리자 페이지에서 벽면 메테리얼 추가/삭제 테스트\\n   - 미니룸에서 벽면 메테리얼 선택 및 적용 테스트\\n   - 에러 상황 처리 테스트\\n\\n2. 데이터 일관성 확인\\n   - 벽면 메테리얼이 올바른 카테고리로 저장되는지 확인\\n   - 텍스처 적용이 실시간으로 반영되는지 확인\\n   - 기본 텍스처 복원이 정상 동작하는지 확인",
-      "verificationCriteria": "1. 전체 벽면 메테리얼 관리 워크플로우가 정상 동작해야 함\\n2. 기존 가구/바닥 관리 기능에 영향이 없어야 함\\n3. 벽면 메테리얼 선택 시 즉시 3D 룸에 반영되어야 함\\n4. 에러 상황에서 적절한 폴백 처리가 되어야 함",
-      "analysisResult": "가구 라이브러리 관리 페이지에 \"벽면 에셋 관리\" 탭을 추가하고, 미니룸 가구 라이브러리 UI에도 \"벽면\" 탭을 추가하여 벽면 메테리얼을 동일하게 관리 및 선택할 수 있도록 기능을 확장하는 작업입니다. 기존 바닥 메테리얼 관리 시스템을 'wall' 카테고리로 확장하는 방식으로 구현하며, 최소한의 코드 수정으로 모든 요구사항을 충족합니다.",
-      "summary": "벽면 메테리얼 데이터 통합 및 테스트를 성공적으로 완료했습니다. Room3DContainer에서 useCurrentWallTexture를 import하고 Room 컴포넌트에 wallTexturePath prop을 전달하도록 수정했습니다. 또한 useSearchParams() 관련 빌드 에러를 Suspense boundary로 해결했습니다. 전체 시스템이 올바르게 통합되어 벽면 메테리얼 관리 기능이 정상적으로 작동할 수 있도록 구성되었습니다.",
-      "completedAt": "2025-10-03T04:56:29.002Z"
+      "implementationGuide": "1. SettingsSidebar 컴포넌트에 온보딩 섹션 추가\\n2. 온보딩 시작 버튼과 상태 표시 구현\\n3. 제거된 헤더 기능들에 대한 접근 버튼 추가\\n4. 기존 스타일링과 레이아웃 유지\\n5. Props 인터페이스 확장\\n\\n```typescript\\ninterface SettingsSidebarProps {\\n  // 기존 Props들...\\n  onStartOnboarding: () => void;\\n  hasCompletedOnboarding: boolean;\\n  onShowUserPreferences: () => void;\\n  onShowAccessibility: () => void;\\n  onShowExport: () => void;\\n  onShowAnalytics: () => void;\\n}\\n```",
+      "verificationCriteria": "1. SettingsSidebar에 온보딩 섹션이 정상 표시되어야 함\\n2. 온보딩 시작 버튼이 정상 동작해야 함\\n3. 제거된 헤더 기능들에 대한 접근 버튼이 정상 동작해야 함\\n4. 기존 사이드바 기능이 정상 동작해야 함\\n5. 반응형 디자인이 유지되어야 함",
+      "analysisResult": "Bumbum 프로젝트의 UI/UX 개선을 통해 사용자 경험을 크게 향상시키는 것이 목표입니다. 현재 메인 페이지가 복잡하고 사용자 온보딩 시스템이 부족한 상황을 해결하기 위해, 기존 아키텍처를 완전히 준수하면서 점진적으로 개선하는 전략을 채택합니다. 기존 컴포넌트들을 최대한 재사용하고, 모달 시스템과 상태 관리 패턴을 활용하여 일관성 있는 사용자 인터페이스를 구축합니다."
+    },
+    {
+      "id": "6edc66b6-8b54-4d3e-8901-76c264b79e3a",
+      "name": "메인 페이지에 온보딩 통합",
+      "description": "메인 페이지에 OnboardingModal을 통합하고, 초기 사용자에게 온보딩을 표시하는 로직을 구현합니다. useUIManager 훅을 활용하여 온보딩 상태를 관리하고, 사용자가 온보딩을 완료하지 않은 경우 자동으로 표시합니다. 기존 페이지 구조와 기능을 유지합니다.",
+      "notes": "기존 메인 페이지의 모든 기능을 유지하면서 온보딩 기능만 추가합니다. 온보딩은 사용자 경험을 방해하지 않도록 설계합니다.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "1731ce80-6a24-461c-94ea-a302823b6d00"
+        },
+        {
+          "taskId": "f1a52849-7e1a-4824-a38d-5eae2a530d46"
+        }
+      ],
+      "createdAt": "2025-10-06T06:24:35.691Z",
+      "updatedAt": "2025-10-06T06:24:35.691Z",
+      "relatedFiles": [
+        {
+          "path": "src/app/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "온보딩 모달 통합"
+        },
+        {
+          "path": "src/components/features/modals/OnboardingModal.tsx",
+          "type": "DEPENDENCY",
+          "description": "온보딩 모달 컴포넌트"
+        }
+      ],
+      "implementationGuide": "1. 메인 페이지에 OnboardingModal 컴포넌트 추가\\n2. useUIManager 훅을 활용한 온보딩 상태 관리\\n3. 초기 사용자 감지 로직 구현\\n4. 온보딩 완료 후 상태 저장\\n5. 기존 페이지 구조와 기능 유지\\n\\n```typescript\\n// HomePage 컴포넌트에 추가\\nconst {\\n  showOnboarding,\\n  onboardingStep,\\n  hasCompletedOnboarding,\\n  setShowOnboarding,\\n  setOnboardingStep,\\n  completeOnboarding\\n} = uiManager;\\n```",
+      "verificationCriteria": "1. 초기 사용자에게 온보딩이 자동으로 표시되어야 함\\n2. 온보딩 완료 후 다시 표시되지 않아야 함\\n3. 기존 메인 페이지 기능이 정상 동작해야 함\\n4. 온보딩 중에도 3D 룸 기능이 정상 동작해야 함\\n5. 모바일과 데스크톱에서 모두 정상 동작해야 함",
+      "analysisResult": "Bumbum 프로젝트의 UI/UX 개선을 통해 사용자 경험을 크게 향상시키는 것이 목표입니다. 현재 메인 페이지가 복잡하고 사용자 온보딩 시스템이 부족한 상황을 해결하기 위해, 기존 아키텍처를 완전히 준수하면서 점진적으로 개선하는 전략을 채택합니다. 기존 컴포넌트들을 최대한 재사용하고, 모달 시스템과 상태 관리 패턴을 활용하여 일관성 있는 사용자 인터페이스를 구축합니다."
+    },
+    {
+      "id": "2e0c1011-6a17-46ba-bf32-37e0d55fba87",
+      "name": "기능 설명 페이지 분리",
+      "description": "현재 메인 페이지에 혼재되어 있는 기능 설명을 별도의 페이지로 분리합니다. Next.js App Router를 활용하여 /features 라우트를 생성하고, 각 기능별로 상세한 설명과 사용법을 제공합니다. 기존 페이지 구조와 스타일링을 유지합니다.",
+      "notes": "기존 메인 페이지의 기능 설명 부분을 그대로 활용하되, 더 상세하고 체계적으로 정리합니다. 사용자가 필요할 때만 접근할 수 있도록 합니다.",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-10-06T06:24:35.691Z",
+      "updatedAt": "2025-10-06T06:24:35.691Z",
+      "relatedFiles": [
+        {
+          "path": "src/app/features/page.tsx",
+          "type": "CREATE",
+          "description": "기능 설명 페이지"
+        },
+        {
+          "path": "src/app/page.tsx",
+          "type": "REFERENCE",
+          "description": "기존 기능 설명 내용 참고"
+        }
+      ],
+      "implementationGuide": "1. /features 라우트 생성 (src/app/features/page.tsx)\\n2. 기능별 설명 섹션 구현\\n3. 기존 스타일링과 컴포넌트 재사용\\n4. 네비게이션 링크 추가\\n5. 반응형 디자인 구현\\n\\n```typescript\\n// 기능별 섹션\\nconst featureSections = [\\n  { id: '3d-room', title: '3D 룸 에디터', description: '...' },\\n  { id: 'furniture', title: '가구 배치', description: '...' },\\n  { id: 'editing', title: '편집 도구', description: '...' },\\n  { id: 'export', title: '내보내기', description: '...' }\\n];\\n```",
+      "verificationCriteria": "1. /features 페이지가 정상적으로 렌더링되어야 함\\n2. 각 기능별 설명이 명확하게 표시되어야 함\\n3. 기존 스타일링과 일관성이 유지되어야 함\\n4. 반응형 디자인이 정상 동작해야 함\\n5. 메인 페이지에서 접근 가능해야 함",
+      "analysisResult": "Bumbum 프로젝트의 UI/UX 개선을 통해 사용자 경험을 크게 향상시키는 것이 목표입니다. 현재 메인 페이지가 복잡하고 사용자 온보딩 시스템이 부족한 상황을 해결하기 위해, 기존 아키텍처를 완전히 준수하면서 점진적으로 개선하는 전략을 채택합니다. 기존 컴포넌트들을 최대한 재사용하고, 모달 시스템과 상태 관리 패턴을 활용하여 일관성 있는 사용자 인터페이스를 구축합니다."
     }
   ]
 }

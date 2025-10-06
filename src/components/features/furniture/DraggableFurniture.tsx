@@ -15,7 +15,6 @@ import { useFurnitureEditing } from '../../../hooks/useFurnitureEditing';
 import { useColorChanger } from '../../../hooks/useColorChanger';
 import * as THREE from 'three';
 import { isDoorFurniture } from '@/utils/furnitureHelpers';
-import { SelectionOutline } from '../../shared/SelectionOutline';
 
 /**
  * 모델을 footprint 크기에 맞게 조정하는 함수
@@ -1188,17 +1187,82 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
           </Box>
         )}
 
-        {/* 공통 선택 표시기 - 정확한 바운더리 계산 적용 */}
-        <SelectionOutline
-          size={[item.footprint.width, item.footprint.height, item.footprint.depth]}
-          isSelected={isSelected}
-          isHovered={isHovered}
-          isDragging={isDragging}
-          isColliding={isColliding}
-          isLocked={item.isLocked || false}
-          isWallMounted={item.mount?.type === 'wall'}
-          meshRef={meshRef as React.RefObject<THREE.Object3D | null>}
-        />
+        {/* 드래그 중일 때 시각적 피드백 */}
+        {isDragging && (
+          <>
+            {/* 드래그 중 그림자 */}
+            <Box args={[item.footprint.width, 0.01, item.footprint.depth]} position={[0, -0.01, 0]}>
+              <meshBasicMaterial color="#000000" transparent opacity={0.18} depthWrite={false} depthTest={false} />
+            </Box>
+            {/* 드래그 중 하이라이트 - 충돌 시 빨간색, 정상 시 파란색 */}
+            <Box args={[item.footprint.width + 0.2, item.footprint.height + 0.2, item.footprint.depth + 0.2]}>
+              <meshBasicMaterial
+                color={isColliding ? "#ef4444" : "#3b82f6"}
+                transparent
+                opacity={item.mount?.type === 'wall' ? 0.15 : 0.25}
+                depthWrite={false}
+                depthTest={false}
+                toneMapped={false}
+              />
+            </Box>
+            {/* 충돌 시 추가 경고 표시 */}
+            {isColliding && (
+              <Box args={[item.footprint.width + 0.4, item.footprint.height + 0.4, item.footprint.depth + 0.4]}>
+                <meshBasicMaterial 
+                  color="#ef4444" 
+                  transparent 
+                  opacity={item.mount?.type === 'wall' ? 0.08 : 0.18} 
+                  depthWrite={false} 
+                  depthTest={false} 
+                />
+              </Box>
+            )}
+          </>
+        )}
+
+        {/* 호버 효과 */}
+        {isHovered && !isDragging && (
+          <Box args={[item.footprint.width, item.footprint.height, item.footprint.depth]}>
+            <meshBasicMaterial 
+              color="#ffff00" 
+              transparent 
+              opacity={item.mount?.type === 'wall' ? 0.08 : 0.18} 
+              depthWrite={false} 
+              depthTest={false} 
+              toneMapped={false} 
+            />
+          </Box>
+        )}
+
+        {/* 선택 표시기 - 개선된 버전 */}
+        {isSelected && (
+          <Box
+            args={[item.footprint.width + 0.1, item.footprint.height + 0.1, item.footprint.depth + 0.1]}
+          >
+            <meshBasicMaterial 
+              color="#3b82f6" 
+              transparent 
+              opacity={item.mount?.type === 'wall' ? 0.12 : 0.22} 
+              depthWrite={false} 
+              depthTest={false} 
+              toneMapped={false} 
+            />
+          </Box>
+        )}
+
+        {/* 고정 표시기 */}
+        {item.isLocked && (
+          <Box args={[item.footprint.width + 0.2, item.footprint.height + 0.2, item.footprint.depth + 0.2]}>
+            <meshBasicMaterial 
+              color="#ffd700" 
+              transparent 
+              opacity={item.mount?.type === 'wall' ? 0.12 : 0.22} 
+              depthWrite={false} 
+              depthTest={false} 
+              toneMapped={false} 
+            />
+          </Box>
+        )}
       </group>
     </>
   );
