@@ -26,7 +26,8 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = ({
     removeItem,
     selectedItemId,
     mode,
-    setMode
+    setMode,
+    selectItem
   } = useEditorStore();
 
   const [showShortcutHint, setShowShortcutHint] = useState<string>('');
@@ -48,8 +49,10 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = ({
       }
     }, category: 'edit' },
     { key: 'Escape', description: '선택 해제', action: () => {
-      // 선택 해제 로직 (store에 추가 필요)
-      setLastAction('선택 해제됨');
+      if (selectedItemId) {
+        selectItem(null);
+        setLastAction('선택 해제됨');
+      }
     }, category: 'edit' },
     
     // 모드 전환

@@ -4,7 +4,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiSearch, FiFilter, FiGrid, FiList, FiHeart, FiShoppingCart } from 'react-icons/fi';
 import { FurnitureItem } from '../../../types/furniture';
-import { setFloorTexture } from '../../../store/editorStore';
+import { setFloorTexture, setWallTexture } from '../../../store/editorStore';
 
 interface EnhancedFurnitureCatalogProps {
   furnitureData: FurnitureItem[];
@@ -31,6 +31,8 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [recentlyViewed, setRecentlyViewed] = useState<FurnitureItem[]>([]);
+  const [isLoadingFloorTexture, setIsLoadingFloorTexture] = useState(false);
+  const [isLoadingWallTexture, setIsLoadingWallTexture] = useState(false);
 
   // 스크롤 컨테이너 ref
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -139,6 +141,61 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
   // 가구 선택 핸들러
   const handleFurnitureSelect = (item: FurnitureItem) => {
     addToRecentlyViewed(item);
+    
+    // 바닥 메테리얼인 경우 즉시 바닥 텍스처 적용
+    if (item.category === 'floor' && item.modelPath) {
+      setIsLoadingFloorTexture(true);
+      
+      try {
+        setFloorTexture(item.modelPath);
+        console.log('✅ 바닥 텍스처 적용:', item.modelPath);
+        
+        // 로딩 완료 후 상태 업데이트
+        setTimeout(() => {
+          setIsLoadingFloorTexture(false);
+        }, 500); // 텍스처 로딩 시간 고려
+      } catch (error) {
+        console.error('❌ 바닥 텍스처 적용 실패:', error);
+        // 기본 바닥 텍스처로 폴백
+        setFloorTexture('/models/floor/floor_wooden.png');
+        console.log('🔄 기본 바닥 텍스처로 폴백');
+        setIsLoadingFloorTexture(false);
+      }
+      
+      // 바닥 메테리얼은 가구가 아니므로 onFurnitureSelect 호출하지 않음
+      if (isMobile) {
+        onClose(); // 모바일에서는 선택 후 카탈로그 닫기
+      }
+      return;
+    }
+    
+    // 벽면 메테리얼인 경우 즉시 벽면 텍스처 적용
+    if (item.category === 'wall' && item.modelPath) {
+      setIsLoadingWallTexture(true);
+      
+      try {
+        setWallTexture(item.modelPath);
+        console.log('✅ 벽면 텍스처 적용:', item.modelPath);
+        
+        // 로딩 완료 후 상태 업데이트
+        setTimeout(() => {
+          setIsLoadingWallTexture(false);
+        }, 500); // 텍스처 로딩 시간 고려
+      } catch (error) {
+        console.error('❌ 벽면 텍스처 적용 실패:', error);
+        // 기본 벽면 텍스처로 폴백
+        setWallTexture('/models/wall/wall_beige.png');
+        console.log('🔄 기본 벽면 텍스처로 폴백');
+        setIsLoadingWallTexture(false);
+      }
+      
+      // 벽면 메테리얼은 가구가 아니므로 onFurnitureSelect 호출하지 않음
+      if (isMobile) {
+        onClose(); // 모바일에서는 선택 후 카탈로그 닫기
+      }
+      return;
+    }
+    
     onFurnitureSelect(item);
     if (isMobile) {
       onClose(); // 모바일에서는 선택 후 카탈로그 닫기
@@ -164,26 +221,46 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
     >
       {/* 헤더 - 모바일에서는 표시하지 않음 */}
       {!isMobile && (
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold">🛋️ 가구 라이브러리</h2>
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 text-white">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xl font-bold">🛋️ 가구 라이브러리</h2>
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-white/20 transition-colors"
+              className="p-1.5 rounded-full hover:bg-white/20 transition-colors"
             >
               ✕
             </button>
           </div>
+          
+          {/* 바닥 텍스처 로딩 상태 표시 */}
+          {isLoadingFloorTexture && (
+            <div className="bg-blue-400/20 border border-blue-300/30 rounded-lg p-3 mb-3">
+              <div className="flex items-center gap-2">
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                <span className="text-sm">바닥 텍스처를 적용하는 중...</span>
+              </div>
+            </div>
+          )}
+
+          {/* 벽면 텍스처 로딩 상태 표시 */}
+          {isLoadingWallTexture && (
+            <div className="bg-green-400/20 border border-green-300/30 rounded-lg p-3 mb-3">
+              <div className="flex items-center gap-2">
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                <span className="text-sm">벽면 텍스처를 적용하는 중...</span>
+              </div>
+            </div>
+          )}
 
         {/* 검색 바 */}
         <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+          <FiSearch className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
           <input
             type="text"
             placeholder="가구 검색... (이름, 설명, 태그)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/50"
+            className="w-full pl-8 pr-3 py-2 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/50 text-sm"
           />
         </div>
         </div>
@@ -191,8 +268,8 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
 
       {/* 필터 및 정렬 바 - 모바일에서는 간소화 */}
       {!isMobile && (
-        <div className="p-3 bg-gray-50 border-b border-gray-200">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="p-2 bg-gray-50 border-b border-gray-200">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {/* 카테고리 필터 */}
             <select
               value={selectedCategory}
@@ -200,7 +277,7 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
                 setSelectedCategory(e.target.value);
                 setSelectedSubcategory('all');
               }}
-              className="px-2 py-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs min-w-20"
+              className="px-1.5 py-1 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs min-w-16"
             >
               <option value="all">전체 카테고리</option>
               {categories.categories.map(category => (
@@ -209,6 +286,8 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
                    category === 'bedroom' ? '침실' :
                    category === 'dining' ? '식당' :
                    category === 'office' ? '사무실' :
+                   category === 'floor' ? '바닥' :
+                   category === 'wall' ? '벽면' :
                    category}
                 </option>
               ))}
@@ -219,7 +298,7 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
               <select
                 value={selectedSubcategory}
                 onChange={(e) => setSelectedSubcategory(e.target.value)}
-                className="px-2 py-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs min-w-20"
+                className="px-1.5 py-1 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs min-w-16"
               >
                 <option value="all">전체 서브카테고리</option>
                 {categories.subcategories[selectedCategory]?.map(subcategory => (
@@ -229,17 +308,17 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
             )}
 
             {/* 가격 범위 필터 */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">가격:</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-600">가격:</span>
               <input
                 type="range"
                 min={priceStats.min}
                 max={priceStats.max}
                 value={priceRange[1]}
                 onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                className="w-20"
+                className="w-16"
               />
-              <span className="text-sm text-gray-600 min-w-[80px]">
+              <span className="text-xs text-gray-600 min-w-[60px]">
                 ~{formatPrice(priceRange[1])}
               </span>
             </div>
@@ -248,7 +327,7 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="px-2 py-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs min-w-20"
+              className="px-1.5 py-1 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs min-w-16"
             >
               <option value="name">이름순</option>
               <option value="price-low">가격 낮은순</option>
@@ -258,32 +337,32 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
             </select>
 
             {/* 뷰 모드 토글 */}
-            <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+            <div className="flex border border-gray-300 rounded overflow-hidden">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1 text-sm ${viewMode === 'grid' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+                className={`p-1 ${viewMode === 'grid' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
               >
-                <FiGrid size={16} />
+                <FiGrid size={14} />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 ${viewMode === 'list' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+                className={`p-1 ${viewMode === 'list' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
               >
-                <FiList size={16} />
+                <FiList size={14} />
               </button>
             </div>
           </div>
 
           {/* 필터 요약 */}
-          <div className="flex items-center justify-between mt-3">
-            <span className="text-sm text-gray-600">
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xs text-gray-600">
               {filteredFurniture.length}개의 가구
             </span>
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
             >
-              <FiFilter size={16} />
+              <FiFilter size={14} />
               고급 필터
             </button>
           </div>
@@ -306,6 +385,8 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
                    category === 'bedroom' ? '침실' :
                    category === 'dining' ? '식당' :
                    category === 'office' ? '사무실' :
+                   category === 'floor' ? '바닥' :
+                   category === 'wall' ? '벽면' :
                    category}
                 </option>
               ))}
@@ -320,7 +401,7 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
       {/* 가구 그리드/리스트 - 스크롤 컨테이너로 개선 */}
       <div 
         ref={scrollContainerRef}
-        className="p-3 flex-1 overflow-y-auto min-h-0 furniture-catalog-scroll" 
+        className="p-2 flex-1 overflow-y-auto min-h-0 furniture-catalog-scroll" 
         style={{
           scrollbarWidth: 'thin',
           scrollbarColor: '#CBD5E1 #F1F5F9',
@@ -336,8 +417,8 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
         ) : (
           <div className={
             viewMode === 'grid'
-              ? `grid gap-3 ${isMobile ? 'grid-cols-5' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`
-              : 'space-y-3'
+              ? `grid gap-2 ${isMobile ? 'grid-cols-5' : 'grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'}`
+              : 'space-y-2'
           }>
             {filteredFurniture.map((item) => (
               <motion.div
@@ -349,16 +430,16 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
                 transition={{ duration: 0.2 }}
                 className={
                   viewMode === 'grid'
-                    ? `bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer border border-gray-200 overflow-hidden ${isMobile ? 'text-sm' : ''}`
-                    : `bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer border border-gray-200 p-3 flex gap-3 ${isMobile ? 'text-xs' : 'p-4'}`
+                    ? `bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer border border-gray-200 overflow-hidden ${isMobile ? 'text-sm' : 'text-xs'}`
+                    : `bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer border border-gray-200 p-2 flex gap-2 ${isMobile ? 'text-xs' : 'p-3'}`
                 }
                 onClick={() => handleFurnitureSelect(item)}
               >
                 {/* 썸네일 */}
                 <div className={
                   viewMode === 'grid'
-                    ? `aspect-square bg-gray-100 flex items-center justify-center ${isMobile ? 'text-2xl' : 'text-4xl'}`
-                    : `bg-gray-100 rounded-lg flex items-center justify-center text-xl flex-shrink-0 ${isMobile ? 'w-16 h-16' : 'w-20 h-20'}`
+                    ? `aspect-square bg-gray-100 flex items-center justify-center ${isMobile ? 'text-xl' : 'text-2xl'}`
+                    : `bg-gray-100 rounded flex items-center justify-center text-lg flex-shrink-0 ${isMobile ? 'w-12 h-12' : 'w-16 h-16'}`
                 }>
                   {item.thumbnailPath ? (
                     <img
@@ -367,15 +448,16 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    '🛋️'
+                    item.category === 'floor' ? '🏠' : 
+                    item.category === 'wall' ? '🧱' : '🛋️'
                   )}
                 </div>
 
                 {/* 정보 */}
-                <div className={viewMode === 'grid' ? 'p-3' : 'flex-1'}>
-                  <div className="flex items-start justify-between mb-2">
+                <div className={viewMode === 'grid' ? 'p-2' : 'flex-1'}>
+                  <div className="flex items-start justify-between mb-1">
                     <div>
-                      <h3 className="font-semibold text-gray-800 text-sm">
+                      <h3 className="font-medium text-gray-800 text-xs">
                         {item.nameKo || item.name}
                       </h3>
                       <p className="text-xs text-gray-500">{item.metadata?.brand}</p>
@@ -385,30 +467,30 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
                         // e.stopPropagation(); // 이벤트 전파 허용
                         toggleFavorite(item.id);
                       }}
-                      className={`p-1 rounded-full ${
+                      className={`p-0.5 rounded-full ${
                         favorites.has(item.id)
                           ? 'text-red-500 bg-red-50'
                           : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
                       }`}
                     >
-                      <FiHeart size={16} fill={favorites.has(item.id) ? 'currentColor' : 'none'} />
+                      <FiHeart size={12} fill={favorites.has(item.id) ? 'currentColor' : 'none'} />
                     </button>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-blue-600">
+                    <span className="text-xs font-medium text-blue-600">
                       {item.metadata?.price ? formatPrice(item.metadata.price) : '가격 미정'}
                     </span>
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-gray-500">
                         {item.footprint.width}×{item.footprint.depth}m
                       </span>
-                      <FiShoppingCart size={14} className="text-gray-400" />
+                      <FiShoppingCart size={12} className="text-gray-400" />
                     </div>
                   </div>
 
                   {viewMode === 'list' && item.metadata?.description && (
-                    <p className="text-xs text-gray-600 mt-2 line-clamp-2">
+                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                       {item.metadata.description}
                     </p>
                   )}
@@ -438,7 +520,8 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
                     className="w-full h-full object-cover rounded-lg"
                   />
                 ) : (
-                  '🛋️'
+                  item.category === 'floor' ? '🏠' : 
+                  item.category === 'wall' ? '🧱' : '🛋️'
                 )}
               </motion.button>
             ))}

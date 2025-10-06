@@ -1,7 +1,6 @@
 // Zustand 스토어 성능 최적화 테스트
 
-import { performanceMonitor, startStoreMonitoring, getPerformanceReport } from '../src/utils/performanceMonitor';
-import { storeOptimizer, checkMemoryUsage } from '../src/utils/storeOptimizer';
+import { performanceManager } from '../src/utils/PerformanceManager';
 
 // 성능 테스트 클래스
 class PerformanceTest {
@@ -12,7 +11,7 @@ class PerformanceTest {
     console.log('🚀 기본 성능 테스트 시작...');
     
     // 성능 모니터링 시작
-    startStoreMonitoring('editor-store');
+    performanceManager.startStoreMonitoring('editor-store');
     
     // 테스트 실행
     const startTime = performance.now();
@@ -27,13 +26,13 @@ class PerformanceTest {
     this.testResults.set('basic', {
       totalTime,
       averageUpdateTime: totalTime / 100, // 100번의 업데이트 가정
-      memoryUsage: checkMemoryUsage()
+      memoryUsage: performanceManager.checkMemoryUsage()
     });
     
     console.log(`✅ 기본 성능 테스트 완료: ${totalTime.toFixed(2)}ms`);
     
     // 성능 리포트 생성
-    const report = getPerformanceReport('editor-store');
+    const report = performanceManager.generateStoreReport('editor-store');
     console.log(report);
   }
 
@@ -41,17 +40,17 @@ class PerformanceTest {
   async runMemoryOptimizationTest() {
     console.log('🧠 메모리 최적화 테스트 시작...');
     
-    const initialMemory = checkMemoryUsage();
+    const initialMemory = performanceManager.checkMemoryUsage();
     
     // 대량의 데이터 생성
     const largeData = this.generateLargeData(1000);
     
     // 메모리 사용량 체크
-    const afterDataCreation = checkMemoryUsage();
+    const afterDataCreation = performanceManager.checkMemoryUsage();
     
     // 데이터 정리
-    const optimizedData = storeOptimizer.optimizeArray(largeData);
-    const afterOptimization = checkMemoryUsage();
+    const optimizedData = performanceManager.optimizeArray(largeData);
+    const afterOptimization = performanceManager.checkMemoryUsage();
     
     // 결과 저장
     this.testResults.set('memory', {
@@ -108,14 +107,14 @@ class PerformanceTest {
     // 얕은 비교 테스트
     const shallowStart = performance.now();
     for (let i = 0; i < 1000; i++) {
-      storeOptimizer.shallowEqual(testData, { ...testData });
+      performanceManager.shallowEqual(testData, { ...testData });
     }
     const shallowTime = performance.now() - shallowStart;
     
     // 깊은 비교 테스트
     const deepStart = performance.now();
     for (let i = 0; i < 1000; i++) {
-      storeOptimizer.deepEqual(testData, { ...testData });
+      performanceManager.deepEqual(testData, { ...testData });
     }
     const deepTime = performance.now() - deepStart;
     
@@ -205,7 +204,7 @@ class PerformanceTest {
         }
         
         // 가상의 상태 업데이트
-        performanceMonitor.incrementRenderCount('editor-store');
+        performanceManager.incrementRenderCount('editor-store');
         count++;
         
         // 다음 프레임에서 실행
@@ -220,7 +219,7 @@ class PerformanceTest {
   private async simulateSingleUpdate(_index: number): Promise<void> {
     return new Promise(resolve => {
       setTimeout(() => {
-        performanceMonitor.incrementRenderCount('editor-store');
+        performanceManager.incrementRenderCount('editor-store');
         resolve();
       }, Math.random() * 10);
     });
@@ -231,7 +230,7 @@ class PerformanceTest {
     return new Promise(resolve => {
       requestAnimationFrame(() => {
         for (let i = 0; i < count; i++) {
-          performanceMonitor.incrementRenderCount('editor-store');
+          performanceManager.incrementRenderCount('editor-store');
         }
         resolve();
       });

@@ -1,21 +1,22 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
 
-import { TransformControls, Box, Html, useGLTF, Edges } from '@react-three/drei';
-import { Vector3, Euler, Group } from 'three';
+import { TransformControls, Box, useGLTF, Edges } from '@react-three/drei';
+import { Group } from 'three';
 import { useEditorStore } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
 import { createFallbackModel } from '../../../utils/modelLoader';
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
 import { safePosition } from '../../../utils/safePosition';
 // import MobileTouchHandler from '../ui/MobileTouchHandler';
-import { constrainFurnitureToRoom, isFurnitureInRoom } from '../../../utils/roomBoundary';
 import { FurnitureColorChanger } from '../../../utils/colorChanger';
 import { useColorChanger } from '../../../hooks/useColorChanger';
-import { useFurnitureOptimization, useMemoryOptimization } from '../../../hooks/useFurnitureOptimization';
+import { useMemoryOptimization } from '../../../hooks/useFurnitureOptimization';
 import { memoryManager } from '../../../utils/memoryManager';
+import { useFurnitureEditing } from '../../../hooks/useFurnitureEditing';
 import * as THREE from 'three';
 import { useScreenAnchor } from '../../../hooks/useScreenAnchor';
 import { FloatingLayerFUI } from '../../shared/FloatingLayerFUI';
+import { isDoorFurniture } from '@/utils/furnitureHelpers';
 
 /**
  * 모델을 footprint 크기에 맞게 조정하는 함수
@@ -79,24 +80,29 @@ const EditableFurnitureComponent: React.FC<EditableFurnitureProps> = ({
   onUpdate,
   onDelete
 }) => {
-  // 컴포넌트 마운트 확인
+  // 공통 편집 로직 사용
+  const {
+    isHovered,
+    meshRef,
+    syncTransform,
+    handlePointerEnter,
+    handlePointerLeave,
+    handleClick,
+    handleTransformChange,
+    handleTransformEnd,
+    disposeModel
+  } = useFurnitureEditing(item);
 
-  const meshRef = useRef<Group>(null);
   const transformControlsRef = useRef<any>(null);
-
-
-
   const [model, setModel] = useState<Group | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [isHovered, setIsHovered] = useState(false);
 
   // useGLTF 훅으로 직접 모델 로드
   const furniture = useMemo(() => getFurnitureFromPlacedItem(item), [item.id, item.name]);
   const gltf = furniture?.modelPath ? useGLTF(furniture.modelPath, true) : null; // draco 옵션 활성화
   
-  // 성능 최적화 훅
-  const { shouldUpdate, vectorsEqual, eulersEqual } = useFurnitureOptimization();
+  // 메모리 최적화 훅
   const { addCleanup, cleanupOnUnmount } = useMemoryOptimization();
 
   // 메모리 압박 감지 및 자동 정리
@@ -231,7 +237,7 @@ const EditableFurnitureComponent: React.FC<EditableFurnitureProps> = ({
               }
 
               // 도어 전용 강한 보정: 테두리 헤일로가 두드러져서 더 강하게 처리
-              if (furniture.subcategory === 'door') {
+              if (isDoorFurniture(furniture)) {
                 // 도어는 투명 유리 재질이 아닌 경우가 많아 alphaTest를 더 높이고 블렌딩 해제
                 if (typeof mat.alphaTest !== 'number' || mat.alphaTest < 0.3) {
                   mat.alphaTest = 0.3;
@@ -268,51 +274,10 @@ const EditableFurnitureComponent: React.FC<EditableFurnitureProps> = ({
     }
   }, [gltf, furniture, item.name]);
 
-  // 위치, 회전, 크기 동기화 - 최적화된 의존성 배열
+  // 위치, 회전, 크기 동기화 - 공통 로직 사용
   useEffect(() => {
-    if (!meshRef.current || item.isLocked) return;
-
-    try {
-      // Three.js 객체의 속성들을 직접 비교하여 변경된 경우에만 업데이트
-      const currentPos = meshRef.current.position;
-      const currentRot = meshRef.current.rotation;
-      const currentScale = meshRef.current.scale;
-
-      const [x, y, z] = safePosition(item.position);
-      const itemPosition = new Vector3(x, y, z);
-      const itemRotation = new Euler(item.rotation.x, item.rotation.y, item.rotation.z);
-      const itemScale = new Vector3(item.scale.x, item.scale.y, item.scale.z);
-
-      // 더 엄격한 오차 허용 범위 적용
-      const TOLERANCE = 0.0001;
-
-      const needsPositionUpdate = !currentPos.equals(itemPosition) &&
-        Math.abs(currentPos.distanceTo(itemPosition)) > TOLERANCE;
-      const needsRotationUpdate = !currentRot.equals(itemRotation) &&
-        (Math.abs(currentRot.x - itemRotation.x) > TOLERANCE ||
-         Math.abs(currentRot.y - itemRotation.y) > TOLERANCE ||
-         Math.abs(currentRot.z - itemRotation.z) > TOLERANCE);
-      const needsScaleUpdate = !currentScale.equals(itemScale) &&
-        Math.abs(currentScale.distanceTo(itemScale)) > TOLERANCE;
-
-          if (needsPositionUpdate) {
-            meshRef.current.position.copy(itemPosition);
-            // console.log(`📍 가구 ${item.id} 위치 동기화:`, {
-            //   x: itemPosition.x.toFixed(3),
-            //   y: itemPosition.y.toFixed(3),
-            //   z: itemPosition.z.toFixed(3)
-            // });
-          }
-      if (needsRotationUpdate) {
-        meshRef.current.rotation.copy(itemRotation);
-      }
-      if (needsScaleUpdate) {
-        meshRef.current.scale.copy(itemScale);
-      }
-    } catch (error) {
-      // console.warn('Position/Rotation/Scale sync failed:', error);
-    }
-  }, [item.id, item.isLocked]); // 최적화된 의존성 배열
+    syncTransform(item);
+  }, [item.id, item.isLocked, item.position, item.rotation, item.scale, syncTransform]);
 
   // TransformControls 스냅 설정 적용 - Blueprint3D 스타일 개선
   useEffect(() => {
@@ -359,153 +324,16 @@ const EditableFurnitureComponent: React.FC<EditableFurnitureProps> = ({
     }
   }, [isSelected, mode, grid.enabled, grid.size, grid.divisions, rotationSnap.enabled, rotationSnap.angle, snapStrength, item.isLocked]);
 
-  // 스냅 함수들 - Blueprint3D 스타일 개선
-  const snapToGrid = React.useCallback((value: number, snapSize: number = 0.25): number => {
-    return Math.round(value / snapSize) * snapSize;
-  }, []);
 
-  const snapPosition = React.useCallback((position: Vector3, snapSize: number = 0.25): Vector3 => {
-    return new Vector3(
-      snapToGrid(position.x, snapSize),
-      position.y, // Y축은 바닥에 고정 (스냅하지 않음)
-      snapToGrid(position.z, snapSize)
-    );
-  }, [snapToGrid]);
+  // TransformControls 변경 이벤트 처리 - 공통 로직 사용
+  const handleTransformChangeEvent = React.useCallback(() => {
+    handleTransformChange(onUpdate);
+  }, [handleTransformChange, onUpdate]);
 
-  const snapRotation = React.useCallback((rotation: Euler, snapAngle: number = 15): Euler => {
-    const snapAngleRad = (snapAngle * Math.PI) / 180;
-    return new Euler(
-      Math.round(rotation.x / snapAngleRad) * snapAngleRad,
-      Math.round(rotation.y / snapAngleRad) * snapAngleRad,
-      Math.round(rotation.z / snapAngleRad) * snapAngleRad
-    );
-  }, []);
-
-  // TransformControls 변경 이벤트 처리 - 스냅 기능 및 벽 충돌 감지 포함
-  const handleTransformChange = React.useCallback(() => {
-    if (!meshRef.current || !transformControlsRef.current) return;
-
-    // 성능 최적화: 프레임 기반 스로틀링
-    if (!shouldUpdate()) return;
-
-    // 단일 드래그 락: 내가 소유한 드래그만 처리
-    try {
-      const { draggingItemId } = useEditorStore.getState();
-      if (draggingItemId && draggingItemId !== item.id) {
-        return;
-      }
-    } catch {}
-    
-    // TransformControls 사용 중에는 호버 효과 제거
-    setIsHovered(false);
-
-    try {
-      let currentPosition = meshRef.current.position.clone();
-      let currentRotation = meshRef.current.rotation.clone();
-      const currentScale = meshRef.current.scale.clone();
-
-      // 그리드 스냅 적용 (편집 모드에서만)
-      if (grid.enabled && mode === 'edit') {
-        const cellSize = grid.size / grid.divisions;
-        currentPosition = snapPosition(currentPosition, cellSize);
-      }
-
-      // 회전 스냅 적용 (편집 모드에서만)
-      if (rotationSnap.enabled && mode === 'edit') {
-        currentRotation = snapRotation(currentRotation, rotationSnap.angle);
-      }
-
-      // 🔥 벽 충돌 감지 추가
-      const tempItem = {
-        ...item,
-        position: currentPosition,
-        rotation: currentRotation,
-        scale: currentScale
-      };
-
-      // 방 경계 내에 있는지 확인
-      if (!isFurnitureInRoom(tempItem)) {
-        // 방 밖에 있으면 제한된 위치로 이동
-        const constrainedItem = constrainFurnitureToRoom(tempItem);
-        currentPosition = constrainedItem.position;
-        
-        // TransformControls의 위치도 즉시 업데이트
-        if (meshRef.current) {
-          meshRef.current.position.copy(currentPosition);
-        }
-        
-        // console.log('🚫 TransformControls: 벽 충돌 감지, 위치 제한:', currentPosition);
-      }
-
-      // 현재 값과 이전 값을 비교하여 실제 변경된 경우에만 업데이트
-      const [x, y, z] = safePosition(item.position);
-      const itemPosition = new Vector3(x, y, z);
-      const itemRotation = new Euler(item.rotation.x, item.rotation.y, item.rotation.z);
-      const itemScale = new Vector3(item.scale.x, item.scale.y, item.scale.z);
-
-      // 성능 최적화: 최적화된 벡터 비교 함수 사용
-      const TOLERANCE = 0.001;
-      const positionChanged = !vectorsEqual(currentPosition, itemPosition, TOLERANCE);
-      const rotationChanged = !eulersEqual(currentRotation, itemRotation, TOLERANCE);
-      const scaleChanged = !vectorsEqual(currentScale, itemScale, TOLERANCE);
-
-      if (positionChanged || rotationChanged || scaleChanged) {
-        // 스냅된 값으로 업데이트
-        onUpdate(item.id, {
-          position: currentPosition,
-          rotation: currentRotation,
-          scale: currentScale
-        });
-      }
-    } catch (error) {
-      // console.warn('Transform update failed:', error);
-    }
-  }, [item.id, item.position, item.rotation, item.scale, onUpdate, grid, rotationSnap, mode, snapPosition, snapRotation]);
-
-  // TransformControls 드래그 종료 시 자동 고정
-  const handleTransformEnd = React.useCallback(() => {
-    if (!isSelected || item.isLocked) return;
-
-    // console.log('🎯 드래그 종료 - 객체 위치 조정 완료:', item.id);
-    
-    // TransformControls 종료 시 호버 효과 복원
-    setIsHovered(true);
-
-    // 자동 고정 설정 확인
-    const { autoLock } = useEditorStore.getState();
-
-    if (autoLock.enabled) {
-      // console.log(`⏱️ ${autoLock.delay}ms 후 자동 고정 예정...`);
-
-      // 설정된 지연 시간 후 자동 고정
-      setTimeout(() => {
-        // 현재 위치를 확실히 저장
-        if (meshRef.current && isSelected && !item.isLocked) {
-          const currentPosition = meshRef.current.position.clone();
-          const currentRotation = meshRef.current.rotation.clone();
-          const currentScale = meshRef.current.scale.clone();
-
-          // 현재 값으로 업데이트 (고정 전에 위치 확정)
-          onUpdate(item.id, {
-            position: currentPosition,
-            rotation: currentRotation,
-            scale: currentScale
-          });
-
-          // console.log(`📍 자동 고정 준비: (${currentPosition.x.toFixed(2)}, ${currentPosition.z.toFixed(2)})`);
-
-          // 자동 고정 실행
-          useEditorStore.getState().lockItem(item.id);
-          // console.log('🔒 자동 고정 완료!');
-        }
-      }, autoLock.delay);
-    } else {
-      // console.log('🔓 자동 고정이 비활성화되어 있습니다. 수동으로 L키를 눌러 고정하세요.');
-    }
-
-    // 드래그 락 해제
-    try { useEditorStore.getState().endDraggingItem(item.id); } catch {}
-  }, [isSelected, item.id, item.isLocked, onUpdate]);
+  // TransformControls 드래그 종료 시 자동 고정 - 공통 로직 사용
+  const handleTransformEndEvent = React.useCallback(() => {
+    handleTransformEnd(onUpdate);
+  }, [handleTransformEnd, onUpdate]);
 
   // 컴포넌트 언마운트 시 드래그 락 정리 및 메모리 정리
   useEffect(() => {
@@ -517,30 +345,9 @@ const EditableFurnitureComponent: React.FC<EditableFurnitureProps> = ({
       } catch {}
     });
 
-    // 모델 정리
+    // 모델 정리 - 공통 로직 사용
     if (model) {
-      addCleanup(() => {
-        model.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            if (child.geometry) child.geometry.dispose();
-            if (child.material) {
-              if (Array.isArray(child.material)) {
-                child.material.forEach(mat => {
-                  if (mat.map) mat.map.dispose();
-                  if (mat.normalMap) mat.normalMap.dispose();
-                  if (mat.bumpMap) mat.bumpMap.dispose();
-                  mat.dispose();
-                });
-              } else {
-                if (child.material.map) child.material.map.dispose();
-                if (child.material.normalMap) child.material.normalMap.dispose();
-                if (child.material.bumpMap) child.material.bumpMap.dispose();
-                child.material.dispose();
-              }
-            }
-          }
-        });
-      });
+      addCleanup(() => disposeModel(model));
     }
 
     return cleanupOnUnmount();
@@ -585,37 +392,10 @@ const EditableFurnitureComponent: React.FC<EditableFurnitureProps> = ({
     }
   }, [item.isLocked, isSelected, isEditMode, item.id]);
 
-  // 호버 이벤트 처리
-  const handlePointerEnter = useCallback(() => {
-    if (isEditMode && !item.isLocked && isSelected) {
-      setIsHovered(true);
-    }
-  }, [isEditMode, item.isLocked, isSelected]);
 
-  const handlePointerLeave = useCallback(() => {
-    setIsHovered(false);
-  }, []);
-
-  // 클릭 이벤트 처리 - 선택/해제 토글 (고정된 객체는 선택 불가)
-  const handleClick = () => {
-    // 클릭은 선택을 위해 허용하되, 빈 공간 해제와 경합 방지를 위해 타임스탬프 기록
-    try { (window as any).lastFurnitureClickTime = Date.now(); } catch {}
-
-    // 고정된 객체는 선택할 수 없음
-    if (item.isLocked) {
-      // console.log('고정된 객체는 선택할 수 없습니다:', item.id);
-      return;
-    }
-
-    // 단일 선택만 허용 - 다른 객체를 클릭하면 이전 선택이 자동으로 해제됨
-    // 이미 선택된 객체를 다시 클릭해도 선택 유지
-    // console.log(`🎯 가구 클릭: ${item.id} (현재 선택됨: ${isSelected})`);
-    onSelect(item.id);
-    
-    // 선택 시 호버 효과 활성화
-    if (isEditMode && !item.isLocked) {
-      setIsHovered(true);
-    }
+  // 클릭 이벤트 처리 - 공통 로직 사용
+  const handleClickEvent = () => {
+    handleClick(onSelect);
   };
 
   // 키보드 단축키 처리 - 이벤트 리스너 중복 등록 방지
@@ -942,7 +722,7 @@ const EditableFurnitureComponent: React.FC<EditableFurnitureProps> = ({
       {/* 실제 오브젝트 그룹 - 포인터 이벤트 전파 방지 및 범위 최소화 */}
       <group
         ref={meshRef}
-        onClick={handleClick}
+        onClick={handleClickEvent}
         onPointerDown={(e) => { if (isSelected) { try { (e as any).stopPropagation?.(); } catch {} } }}
         onPointerMove={(e) => { if (isSelected) { try { (e as any).stopPropagation?.(); } catch {} } }}
         onPointerUp={(e) => { if (isSelected) { try { (e as any).stopPropagation?.(); } catch {} } }}
@@ -1000,8 +780,8 @@ const EditableFurnitureComponent: React.FC<EditableFurnitureProps> = ({
           ref={transformControlsRef}
           object={meshRef.current}
           mode={tool === 'rotate' ? 'rotate' : tool === 'scale' ? 'scale' : 'translate'}
-          onObjectChange={handleTransformChange}
-          onMouseUp={handleTransformEnd}
+          onObjectChange={handleTransformChangeEvent}
+          onMouseUp={handleTransformEndEvent}
           onMouseDown={() => {
             try { useEditorStore.getState().beginDraggingItem(item.id); } catch {}
           }}

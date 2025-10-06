@@ -1,5 +1,6 @@
 import type { FurnitureItem, FurnitureCategory } from '../types/furniture';
 import { Vector3, Euler } from 'three';
+import { getDoorPlacementDefaults } from './furnitureHelpers';
 
 type CustomItemMeta = {
   id: string;
@@ -120,6 +121,19 @@ export async function getCustomFurnitureItems(): Promise<FurnitureItem[]> {
     const isDoor = !!meta.isDoor;
     const category: FurnitureCategory = meta.category || 'decorative';
     const tags: string[] = meta.tags && meta.tags.length ? meta.tags : (isDoor ? ['custom','door'] : ['custom']);
+    
+    // placement 설정: 문인 경우 표준 설정 사용, 아니면 커스텀 설정
+    const placement = isDoor 
+      ? getDoorPlacementDefaults() 
+      : {
+          canRotate: true,
+          canScale: true,
+          floorOffset: 0,
+          wallOnly: !!meta.isWall,
+          wallHeight: meta.isWall ? (meta.wallHeight ?? 1.4) : undefined,
+          supportedSurfaces: meta.isWall ? ['wall' as const] : ['floor' as const]
+        };
+    
     const f: FurnitureItem = {
       id: meta.id,
       name: meta.name,
@@ -129,14 +143,7 @@ export async function getCustomFurnitureItems(): Promise<FurnitureItem[]> {
       modelPath: modelUrl,
       thumbnailPath: thumbUrl || undefined,
       footprint: meta.footprint || { width: 1, depth: 1, height: 1 },
-      placement: {
-        canRotate: true,
-        canScale: true,
-        floorOffset: 0,
-        wallOnly: !!meta.isWall || isDoor,
-        wallHeight: (isDoor ? 0 : undefined) ?? (meta.isWall ? (meta.wallHeight ?? 1.4) : undefined),
-        supportedSurfaces: (isDoor || meta.isWall) ? ['wall'] : ['floor']
-      },
+      placement,
       metadata: {
         brand: 'Custom',
         model: meta.id,

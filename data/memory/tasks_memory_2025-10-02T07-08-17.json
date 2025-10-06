@@ -1,0 +1,28 @@
+{
+  "tasks": [
+    {
+      "id": "b901c7cf-9d70-4592-bc45-332f9e5bec15",
+      "name": "바닥 모델 생성 함수 추가",
+      "description": "src/utils/modelLoader.ts에 createFloorModel 함수를 추가하여 바닥 텍스처를 3D 모델로 생성할 수 있도록 구현합니다. 기존 createWallModel 함수의 패턴을 따라 바닥용으로 적응하여 XZ 평면에 수평으로 배치하고 텍스처 반복을 설정합니다.",
+      "notes": "기존 createWallModel 함수의 구조를 최대한 재사용하여 일관성을 유지합니다. 바닥은 벽과 달리 수평으로 배치되므로 rotation 설정에 주의합니다.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-10-02T06:29:13.887Z",
+      "updatedAt": "2025-10-02T06:29:36.299Z",
+      "relatedFiles": [
+        {
+          "path": "src/utils/modelLoader.ts",
+          "type": "TO_MODIFY",
+          "description": "createFloorModel 함수 추가",
+          "lineStart": 44,
+          "lineEnd": 97
+        }
+      ],
+      "implementationGuide": "1. createWallModel 함수를 참조하여 createFloorModel 함수 구현\\n2. 바닥은 XZ 평면에 수평 배치 (rotation.x = -Math.PI/2)\\n3. 텍스처 반복 설정 (RepeatWrapping)\\n4. 에러 처리 및 폴백 재질 설정\\n5. userData에 isFloor: true 설정\\n6. 기존 모델 생성 패턴과 일관성 유지",
+      "verificationCriteria": "createFloorModel 함수가 정상적으로 바닥 모델을 생성하고, 텍스처가 올바르게 적용되며, 에러 처리 및 폴백이 작동하는지 확인",
+      "analysisResult": "가구 라이브러리 관리 페이지에 \"바닥 에셋 관리\" 탭을 추가하여 바닥 메테리얼을 관리할 수 있는 기능을 확장합니다. 기존 가구 관리 UI와 동일한 구조를 유지하면서, 바닥 메테리얼을 업로드하고 관리하며, 미니룸 편집 시 선택하여 적용할 수 있도록 구현합니다. 기존 코드베이스의 패턴을 최대한 활용하여 중복을 최소화하고 일관성을 유지합니다.",
+      "summary": "createFloorModel 함수가 성공적으로 구현되었습니다. 기존 createWallModel 함수의 패턴을 따라 바닥용으로 적응하여 XZ 평면에 수평으로 배치하고, 텍스처 반복 설정, 에러 처리 및 폴백 재질 설정, userData에 isFloor: true 설정이 모두 포함되었습니다. 함수는 THREE.Group을 반환하며 바닥 모델을 생성합니다.",
+      "completedAt": "2025-10-02T06:29:36.298Z"
+    }
+  ]
+}

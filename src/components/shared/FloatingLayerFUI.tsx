@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from 'react';
-import { useFloating, flip, shift, offset as fuiOffset, size, Placement } from '@floating-ui/react';
+import { useFloating, flip, shift, offset as fuiOffset, size, Placement, type VirtualElement } from '@floating-ui/react';
 import { OverlayPortal } from './OverlayRoot';
 import { getSafeTouchArea, getUIOcclusionInsets, isMobile } from '../../utils/mobileHtmlConstraints';
 
@@ -35,23 +35,6 @@ export function FloatingLayerFUI({
 
   const { refs, floatingStyles, update, placement: resolvedPlacement } = useFloating({
     placement,
-    elements: {
-      reference: anchor
-        ? {
-            getBoundingClientRect: () =>
-              ({
-                x: anchor.x,
-                y: anchor.y,
-                top: anchor.y,
-                left: anchor.x,
-                right: anchor.x,
-                bottom: anchor.y,
-                width: 0,
-                height: 0,
-              } as DOMRect),
-          }
-        : null,
-    },
     middleware: [
       fuiOffset(offset),
       flip(),
@@ -75,6 +58,30 @@ export function FloatingLayerFUI({
   });
 
   useEffect(() => {
+    if (!anchor) {
+      refs.setReference(null);
+      return;
+    }
+
+    const virtualReference: VirtualElement = {
+      getBoundingClientRect: () =>
+        ({
+          x: anchor.x,
+          y: anchor.y,
+          top: anchor.y,
+          left: anchor.x,
+          right: anchor.x,
+          bottom: anchor.y,
+          width: 0,
+          height: 0,
+        } as DOMRect),
+    };
+
+    refs.setPositionReference(virtualReference);
+    update?.();
+  }, [anchor, refs, update]);
+
+  useEffect(() => {
     const onResize = () => update?.();
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
@@ -94,4 +101,3 @@ export function FloatingLayerFUI({
     </OverlayPortal>
   );
 }
-

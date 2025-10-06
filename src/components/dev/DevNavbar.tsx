@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 
 type Props = {
-  active?: 'uploader' | 'library';
+  active?: 'uploader' | 'library' | 'floor' | 'wall';
   className?: string;
 };
 
@@ -28,6 +28,12 @@ export default function DevNavbar({ active, className = '' }: Props) {
         </Link>
         <Link href="/dev/library" className={itemClass(active === 'library')}>
           가구 라이브러리 관리
+        </Link>
+        <Link href="/dev/library?tab=floor" className={itemClass(active === 'floor')}>
+          바닥 에셋 관리
+        </Link>
+        <Link href="/dev/library?tab=wall" className={itemClass(active === 'wall')}>
+          벽면 에셋 관리
         </Link>
       </div>
     </nav>

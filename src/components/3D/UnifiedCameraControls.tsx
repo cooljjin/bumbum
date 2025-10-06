@@ -43,7 +43,7 @@ const PC_CONFIG = {
   minPolarAngle: Math.PI * 0.15, // 아래쪽 제한
 };
 
-const UnifiedCameraControls: React.FC<UnifiedCameraControlsProps> = ({
+const UnifiedCameraControls = React.forwardRef<import('camera-controls').default, UnifiedCameraControlsProps>(({
   isViewLocked,
   isDragging,
   isEditMode,
@@ -51,12 +51,19 @@ const UnifiedCameraControls: React.FC<UnifiedCameraControlsProps> = ({
   isMobile,
   controlsRef,
   onTransitionLockChange
-}) => {
+}, ref) => {
   const { camera } = useThree();
 
   // 시점 고정 시 이동할 위치와 시점 (10x10x5 방에 맞게 조정)
   const lockedPosition: [number, number, number] = [5, 4, 6];
   const lockedLookAt: [number, number, number] = [0, 0, 0];
+
+  // ref와 controlsRef를 동기화
+  React.useEffect(() => {
+    if (ref && typeof ref === 'object' && 'current' in ref) {
+      (ref as React.MutableRefObject<import('camera-controls').default | null>).current = controlsRef.current;
+    }
+  }, [ref, controlsRef]);
 
   // 카메라 위치 모니터링 (디버그용)
   const lastLogTime = useRef<number>(0);
@@ -230,7 +237,7 @@ const UnifiedCameraControls: React.FC<UnifiedCameraControlsProps> = ({
 
   return (
     <CameraControls
-      ref={controlsRef}
+      ref={ref}
       makeDefault
       enabled={!isViewLocked && !isDragging} // 가구 드래그 중에는 카메라 컨트롤 비활성화
       // 현재 설정 적용
@@ -248,6 +255,8 @@ const UnifiedCameraControls: React.FC<UnifiedCameraControlsProps> = ({
       truckSpeed={currentConfig.truckSpeed}
     />
   );
-};
+});
+
+UnifiedCameraControls.displayName = 'UnifiedCameraControls';
 
 export default UnifiedCameraControls;

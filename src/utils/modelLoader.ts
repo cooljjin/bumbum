@@ -97,6 +97,62 @@ export function createWallModel(
 }
 
 /**
+ * 바닥 모델을 생성합니다 (텍스처 기반)
+ */
+export function createFloorModel(
+  texturePath: string,
+  width: number = 10.0,
+  depth: number = 10.0,
+  height: number = 0.02
+): THREE.Group {
+  const floorGroup = new THREE.Group();
+
+  // 바닥 재질 생성
+  const floorMaterial = new THREE.MeshLambertMaterial({
+    color: 0xffffff,
+    transparent: false,
+    opacity: 1.0
+  });
+
+  // 텍스처 로드 시도
+  const textureLoader = new THREE.TextureLoader();
+  textureLoader.load(
+    texturePath,
+    (texture) => {
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(width, depth);
+
+      floorMaterial.map = texture;
+      floorMaterial.needsUpdate = true;
+
+      // console.log('🎨 바닥 텍스처 로드 성공:', texturePath);
+    },
+    undefined,
+    (error) => {
+      console.warn('⚠️ 바닥 텍스처 로드 실패, 기본 재질 사용:', texturePath, error);
+      // 텍스처 로드 실패 시 기본 베이지 색상 사용
+      floorMaterial.color.setHex(0xF5F5DC);
+    }
+  );
+
+  // 바닥 geometry 생성 (평면)
+  const floorGeometry = new THREE.PlaneGeometry(width, depth);
+  const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+
+  // 바닥을 수평으로 배치 (XZ 평면에 배치)
+  floorMesh.rotation.x = -Math.PI / 2; // X축으로 -90도 회전하여 수평으로 배치
+  floorMesh.position.y = -height / 2; // 바닥 두께의 절반만큼 아래로 이동
+
+  floorGroup.add(floorMesh);
+  floorGroup.userData = { isFloor: true, texturePath };
+
+  // console.log('🏗️ 바닥 모델 생성 완료:', { width, depth, height, texturePath });
+
+  return floorGroup;
+}
+
+/**
  * 모델을 로드합니다 (캐시 우선)
  */
 export async function loadModel(

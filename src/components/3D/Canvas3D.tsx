@@ -4,9 +4,11 @@ import React, { Suspense, useEffect, useState, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { AdaptiveEvents, Environment } from '@react-three/drei';
 import * as THREE from 'three';
+import { PerformanceOptions } from '../../types/editor';
+import LoadingSpinner from '../ui/LoadingSpinner';
 
 // React Three Fiber 확장 설정
-import { extend } from '@react-three/fiber';
+// import { extend } from '@react-three/fiber';
 
 interface Canvas3DProps {
   isMobile: boolean;
@@ -16,6 +18,9 @@ interface Canvas3DProps {
   children: React.ReactNode;
   onClick?: () => void;
   onCreated?: (scene: any, gl: any) => void;
+  onPointerMissed?: (event: any) => void;
+  /** 성능 옵션 설정 */
+  performanceOptions?: PerformanceOptions;
 }
 
 // (보강 핸들러 제거) onPointerMissed만 사용해 빈 공간 클릭 처리
@@ -40,16 +45,51 @@ function RenderQualityStabilizer() {
 const Canvas3D: React.FC<Canvas3DProps> = ({
   isMobile,
   isEditMode,
-  minDpr,
-  maxDpr,
   children,
   onClick,
-  onCreated
+  onCreated,
+  onPointerMissed,
+  performanceOptions
 }) => {
   const [isMounted, setIsMounted] = useState(false);
 
+  // 성능 옵션 적용
+  const applyPerformanceOptions = useCallback((gl: THREE.WebGLRenderer) => {
+    if (!performanceOptions) return;
+
+    // 그림자 품질 설정
+    if (performanceOptions.shadowQuality) {
+      switch (performanceOptions.shadowQuality) {
+        case 'low':
+          gl.shadowMap.type = THREE.BasicShadowMap;
+          break;
+        case 'medium':
+          gl.shadowMap.type = THREE.PCFShadowMap;
+          break;
+        case 'high':
+          gl.shadowMap.type = THREE.PCFSoftShadowMap;
+          break;
+      }
+    }
+
+    // 텍스처 압축 설정
+    if (performanceOptions.enableTextureCompression !== undefined) {
+      // WebGL 확장 확인 후 적용
+      const ext = gl.getContext().getExtension('WEBGL_compressed_texture_s3tc');
+      if (ext && performanceOptions.enableTextureCompression) {
+        // 압축 텍스처 사용 설정
+        gl.capabilities.precision = 'highp';
+      }
+    }
+
+    // 프러스텀 컬링 설정 (WebGLRenderer에는 frustumCulled 속성이 없으므로 제거)
+    // if (performanceOptions.enableFrustumCulling !== undefined) {
+    //   gl.frustumCulled = performanceOptions.enableFrustumCulling;
+    // }
+  }, [performanceOptions]);
+
   // 빈 공간 클릭 핸들러
-  const handleEmptySpaceClick = (event: any) => {
+  const handleEmptySpaceClick = () => {
     // console.log('🎯 Canvas3D 빈 공간 클릭 감지됨:', {
     //   type: event.type,
     //   pointerType: event.pointerType,
@@ -70,28 +110,14 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
 
   // 클라이언트 사이드에서만 렌더링
   if (typeof window === 'undefined' || !isMounted) {
-    return (
-      <div className="w-full h-full bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2" />
-          <p className="text-gray-600 text-sm">3D 렌더러 로딩 중...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="3D 렌더러 로딩 중..." />;
   }
 
   return (
     <div className="w-full h-full relative">
 
       <Suspense 
-        fallback={
-          <div className="w-full h-full bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2" />
-              <p className="text-gray-600 text-sm">3D 렌더러 로딩 중...</p>
-            </div>
-          </div>
-        }
+        fallback={<LoadingSpinner message="3D 렌더러 로딩 중..." />}
       >
         <Canvas
           shadows
@@ -114,8 +140,8 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
             background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
             touchAction: 'auto'  // 카메라 컨트롤을 위해 터치 이벤트 허용
           }}
-          onPointerMissed={handleEmptySpaceClick}
-          onCreated={({ gl, scene, size, camera }: { gl: any; scene: any; size: any; camera: any }) => {
+          onPointerMissed={onPointerMissed || handleEmptySpaceClick}
+          onCreated={({ gl, scene, camera }: { gl: any; scene: any; camera: any }) => {
             // 초기 렌더링 품질 설정
             gl.setClearColor('#f8fafc', 1);
             gl.shadowMap.enabled = true;
@@ -147,6 +173,9 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
               } catch {}
             }
 
+            // 성능 옵션 적용
+            applyPerformanceOptions(gl);
+
             // 성능 모니터링을 위한 씬 정보 전달
             if (onCreated) {
               onCreated(scene, gl);
@@ -174,7 +203,7 @@ const Canvas3D: React.FC<Canvas3DProps> = ({
           <color attach="background" args={['#f8fafc']} />
 
           {/* 환경 맵핑 - 네트워크 제한 환경에서 오류를 유발할 수 있어 기본 비활성화 */}
-          {process.env.NEXT_PUBLIC_USE_ENV === '1' && (
+          {process.env['NEXT_PUBLIC_USE_ENV'] === '1' && (
             <Environment preset="apartment" />
           )}
 

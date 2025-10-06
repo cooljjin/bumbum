@@ -6,6 +6,7 @@ interface CachedModel {
   model: THREE.Group;
   lastUsed: number;
   useCount: number;
+  refCount: number; // 참조 카운트 (0이 되면 해제)
   size: number; // 메모리 크기 (KB)
   complexity: {
     triangleCount: number;
@@ -13,6 +14,13 @@ interface CachedModel {
     materialCount: number;
     textureCount: number;
   };
+}
+
+interface LoadedAsset {
+  model: THREE.Group;
+  refCount: number;
+  lastUsed: number;
+  size: number;
 }
 
 interface ModelCacheOptions {
@@ -24,6 +32,7 @@ interface ModelCacheOptions {
 
 class ModelCache {
   private cache = new Map<string, CachedModel>();
+  private assets = new Map<string, LoadedAsset>(); // refCount 기반 에셋 관리
   private loader: GLTFLoader;
   private options: ModelCacheOptions;
   private totalMemory = 0;
@@ -54,10 +63,10 @@ class ModelCache {
   }
 
   /**
-   * 모델을 캐시에서 가져오거나 로딩
+   * 모델을 캐시에서 가져오거나 로딩 (refCount 기반)
    */
   async getModel(modelPath: string): Promise<THREE.Group> {
-    // 캐시에서 확인
+    // 기존 캐시에서 확인
     if (this.cache.has(modelPath)) {
       const cached = this.cache.get(modelPath)!;
       cached.lastUsed = Date.now();
@@ -67,14 +76,57 @@ class ModelCache {
       return cached.model.clone();
     }
 
+    // refCount 기반 에셋에서 확인
+    if (this.assets.has(modelPath)) {
+      const asset = this.assets.get(modelPath)!;
+      asset.refCount++;
+      asset.lastUsed = Date.now();
+      
+      // console.log(`📦 에셋 히트: ${modelPath} (참조 카운트: ${asset.refCount})`);
+      return asset.model.clone();
+    }
+
     // 새로 로딩
     // console.log(`🔄 모델 로딩: ${modelPath}`);
     const model = await this.loadModel(modelPath);
     
-    // 캐시에 저장
-    await this.cacheModel(modelPath, model);
+    // refCount 기반 에셋으로 저장
+    const size = this.calculateModelSize(model);
+    this.assets.set(modelPath, {
+      model,
+      refCount: 1,
+      lastUsed: Date.now(),
+      size
+    });
+    
+    this.totalMemory += size;
     
     return model.clone();
+  }
+
+  /**
+   * 모델 참조 해제 (refCount 감소)
+   */
+  releaseModel(modelPath: string): void {
+    if (!this.assets.has(modelPath)) {
+      // console.log(`⚠️ 해제할 모델이 없음: ${modelPath}`);
+      return;
+    }
+
+    const asset = this.assets.get(modelPath)!;
+    asset.refCount--;
+    asset.lastUsed = Date.now();
+
+    // console.log(`🔓 모델 참조 해제: ${modelPath} (참조 카운트: ${asset.refCount})`);
+
+    // refCount가 0이 되면 메모리 해제
+    if (asset.refCount <= 0) {
+      this.disposeDeep(asset.model);
+      this.assets.delete(modelPath);
+      this.totalMemory -= asset.size;
+      
+      // console.log(`🗑️ 모델 메모리 해제: ${modelPath}`);
+    }
   }
 
   /**
@@ -116,6 +168,7 @@ class ModelCache {
       model,
       lastUsed: Date.now(),
       useCount: 1,
+      refCount: 0, // 기존 캐시는 refCount 사용하지 않음
       size,
       complexity
     };
@@ -291,6 +344,71 @@ class ModelCache {
   }
 
   /**
+   * 3D 객체의 모든 리소스를 깊이 있게 해제하는 함수
+   * @param object3D 해제할 Three.js 객체
+   */
+  public disposeDeep(object3D: THREE.Object3D): void {
+    if (!object3D) return;
+
+    // 모든 자식 객체를 재귀적으로 처리
+    object3D.traverse((child) => {
+      // 지오메트리 해제
+      if (child instanceof THREE.Mesh && child.geometry) {
+        child.geometry.dispose();
+      }
+
+      // 재질 해제
+      if (child instanceof THREE.Mesh && child.material) {
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => {
+          // 모든 텍스처 해제
+          const textureKeys = [
+            'map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap',
+            'bumpMap', 'displacementMap', 'aoMap', 'lightMap', 'envMap',
+            'specularMap', 'alphaMap', 'clearcoatMap', 'clearcoatNormalMap',
+            'clearcoatRoughnessMap', 'transmissionMap', 'thicknessMap',
+            'sheenColorMap', 'sheenRoughnessMap', 'iridescenceMap',
+            'iridescenceThicknessMap'
+          ];
+
+          textureKeys.forEach((key) => {
+            const texture = material[key as keyof typeof material] as THREE.Texture;
+            if (texture && typeof texture.dispose === 'function') {
+              texture.dispose();
+            }
+          });
+
+          // 재질 자체 해제
+          if (typeof material.dispose === 'function') {
+            material.dispose();
+          }
+        });
+      }
+
+      // 라인/포인트 지오메트리 해제
+      if ((child instanceof THREE.Line || child instanceof THREE.Points) && child.geometry) {
+        child.geometry.dispose();
+      }
+
+      // 스프라이트 재질 해제
+      if (child instanceof THREE.Sprite && child.material) {
+        if (child.material.map) {
+          child.material.map.dispose();
+        }
+        child.material.dispose();
+      }
+    });
+
+    // 부모에서 제거
+    if (object3D.parent) {
+      object3D.parent.remove(object3D);
+    }
+
+    // 객체 자체 정리
+    object3D.clear();
+  }
+
+  /**
    * 정리 타이머 시작
    */
   private startCleanupTimer(): void {
@@ -389,6 +507,12 @@ export const cacheUtils = {
     await Promise.all(promises);
     // console.log('✅ 모델 프리로딩 완료');
   },
+
+  // 모델 참조 해제
+  releaseModel: (modelPath: string) => modelCache.releaseModel(modelPath),
+
+  // 깊이 해제 함수
+  disposeDeep: (object3D: THREE.Object3D) => modelCache.disposeDeep(object3D),
 
   // 캐시 상태 확인
   getCacheStatus: () => modelCache.getStats(),

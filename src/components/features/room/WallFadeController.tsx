@@ -50,6 +50,19 @@ export default function WallFadeController() {
       maxZ: hiddenSides.has('maxZ') ? 0 : 1,
     };
 
+    // 디버깅 로그 추가 (개발 환경에서만)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🎯 WallFadeController 디버깅:', {
+        cameraPosition: { x: cam.x.toFixed(2), y: cam.y.toFixed(2), z: cam.z.toFixed(2) },
+        forward: { x: forward.x.toFixed(2), y: forward.y.toFixed(2), z: forward.z.toFixed(2) },
+        axisAligned,
+        hideCount,
+        hiddenSides: Array.from(hiddenSides),
+        target,
+        currentFades: fadesRef.current
+      });
+    }
+
     // ease towards target (same easing as Room previously)
     const ease = 0.15;
     const next = { ...fadesRef.current } as typeof fadesRef.current;

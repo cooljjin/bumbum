@@ -19,7 +19,8 @@ export const FloatingColorPalette: React.FC<FloatingColorPaletteProps> = ({
     handleColorReset,
     isColorChangerVisible,
     isColorPanelExpanded,
-    toggleColorPanel
+    toggleColorPanel,
+    setModelRef
   } = useColorChanger();
 
   const [position, setPosition] = useState({ x: 20, y: 100 });
@@ -68,15 +69,11 @@ export const FloatingColorPalette: React.FC<FloatingColorPaletteProps> = ({
   // 색상 변경 핸들러 (실제 3D 모델에 적용)
   const handleModelColorChange = (color: string) => {
     handleColorChange(color);
-    // TODO: 실제 3D 모델에 색상 적용 로직 추가
-    console.log(`🎨 색상 변경: ${selectedItem?.name} -> ${color}`);
   };
 
   // 색상 초기화 핸들러 (실제 3D 모델에 적용)
   const handleModelColorReset = () => {
     handleColorReset();
-    // TODO: 실제 3D 모델에 색상 초기화 로직 추가
-    console.log('🔄 색상 초기화');
   };
 
   // 가구가 선택되지 않았을 때는 표시하지 않음

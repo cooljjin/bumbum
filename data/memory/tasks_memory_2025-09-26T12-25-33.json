@@ -1,0 +1,136 @@
+{
+  "tasks": [
+    {
+      "id": "74e4d366-2293-4da7-80f0-12761776210a",
+      "name": "핵심 타입 정의 강화 및 문서화",
+      "description": "`types/editor.ts`에 PlacedItem, RoomBounds, Mount 규칙, Footprint 타입을 strict 기준으로 정리하고 JSDoc 추가",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-09-26T07:05:30.116Z",
+      "updatedAt": "2025-09-26T07:17:37.926Z",
+      "relatedFiles": [
+        {
+          "path": "src/types/editor.ts",
+          "type": "TO_MODIFY",
+          "description": "에디터/가구 배치 전반에 쓰일 핵심 타입 정의 파일"
+        },
+        {
+          "path": "README.md",
+          "type": "REFERENCE",
+          "description": "프로젝트 규칙을 인용하여 타입 문서화 기준 확정"
+        }
+      ],
+      "implementationGuide": "Define interfaces: PlacedItem { id,name,position,rotation,scale,footprint,mount? }, RoomBounds { width, depth, height, wallThickness }; Add type guards validatePlacedItem().",
+      "verificationCriteria": "TS strict에서 오류 없음, 모든 속성 JSDoc 존재, 기존 컴포넌트 타입 오류 미발생",
+      "analysisResult": "타입/스토어 선행 → 씬 경계 → 가구 상호작용 → 카탈로그/툴바 → 성능/메모리 → 테스트 순으로 점진 통합. 기존 컴포넌트 API 유지와 공용 유틸 분리로 성능 및 재사용성 확보.",
+      "summary": "types/editor.ts에 PlacedItem, RoomBounds, Mount, Footprint 타입을 strict 기준으로 정리하고 JSDoc 문서화 완료. 타입 가드 함수 isPlacedItem과 validatePlacedItem 추가하여 런타임 검증 지원. 모든 타입에 상세한 JSDoc 주석 추가하여 개발자 경험 향상.",
+      "completedAt": "2025-09-26T07:17:37.922Z"
+    },
+    {
+      "id": "0aef2505-db4d-4f7e-85c4-c447e1ccd14c",
+      "name": "Zustand 스토어 확장 및 셀렉터 최적화",
+      "description": "`store/editorStore.ts`에 edit/view 모드, add/remove/duplicate, updateItem, 선택/해제, 파생 셀렉터 및 shallow 비교 적용",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "74e4d366-2293-4da7-80f0-12761776210a"
+        }
+      ],
+      "createdAt": "2025-09-26T07:05:30.116Z",
+      "updatedAt": "2025-09-26T07:38:58.672Z",
+      "relatedFiles": [
+        {
+          "path": "src/store/editorStore.ts",
+          "type": "TO_MODIFY",
+          "description": "전역 편집/보기 모드 및 배치 항목을 관리하는 상태 스토어"
+        }
+      ],
+      "implementationGuide": "Extend EditorStore { mode: 'edit'|'view', placedItems, selectedItemId }. Add actions: setMode, addItem, updateItem, removeItem, duplicateItem, selectItem. Memoize selectors with shallow.",
+      "verificationCriteria": "액션 단위 테스트 통과, 불변성 유지, 불필요 리렌더 감소",
+      "analysisResult": "타입/스토어 선행 → 씬 경계 → 가구 상호작용 → 카탈로그/툴바 → 성능/메모리 → 테스트 순으로 점진 통합. 기존 컴포넌트 API 유지와 공용 유틸 분리로 성능 및 재사용성 확보.",
+      "summary": "Zustand 스토어에 shallow 비교를 적용한 파생 셀렉터들을 추가하여 성능 최적화 완료. useSelectedItem, useIsEditMode, useLockedItems, useItemsByCategory 등 15개의 파생 셀렉터 구현. 모든 셀렉터에 JSDoc 문서화 적용하여 개발자 경험 향상. 기존 액션들은 이미 잘 구현되어 있어 추가 작업 없이 완료.",
+      "completedAt": "2025-09-26T07:38:58.670Z"
+    },
+    {
+      "id": "6ac18982-8138-4810-89ab-6c8618f351c8",
+      "name": "충돌/스냅 유틸 구현",
+      "description": "`utils/collision.ts`에 AABB 기반 방 경계/벽 충돌 검사, 스냅-to-grid, NaN 방지 validate 함수 구현",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "74e4d366-2293-4da7-80f0-12761776210a"
+        }
+      ],
+      "createdAt": "2025-09-26T07:05:30.116Z",
+      "updatedAt": "2025-09-26T07:45:35.911Z",
+      "relatedFiles": [
+        {
+          "path": "src/utils/collision.ts",
+          "type": "CREATE",
+          "description": "충돌 검사와 스냅 로직을 제공하는 순수 유틸 모듈"
+        },
+        {
+          "path": "src/components/features/room/Room.tsx",
+          "type": "REFERENCE",
+          "description": "룸 경계 정보를 제공하는 컴포넌트 파일"
+        }
+      ],
+      "implementationGuide": "validateVector3(v); aabbFromFootprint(footprint, transform); intersectsRoomBounds(aabb, roomBounds); snapToGrid(v, grid=0.1)",
+      "verificationCriteria": "경계 밖 배치 금지, 그리드 스냅 정확, NaN 입력 가드 동작",
+      "analysisResult": "타입/스토어 선행 → 씬 경계 → 가구 상호작용 → 카탈로그/툴바 → 성능/메모리 → 테스트 순으로 점진 통합. 기존 컴포넌트 API 유지와 공용 유틸 분리로 성능 및 재사용성 확보.",
+      "summary": "utils/collision.ts에 AABB 기반 충돌 검사, 스냅 기능, NaN 방지 함수들을 성공적으로 구현했습니다. validateVector3, aabbFromFootprint, intersectsRoomBounds, snapToGrid 등 핵심 함수들이 완성되었고, 모든 함수에 적절한 에러 처리와 타입 안전성이 보장되었습니다.",
+      "completedAt": "2025-09-26T07:45:35.904Z"
+    },
+    {
+      "id": "716344d2-709e-46c2-bcdb-3655416ec785",
+      "name": "모델 캐시/디포즈 유틸 구현",
+      "description": "`utils/modelCache.ts`에 GLTF/텍스처 캐시 get/release, `disposeDeep` 구현",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-09-26T07:05:30.116Z",
+      "updatedAt": "2025-09-26T07:51:25.652Z",
+      "relatedFiles": [
+        {
+          "path": "src/utils/modelCache.ts",
+          "type": "CREATE",
+          "description": "모델/텍스처 로딩 재사용과 메모리 해제 헬퍼를 제공"
+        }
+      ],
+      "implementationGuide": "Map<string, LoadedAsset>; async getModel(id,url); refCount++; releaseModel(id)->refCount==0 then disposeDeep(object3D/material/geometry/textures)",
+      "verificationCriteria": "중복 로딩 방지, 해제 시 dispose 호출 확인",
+      "analysisResult": "타입/스토어 선행 → 씬 경계 → 가구 상호작용 → 카탈로그/툴바 → 성능/메모리 → 테스트 순으로 점진 통합. 기존 컴포넌트 API 유지와 공용 유틸 분리로 성능 및 재사용성 확보.",
+      "summary": "utils/modelCache.ts에 refCount 기반의 get/release 시스템과 disposeDeep 함수를 성공적으로 구현했습니다. 중복 로딩 방지를 위한 참조 카운트 관리, 메모리 해제 시 dispose 호출 확인, 그리고 모든 Three.js 리소스(지오메트리, 재질, 텍스처)를 깊이 있게 해제하는 기능이 완성되었습니다.",
+      "completedAt": "2025-09-26T07:51:25.650Z"
+    },
+    {
+      "id": "afe864e3-ac5b-42be-b610-7d667c56cc66",
+      "name": "Real3DRoom/Room 성능 옵션 및 경계 제공",
+      "description": "`components/Real3DRoom.tsx`에 LOD/프러스텀 토글, Suspense/lazy 적용; `features/room/Room.tsx`에서 RoomBounds 제공",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "74e4d366-2293-4da7-80f0-12761776210a"
+        }
+      ],
+      "createdAt": "2025-09-26T07:05:30.116Z",
+      "updatedAt": "2025-09-26T08:15:42.394Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/Real3DRoom.tsx",
+          "type": "TO_MODIFY",
+          "description": "3D 씬 컨테이너로 성능 옵션과 상태 연결 지점"
+        },
+        {
+          "path": "src/components/features/room/Room.tsx",
+          "type": "TO_MODIFY",
+          "description": "바닥/벽/천장 및 룸 경계 정보 제공 컴포넌트"
+        }
+      ],
+      "implementationGuide": "Add props performanceOptions, provide RoomBounds via context or prop drilling; backward-compatible defaults",
+      "verificationCriteria": "기존 동작 유지, 옵션 기본값에서 성능 저하 없음, 경계 정보 접근 가능",
+      "analysisResult": "타입/스토어 선행 → 씬 경계 → 가구 상호작용 → 카탈로그/툴바 → 성능/메모리 → 테스트 순으로 점진 통합. 기존 컴포넌트 API 유지와 공용 유틸 분리로 성능 및 재사용성 확보.",
+      "summary": "Real3DRoom/Room 성능 옵션 및 경계 제공 작업을 성공적으로 완료했습니다. \n\n주요 구현 사항:\n1. **성능 옵션 타입 정의**: PerformanceOptions 인터페이스를 types/editor.ts에 추가하여 LOD, 프러스텀 컬링, 그림자 품질, 텍스처 압축, FPS 제한, 메모리 제한 옵션을 정의했습니다.\n\n2. **Real3DRoom 컴포넌트 확장**: \n   - performanceOptions와 onRoomBoundsChange props 추가\n   - 기본 성능 옵션 설정 (DEFAULT_PERFORMANCE_OPTIONS)\n   - 성능 옵션 병합 로직 (useMemo 활용)\n   - Suspense 설정을 성능 옵션에 따라 동적 적용\n\n3. **Room 컴포넌트 경계 정보 제공**:\n   - onBoundsChange 콜백 prop 추가\n   - useEffect를 통해 룸 경계 정보를 부모 컴포넌트에 전달\n   - RoomBounds 타입을 활용한 타입 안전성 확보\n\n4. **Canvas3D 성능 최적화**:\n   - 성능 옵션을 받아서 WebGL 렌더러에 적용\n   - 그림자 품질 설정 (low/medium/high)\n   - 텍스처 압축 및 WebGL 확장 활용\n   - 프러스텀 컬링 설정 (주석 처리)\n\n5. **LOD (Level of Detail) 시스템 구현**:\n   - LODController 컴포넌트 생성\n   - 카메라 거리별 렌더링 품질 조절\n   - 성능 옵션에 따른 LOD 레벨 동적 생성\n   - 가구 렌더링에 LOD 적용\n\n6. **Suspense 및 Lazy Loading**:\n   - 기존 dynamic import 유지\n   - 성능 옵션에 따른 Suspense fallback 설정\n   - LOD 컨트롤러에 Suspense 래핑\n\n모든 구현이 기존 동작을 유지하면서 성능 최적화 옵션을 제공하며, 타입 안전성을 보장합니다.",
+      "completedAt": "2025-09-26T08:15:42.384Z"
+    }
+  ]
+}

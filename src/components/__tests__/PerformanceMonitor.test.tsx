@@ -1,11 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PerformanceMonitor } from '../shared/PerformanceMonitor';
-import { performanceOptimizer } from '../../utils/performanceOptimizer';
+import { performanceManager } from '../../utils/PerformanceManager';
 import { memoryLeakDetector } from '../../utils/memoryLeakDetector';
 
 // Mock dependencies
-jest.mock('../../utils/performanceOptimizer');
+jest.mock('../../utils/PerformanceManager');
 jest.mock('../../utils/memoryLeakDetector');
 jest.mock('@react-three/fiber', () => ({
   useThree: () => ({
@@ -24,7 +24,7 @@ jest.mock('@react-three/fiber', () => ({
   useFrame: jest.fn()
 }));
 
-const mockPerformanceOptimizer = performanceOptimizer as jest.Mocked<typeof performanceOptimizer>;
+const mockPerformanceManager = performanceManager as jest.Mocked<typeof performanceManager>;
 const mockMemoryLeakDetector = memoryLeakDetector as jest.Mocked<typeof memoryLeakDetector>;
 
 describe('PerformanceMonitor', () => {
@@ -128,7 +128,7 @@ describe('PerformanceMonitor', () => {
         fixFunction: jest.fn()
       };
 
-      mockPerformanceOptimizer.updateMetrics.mockReturnValue([mockSuggestion]);
+      mockPerformanceManager.getSuggestions.mockReturnValue([mockSuggestion]);
 
       render(
         <PerformanceMonitor 
@@ -139,7 +139,7 @@ describe('PerformanceMonitor', () => {
 
       // 제안이 처리될 수 있는지 확인
       await waitFor(() => {
-        expect(mockPerformanceOptimizer.updateMetrics).toHaveBeenCalled();
+        expect(mockPerformanceManager.getSuggestions).toHaveBeenCalled();
       });
     });
   });

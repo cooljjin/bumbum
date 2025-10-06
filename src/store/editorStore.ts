@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector, devtools } from 'zustand/middleware';
 import { Vector3, Euler } from 'three';
+import { startTransition } from 'react';
 import {
   EditorStore,
   EditorState,
@@ -419,7 +420,9 @@ export const useEditorStore = create<EditorStore>()(
       clearSelection: () => {
         const currentSelectedId = get().selectedItemId;
         if (currentSelectedId !== null) {
-          set({ selectedItemId: null });
+          startTransition(() => {
+            set({ selectedItemId: null });
+          });
         }
       },
 
@@ -989,6 +992,172 @@ export const useSelectedCategory = () => useEditorStore(state => state.selectedC
 export const useScrollLockEnabled = () => useEditorStore(state => state.scrollLockEnabled);
 export const useCurrentFloorTexture = () => useEditorStore(state => state.currentFloorTexture);
 export const useCurrentWallTexture = () => useEditorStore(state => state.currentWallTexture);
+
+// 아이템 선택 상태 셀렉터
+export const useIsItemSelected = (id: string) =>
+  useEditorStore(state => state.selectedItemId === id);
+
+// 파생 셀렉터들 (shallow 비교 적용)
+/**
+ * 선택된 아이템 정보를 반환하는 셀렉터
+ * @returns 선택된 아이템 또는 null
+ */
+export const useSelectedItem = () => useEditorStore(
+  state => {
+    const { placedItems, selectedItemId } = state;
+    return selectedItemId ? placedItems.find(item => item.id === selectedItemId) || null : null;
+  }
+);
+
+/**
+ * 편집 모드 여부를 반환하는 셀렉터
+ * @returns 편집 모드인지 여부
+ */
+export const useIsEditMode = () => useEditorStore(state => state.mode === 'edit');
+
+/**
+ * 뷰 모드 여부를 반환하는 셀렉터
+ * @returns 뷰 모드인지 여부
+ */
+export const useIsViewMode = () => useEditorStore(state => state.mode === 'view');
+
+/**
+ * 아이템이 선택되었는지 여부를 반환하는 셀렉터
+ * @returns 아이템이 선택되었는지 여부
+ */
+export const useHasSelectedItem = () => useEditorStore(state => state.selectedItemId !== null);
+
+/**
+ * 배치된 아이템 수를 반환하는 셀렉터
+ * @returns 배치된 아이템 수
+ */
+export const usePlacedItemsCount = () => useEditorStore(state => state.placedItems.length);
+
+/**
+ * 고정된 아이템들만 필터링하여 반환하는 셀렉터
+ * @returns 고정된 아이템 배열
+ */
+export const useLockedItems = () => useEditorStore(
+  state => state.placedItems.filter(item => item.isLocked)
+);
+
+/**
+ * 고정되지 않은 아이템들만 필터링하여 반환하는 셀렉터
+ * @returns 고정되지 않은 아이템 배열
+ */
+export const useUnlockedItems = () => useEditorStore(
+  state => state.placedItems.filter(item => !item.isLocked)
+);
+
+/**
+ * 특정 카테고리의 아이템들만 필터링하여 반환하는 셀렉터
+ * @returns 선택된 카테고리의 아이템 배열
+ */
+export const useItemsByCategory = () => useEditorStore(
+  state => {
+    const { placedItems, selectedCategory } = state;
+    if (selectedCategory === 'all') return placedItems;
+    return placedItems.filter(item => item.metadata?.category === selectedCategory);
+  }
+);
+
+/**
+ * 벽에 부착된 아이템들만 필터링하여 반환하는 셀렉터
+ * @returns 벽에 부착된 아이템 배열
+ */
+export const useWallMountedItems = () => useEditorStore(
+  state => state.placedItems.filter(item => item.mount?.type === 'wall')
+);
+
+/**
+ * 바닥에 배치된 아이템들만 필터링하여 반환하는 셀렉터
+ * @returns 바닥에 배치된 아이템 배열
+ */
+export const useFloorItems = () => useEditorStore(
+  state => state.placedItems.filter(item => !item.mount?.type)
+);
+
+/**
+ * 히스토리 상태를 반환하는 셀렉터
+ * @returns 히스토리 상태 객체
+ */
+export const useHistoryState = () => useEditorStore(
+  state => ({
+    canUndo: state.history.past.length > 0,
+    canRedo: state.history.future.length > 0,
+    pastCount: state.history.past.length,
+    futureCount: state.history.future.length
+  })
+);
+
+/**
+ * 그리드 설정과 스냅 설정을 함께 반환하는 셀렉터
+ * @returns 그리드 및 스냅 설정 객체
+ */
+export const useSnapSettings = () => useEditorStore(
+  state => ({
+    grid: state.grid,
+    rotationSnap: state.rotationSnap,
+    snapStrength: state.snapStrength
+  })
+);
+
+/**
+ * UI 상태를 함께 반환하는 셀렉터
+ * @returns UI 상태 객체
+ */
+export const useUIState = () => useEditorStore(
+  state => ({
+    isDragging: state.isDragging,
+    draggingItemId: state.draggingItemId,
+    showGrid: state.showGrid,
+    showBoundingBoxes: state.showBoundingBoxes,
+    scrollLockEnabled: state.scrollLockEnabled
+  })
+);
+
+/**
+ * 텍스처 설정을 함께 반환하는 셀렉터
+ * @returns 텍스처 설정 객체
+ */
+export const useTextureSettings = () => useEditorStore(
+  state => ({
+    currentFloorTexture: state.currentFloorTexture,
+    currentWallTexture: state.currentWallTexture
+  })
+);
+
+/**
+ * 자동 고정 설정을 반환하는 셀렉터
+ * @returns 자동 고정 설정 객체
+ */
+export const useAutoLockSettings = () => useEditorStore(
+  state => state.autoLock
+);
+
+/**
+ * 선택된 아이템의 메타데이터를 반환하는 셀렉터
+ * @returns 선택된 아이템의 메타데이터 또는 null
+ */
+export const useSelectedItemMetadata = () => useEditorStore(
+  state => {
+    const { placedItems, selectedItemId } = state;
+    const selectedItem = selectedItemId ? placedItems.find(item => item.id === selectedItemId) : null;
+    return selectedItem?.metadata || null;
+  }
+);
+
+/**
+ * 선택된 아이템의 스냅 설정을 반환하는 셀렉터
+ * @returns 선택된 아이템의 스냅 설정 또는 null
+ */
+export const useSelectedItemSnapSettings = () => useEditorStore(
+  state => {
+    const { placedItems, selectedItemId } = state;
+    const selectedItem = selectedItemId ? placedItems.find(item => item.id === selectedItemId) : null;
+    return selectedItem?.snapSettings || null;
+  }
+);
 
 // 액션 함수들
 export const {

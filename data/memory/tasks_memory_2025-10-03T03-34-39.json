@@ -1,0 +1,48 @@
+{
+  "tasks": [
+    {
+      "id": "d49e9214-95e2-4e47-81ac-11ed7f4f5b63",
+      "name": "관리자 페이지에 바닥 에셋 관리 탭 추가",
+      "description": "기존 가구 라이브러리 관리 페이지(/src/app/dev/library/page.tsx)에 탭 UI를 추가하여 '가구 에셋 관리'와 '바닥 에셋 관리' 탭을 구현한다. 기존 3컬럼 레이아웃과 CRUD 로직을 바닥 메테리얼 관리에 재사용한다.",
+      "notes": "기존 useObjectUrl 훅과 파일 업로드 로직을 그대로 재사용한다. 바닥 메테리얼은 GLB 파일 대신 이미지 파일(jpg/png)을 업로드한다.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-10-02T07:08:17.775Z",
+      "updatedAt": "2025-10-02T07:09:36.076Z",
+      "relatedFiles": [
+        {
+          "path": "src/app/dev/library/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "탭 UI 추가 및 바닥 메테리얼 관리 로직 구현"
+        }
+      ],
+      "implementationGuide": "1. 탭 상태 관리 추가: const [activeTab, setActiveTab] = useState<'furniture' | 'floor'>('furniture');\\n2. 바닥 메테리얼 필터링 함수 구현: const floorMaterials = items.filter(item => item.category === 'floor');\\n3. 탭 UI 컴포넌트 추가: 기존 헤더 아래에 탭 버튼들 배치\\n4. 조건부 렌더링: activeTab에 따라 furnitureItems 또는 floorMaterials 표시\\n5. 기존 CRUD 로직 재사용: 바닥 메테리얼도 동일한 편집/삭제/추가 로직 사용",
+      "verificationCriteria": "1. 관리자 페이지에 '가구 에셋 관리'와 '바닥 에셋 관리' 탭이 정상 표시되어야 한다\\n2. 바닥 에셋 관리 탭에서 바닥 메테리얼 목록이 정상 표시되어야 한다\\n3. 바닥 메테리얼 추가/편집/삭제 기능이 정상 동작해야 한다\\n4. 기존 가구 관리 기능에 영향이 없어야 한다",
+      "analysisResult": "가구 라이브러리 관리 페이지에 \"바닥 에셋 관리\" 탭을 추가하고, 미니룸 가구 라이브러리 UI에도 \"바닥\" 탭을 추가하여 바닥 메테리얼을 동일하게 관리 및 선택할 수 있도록 기능을 확장한다. 기존 컴포넌트와 로직을 확장하는 방식으로만 구현하며, 새로운 독립 컴포넌트 생성은 금지한다.",
+      "summary": "관리자 페이지에 \"가구 에셋 관리\"와 \"바닥 에셋 관리\" 탭을 성공적으로 추가했습니다. 탭 UI, 바닥 메테리얼 필터링, 동적 제목 변경, 파일 업로드 타입 변경, footprint 자동 설정 등 모든 기능이 구현되었습니다. 기존 가구 관리 기능은 그대로 유지되며, 바닥 메테리얼은 이미지 파일 업로드와 적절한 footprint 설정으로 관리됩니다.",
+      "completedAt": "2025-10-02T07:09:36.075Z"
+    },
+    {
+      "id": "98970bfb-19ef-4ce4-a44f-e7492161402c",
+      "name": "바닥 메테리얼 데이터 추가",
+      "description": "기존 가구 카탈로그 데이터(/src/data/furnitureCatalog.ts)에 다양한 바닥 메테리얼을 추가한다. 기존 'floor-wooden' 외에 대리석, 타일, 카펫 등 다양한 바닥 메테리얼을 정의한다.",
+      "notes": "기존 'floor-wooden' 아이템의 구조를 참고하여 일관성 있게 구현한다. 텍스처 파일은 public/models/floor/ 디렉토리에 저장한다.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-10-02T07:08:17.775Z",
+      "updatedAt": "2025-10-02T07:12:34.856Z",
+      "relatedFiles": [
+        {
+          "path": "src/data/furnitureCatalog.ts",
+          "type": "TO_MODIFY",
+          "description": "바닥 메테리얼 데이터 추가"
+        }
+      ],
+      "implementationGuide": "1. sampleFurniture 배열에 바닥 메테리얼 추가\\n2. 각 바닥 메테리얼의 category를 'floor'로 설정\\n3. modelPath는 텍스처 이미지 경로로 설정 (예: '/models/floor/floor_marble.png')\\n4. footprint는 방 크기에 맞게 큰 값으로 설정 (width: 10, depth: 10, height: 0.02)\\n5. placement.canRotate는 false로 설정 (바닥은 회전하지 않음)\\n6. metadata에 적절한 설명, 태그, 가격 정보 포함",
+      "verificationCriteria": "1. sampleFurniture 배열에 최소 3개 이상의 바닥 메테리얼이 추가되어야 한다\\n2. 모든 바닥 메테리얼의 category가 'floor'로 설정되어야 한다\\n3. 각 바닥 메테리얼의 footprint와 placement 설정이 적절해야 한다\\n4. metadata 정보가 완전하고 일관성 있어야 한다",
+      "analysisResult": "가구 라이브러리 관리 페이지에 \"바닥 에셋 관리\" 탭을 추가하고, 미니룸 가구 라이브러리 UI에도 \"바닥\" 탭을 추가하여 바닥 메테리얼을 동일하게 관리 및 선택할 수 있도록 기능을 확장한다. 기존 컴포넌트와 로직을 확장하는 방식으로만 구현하며, 새로운 독립 컴포넌트 생성은 금지한다.",
+      "summary": "바닥 메테리얼 데이터 추가 완료: carpet.png를 포함한 5개의 바닥 메테리얼(나무, 카펫, 대리석, 타일, 콘크리트)을 sampleFurniture 배열에 추가했습니다. 모든 바닥 메테리얼은 category: 'floor'로 설정하고, footprint는 10x10x0.02로 방 크기에 맞게 설정했습니다. placement.canRotate는 false로, renderSettings.castShadow는 false로 설정하여 바닥 특성에 맞게 구성했습니다. 각 메테리얼마다 고유한 브랜드, 가격, 설명, 태그, 재질, 색상 정보를 포함한 완전한 metadata를 제공했습니다.",
+      "completedAt": "2025-10-02T07:12:34.856Z"
+    }
+  ]
+}

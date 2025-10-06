@@ -1,20 +1,25 @@
 'use client';
 
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect, useCallback } from 'react';
 import { useFrame, useThree, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getCurrentRoomDimensions } from '../../../utils/roomBoundary';
 import { useWallFades } from '../../../store/wallVisibilityStore';
 import { patchObjectWithWallFade, setWallFadeValue, applyFadeFlagsToObject } from '@/lib/wallFadeShader';
 import { setVisibleWalls, setWallFades } from '../../../store/wallVisibilityStore';
+import { RoomBounds } from '../../../types/editor';
+import { useEditorStore } from '../../../store/editorStore';
+import { WallSelectionOutline } from '../../shared/SelectionOutline';
 
 interface RoomProps {
   receiveShadow?: boolean;
   floorTexturePath?: string;
   wallTexturePath?: string;
+  /** 룸 경계 정보 콜백 */
+  onBoundsChange?: ((bounds: RoomBounds) => void) | undefined;
 }
 
-export default function Room({ receiveShadow = false, floorTexturePath, wallTexturePath }: RoomProps) {
+export default function Room({ receiveShadow = false, floorTexturePath, wallTexturePath, onBoundsChange }: RoomProps) {
   const roomRef = useRef<THREE.Group>(null);
   const dims = getCurrentRoomDimensions();
   const wallThickness = dims.wallThickness; // 벽 두께 (미터)
@@ -34,6 +39,12 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
   const ceilingMatRef = useRef<THREE.MeshStandardMaterial>(null);
   const { camera } = useThree();
 
+  // 벽 선택 상태 관리 - 전역 상태 사용
+  const { selectedItemId, selectItem } = useEditorStore();
+  
+  // 벽 선택 상태는 전역 selectedItemId로 관리 (벽 ID는 'wall-' 접두사 사용)
+  const selectedWallId = selectedItemId?.startsWith('wall-') ? selectedItemId : null;
+
   // 페이드 상태 추적 (0: 숨김, 1: 표시)
   const fadeRef = useRef<Record<string, number>>({
     back: 1,
@@ -47,6 +58,65 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
   const lastCamPos = useRef<THREE.Vector3>(new THREE.Vector3());
 
   const wallFades = useWallFades();
+
+  // 벽 클릭 핸들러
+  const handleWallClick = useCallback((wallId: string, event: any) => {
+    // 유효한 벽 ID인지 확인
+    const validWallIds = ['back-wall', 'front-wall', 'left-wall', 'right-wall'];
+    if (!validWallIds.includes(wallId)) {
+      console.warn('⚠️ 유효하지 않은 벽 ID:', wallId);
+      return;
+    }
+
+    // 클릭 불가능한 오브젝트인지 확인 (planeGeometry 등)
+    try {
+      const target = event?.target;
+      if (target && target.geometry && target.geometry.type === 'PlaneGeometry') {
+        // 평면 지오메트리는 클릭 가능
+      } else {
+        console.warn('⚠️ 클릭 불가능한 오브젝트:', target);
+        return;
+      }
+    } catch (error) {
+      console.warn('⚠️ 오브젝트 타입 확인 실패:', error);
+    }
+
+    // 이벤트 전파 방지
+    try {
+      event?.stopPropagation?.();
+      event?.nativeEvent?.stopPropagation?.();
+    } catch (error) {
+      console.warn('⚠️ 이벤트 전파 방지 실패:', error);
+    }
+
+    // 벽 클릭 시간 기록 (빈 공간 클릭 판별용)
+    if (typeof window !== 'undefined') {
+      try {
+        (window as any).lastFurnitureClickTime = Date.now();
+      } catch (error) {
+        console.warn('⚠️ 클릭 시간 기록 실패:', error);
+      }
+    }
+
+    // 전역 상태로 벽 선택 (벽 ID에 'wall-' 접두사 추가)
+    const wallSelectionId = `wall-${wallId}`;
+    selectItem(wallSelectionId);
+
+    console.log('✅ 벽 선택:', wallId, '→ 전역 ID:', wallSelectionId);
+  }, [selectItem]);
+
+  // 룸 경계 정보를 부모 컴포넌트에 전달
+  useEffect(() => {
+    if (onBoundsChange) {
+      const bounds: RoomBounds = {
+        width: dims.width,
+        depth: dims.depth,
+        height: dims.height,
+        wallThickness: dims.wallThickness
+      };
+      onBoundsChange(bounds);
+    }
+  }, [dims, onBoundsChange]);
 
   // Store-driven fade application (values computed by WallFadeController)
   useFrame(() => {
@@ -157,7 +227,13 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
 
       {/* 벽들 - 평면 지오메트리로 정확한 UV 매핑 및 개별 텍스처 적용 */}
       {/* 뒤쪽 벽 */}
-      <mesh ref={backWallRef} position={[0, height / 2, -halfDepth]} receiveShadow={receiveShadow} raycast={() => undefined}>
+      <mesh 
+        ref={backWallRef} 
+        position={[0, height / 2, -halfDepth]} 
+        receiveShadow={receiveShadow}
+        onClick={(event) => handleWallClick('back-wall', event)}
+        userData={{ isWall: true, wallId: 'back-wall' }}
+      >
         <planeGeometry args={[dims.width, height]} />
         <meshStandardMaterial
           ref={backMatRef}
@@ -170,7 +246,14 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
       </mesh>
 
       {/* 왼쪽 벽 */}
-      <mesh ref={leftWallRef} position={[-halfWidth, height / 2, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow={receiveShadow} raycast={() => undefined}>
+      <mesh 
+        ref={leftWallRef} 
+        position={[-halfWidth, height / 2, 0]} 
+        rotation={[0, Math.PI / 2, 0]} 
+        receiveShadow={receiveShadow}
+        onClick={(event) => handleWallClick('left-wall', event)}
+        userData={{ isWall: true, wallId: 'left-wall' }}
+      >
         <planeGeometry args={[dims.depth, height]} />
         <meshStandardMaterial
           ref={leftMatRef}
@@ -183,7 +266,14 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
       </mesh>
 
       {/* 오른쪽 벽 */}
-      <mesh ref={rightWallRef} position={[halfWidth, height / 2, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow={receiveShadow} raycast={() => undefined}>
+      <mesh 
+        ref={rightWallRef} 
+        position={[halfWidth, height / 2, 0]} 
+        rotation={[0, -Math.PI / 2, 0]} 
+        receiveShadow={receiveShadow}
+        onClick={(event) => handleWallClick('right-wall', event)}
+        userData={{ isWall: true, wallId: 'right-wall' }}
+      >
         <planeGeometry args={[dims.depth, height]} />
         <meshStandardMaterial
           ref={rightMatRef}
@@ -196,7 +286,14 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
       </mesh>
 
       {/* 앞쪽 벽 (입구 쪽) */}
-      <mesh ref={frontWallRef} position={[0, height / 2, halfDepth]} rotation={[0, Math.PI, 0]} receiveShadow={receiveShadow} raycast={() => undefined}>
+      <mesh 
+        ref={frontWallRef} 
+        position={[0, height / 2, halfDepth]} 
+        rotation={[0, Math.PI, 0]} 
+        receiveShadow={receiveShadow}
+        onClick={(event) => handleWallClick('front-wall', event)}
+        userData={{ isWall: true, wallId: 'front-wall' }}
+      >
         <planeGeometry args={[dims.width, height]} />
         <meshStandardMaterial
           ref={frontMatRef}
@@ -226,6 +323,55 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
           opacity={1}
         />
       </mesh>
+
+      {/* 벽 선택 바운더리 표시 - 전역 상태 기반 */}
+      {selectedWallId && (
+        <>
+          {/* 뒤쪽 벽 선택 바운더리 */}
+          {selectedWallId === 'wall-back-wall' && (
+            <WallSelectionOutline
+              size={[dims.width, height]}
+              position={[0, height / 2, -halfDepth]}
+              rotation={[0, 0, 0]}
+              isSelected={true}
+              meshRef={backWallRef}
+            />
+          )}
+          
+          {/* 왼쪽 벽 선택 바운더리 */}
+          {selectedWallId === 'wall-left-wall' && (
+            <WallSelectionOutline
+              size={[dims.depth, height]}
+              position={[-halfWidth, height / 2, 0]}
+              rotation={[0, Math.PI / 2, 0]}
+              isSelected={true}
+              meshRef={leftWallRef}
+            />
+          )}
+          
+          {/* 오른쪽 벽 선택 바운더리 */}
+          {selectedWallId === 'wall-right-wall' && (
+            <WallSelectionOutline
+              size={[dims.depth, height]}
+              position={[halfWidth, height / 2, 0]}
+              rotation={[0, -Math.PI / 2, 0]}
+              isSelected={true}
+              meshRef={rightWallRef}
+            />
+          )}
+          
+          {/* 앞쪽 벽 선택 바운더리 */}
+          {selectedWallId === 'wall-front-wall' && (
+            <WallSelectionOutline
+              size={[dims.width, height]}
+              position={[0, height / 2, halfDepth]}
+              rotation={[0, Math.PI, 0]}
+              isSelected={true}
+              meshRef={frontWallRef}
+            />
+          )}
+        </>
+      )}
 
 
 

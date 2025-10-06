@@ -1,10 +1,61 @@
 import { Vector3, Euler } from 'three';
 
-// 편집 모드 타입
+/**
+ * 편집 모드 타입
+ * @description 뷰 모드와 편집 모드를 구분하는 타입
+ */
 export type Mode = 'view' | 'edit';
 
-// 편집 도구 타입
+/**
+ * 편집 도구 타입
+ * @description 사용 가능한 편집 도구들을 정의하는 타입
+ */
 export type Tool = 'select' | 'translate' | 'rotate' | 'scale' | 'delete' | 'duplicate';
+
+/**
+ * 가구 아이템의 발자국(Footprint) 타입
+ * @description 3D 공간에서 가구가 차지하는 영역의 크기를 정의
+ */
+export interface Footprint {
+  /** 가구의 너비 (X축 방향) */
+  width: number;
+  /** 가구의 깊이 (Z축 방향) */
+  depth: number;
+  /** 가구의 높이 (Y축 방향) */
+  height: number;
+}
+
+/**
+ * 룸의 경계 정보 타입
+ * @description 3D 룸의 크기와 벽 두께를 정의
+ */
+export interface RoomBounds {
+  /** 룸의 너비 (X축 방향) */
+  width: number;
+  /** 룸의 깊이 (Z축 방향) */
+  depth: number;
+  /** 룸의 높이 (Y축 방향) */
+  height: number;
+  /** 벽의 두께 */
+  wallThickness: number;
+}
+
+/**
+ * 벽 부착 정보 타입
+ * @description 가구가 벽에 부착될 때의 위치와 방향 정보
+ */
+export interface Mount {
+  /** 부착 타입 (현재는 벽만 지원) */
+  type: 'wall';
+  /** 부착할 벽면 ('minX' | 'maxX' | 'minZ' | 'maxZ') */
+  side: 'minX' | 'maxX' | 'minZ' | 'maxZ';
+  /** 벽 길이 방향 위치 (로컬 1D 좌표, 0~1 범위) */
+  u: number;
+  /** 바닥에서의 높이 (Y축 좌표) */
+  height: number;
+  /** 벽으로부터의 추가 오프셋 (기본값: 0) */
+  offset?: number;
+}
 
 // 압축된 상태 타입
 export interface CompressedState {
@@ -19,42 +70,55 @@ export interface CompressedState {
   description: string;
 }
 
-// 가구 아이템 타입 (기존 FurnitureItem 확장)
+/**
+ * 배치된 가구 아이템 타입
+ * @description 3D 공간에 배치된 가구의 모든 정보를 포함하는 핵심 타입
+ */
 export interface PlacedItem {
+  /** 고유 식별자 */
   id: string;
+  /** 가구 이름 */
   name: string;
+  /** 3D 모델 파일 경로 */
   modelPath: string;
+  /** 3D 공간에서의 위치 (Vector3) */
   position: Vector3;
+  /** 3D 공간에서의 회전 (Euler) */
   rotation: Euler;
+  /** 3D 공간에서의 크기 (Vector3) */
   scale: Vector3;
-  footprint: {
-    width: number;
-    depth: number;
-    height: number;
-  };
-  // 벽 부착 정보 (벽 전용 객체에서 사용)
-  mount?: {
-    type: 'wall';
-    side: 'minX' | 'maxX' | 'minZ' | 'maxZ'; // 어느 벽면인지
-    u: number;       // 벽 길이 방향 위치 (로컬 1D)
-    height: number;  // 바닥에서 높이(Y)
-    offset?: number; // 벽으로부터 추가 오프셋(기본 0)
-  };
+  /** 가구가 차지하는 영역의 크기 */
+  footprint: Footprint;
+  /** 벽 부착 정보 (벽 전용 객체에서 사용) */
+  mount?: Mount;
+  /** 가구 메타데이터 */
   metadata?: {
+    /** 카테고리 */
     category: string;
+    /** 브랜드 */
     brand?: string;
+    /** 가격 */
     price?: number;
+    /** 설명 */
     description?: string;
+    /** 가구 ID */
     furnitureId?: string;
   };
-  isLocked?: boolean; // 객체 고정 여부
+  /** 객체 고정 여부 */
+  isLocked?: boolean;
+  /** 스냅 설정 (객체 고정 시 저장) */
   snapSettings?: {
+    /** 그리드 스냅 활성화 */
     gridEnabled: boolean;
+    /** 회전 스냅 활성화 */
     rotationSnapEnabled: boolean;
+    /** 회전 스냅 각도 */
     rotationSnapAngle: number;
+    /** 그리드 크기 */
     gridSize: number;
+    /** 그리드 분할 수 */
     gridDivisions: number;
-  }; // 객체 고정 시의 스냅 설정 저장
+  };
 }
 
 // 그리드 설정 타입
@@ -222,5 +286,151 @@ export interface EditorActions {
   setWallTexture: (texturePath: string) => void;
 }
 
+/**
+ * 성능 옵션 타입
+ * @description 3D 렌더링 성능을 제어하는 옵션들
+ */
+export interface PerformanceOptions {
+  /** LOD (Level of Detail) 활성화 여부 */
+  enableLOD: boolean;
+  /** 프러스텀 컬링 활성화 여부 */
+  enableFrustumCulling: boolean;
+  /** 그림자 품질 설정 */
+  shadowQuality: 'low' | 'medium' | 'high';
+  /** 텍스처 압축 활성화 여부 */
+  enableTextureCompression: boolean;
+  /** 애니메이션 프레임 제한 */
+  maxFPS: number;
+  /** 메모리 사용량 제한 (MB) */
+  memoryLimit: number;
+}
+
+/**
+ * 룸 경계 컨텍스트 타입
+ * @description Room 컴포넌트에서 제공하는 경계 정보
+ */
+export interface RoomBoundsContext {
+  /** 룸의 경계 정보 */
+  bounds: RoomBounds;
+  /** 경계 정보 업데이트 함수 */
+  updateBounds: (newBounds: RoomBounds) => void;
+  /** 가구가 룸 내부에 있는지 확인하는 함수 */
+  isItemInBounds: (item: PlacedItem) => boolean;
+}
+
 // 편집 스토어 타입
 export type EditorStore = EditorState & EditorActions;
+
+/**
+ * PlacedItem 타입 가드 함수
+ * @param obj 검증할 객체
+ * @returns PlacedItem인지 여부
+ */
+export function isPlacedItem(obj: any): obj is PlacedItem {
+  return (
+    obj &&
+    typeof obj === 'object' &&
+    typeof obj.id === 'string' &&
+    typeof obj.name === 'string' &&
+    typeof obj.modelPath === 'string' &&
+    obj.position &&
+    obj.rotation &&
+    obj.scale &&
+    obj.footprint &&
+    typeof obj.footprint.width === 'number' &&
+    typeof obj.footprint.depth === 'number' &&
+    typeof obj.footprint.height === 'number' &&
+    !isNaN(obj.footprint.width) &&
+    !isNaN(obj.footprint.depth) &&
+    !isNaN(obj.footprint.height)
+  );
+}
+
+/**
+ * PlacedItem 유효성 검증 함수
+ * @param item 검증할 PlacedItem
+ * @returns 유효성 검증 결과
+ */
+export function validatePlacedItem(item: PlacedItem): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  // 기본 필수 필드 검증
+  if (!item.id || typeof item.id !== 'string') {
+    errors.push('id는 필수 문자열이어야 합니다.');
+  }
+
+  if (!item.name || typeof item.name !== 'string') {
+    errors.push('name은 필수 문자열이어야 합니다.');
+  }
+
+  if (!item.modelPath || typeof item.modelPath !== 'string') {
+    errors.push('modelPath는 필수 문자열이어야 합니다.');
+  }
+
+  // Vector3 검증
+  if (!item.position || !Array.isArray(item.position) || item.position.length !== 3) {
+    errors.push('position은 3개 요소의 배열이어야 합니다.');
+  } else {
+    const [x, y, z] = item.position;
+    if (isNaN(x) || isNaN(y) || isNaN(z)) {
+      errors.push('position의 모든 요소는 유효한 숫자여야 합니다.');
+    }
+  }
+
+  // Euler 검증
+  if (!item.rotation || !Array.isArray(item.rotation) || item.rotation.length !== 3) {
+    errors.push('rotation은 3개 요소의 배열이어야 합니다.');
+  } else {
+    const [x, y, z] = item.rotation;
+    if (isNaN(x) || isNaN(y) || isNaN(z)) {
+      errors.push('rotation의 모든 요소는 유효한 숫자여야 합니다.');
+    }
+  }
+
+  // Vector3 검증
+  if (!item.scale || !Array.isArray(item.scale) || item.scale.length !== 3) {
+    errors.push('scale은 3개 요소의 배열이어야 합니다.');
+  } else {
+    const [x, y, z] = item.scale;
+    if (isNaN(x) || isNaN(y) || isNaN(z)) {
+      errors.push('scale의 모든 요소는 유효한 숫자여야 합니다.');
+    }
+  }
+
+  // Footprint 검증
+  if (!item.footprint || typeof item.footprint !== 'object') {
+    errors.push('footprint는 객체여야 합니다.');
+  } else {
+    const { width, depth, height } = item.footprint;
+    if (typeof width !== 'number' || isNaN(width) || width <= 0) {
+      errors.push('footprint.width는 양수여야 합니다.');
+    }
+    if (typeof depth !== 'number' || isNaN(depth) || depth <= 0) {
+      errors.push('footprint.depth는 양수여야 합니다.');
+    }
+    if (typeof height !== 'number' || isNaN(height) || height <= 0) {
+      errors.push('footprint.height는 양수여야 합니다.');
+    }
+  }
+
+  // Mount 검증 (선택적)
+  if (item.mount) {
+    if (item.mount.type !== 'wall') {
+      errors.push('mount.type은 "wall"이어야 합니다.');
+    }
+    if (!['minX', 'maxX', 'minZ', 'maxZ'].includes(item.mount.side)) {
+      errors.push('mount.side는 유효한 벽면이어야 합니다.');
+    }
+    if (typeof item.mount.u !== 'number' || isNaN(item.mount.u) || item.mount.u < 0 || item.mount.u > 1) {
+      errors.push('mount.u는 0과 1 사이의 숫자여야 합니다.');
+    }
+    if (typeof item.mount.height !== 'number' || isNaN(item.mount.height) || item.mount.height < 0) {
+      errors.push('mount.height는 0 이상의 숫자여야 합니다.');
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}

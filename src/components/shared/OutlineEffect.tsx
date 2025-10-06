@@ -7,8 +7,9 @@ import { EffectComposer, Outline } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 
 interface OutlineEffectProps {
-  children: React.ReactNode;
-  selectedObjects: string[];
+  children?: React.ReactNode;
+  selectedObjects?: string[];
+  selectedItemId?: string | null;
   edgeStrength?: number;
   pulseSpeed?: number;
   visibleEdgeColor?: number;
@@ -19,6 +20,7 @@ interface OutlineEffectProps {
 const OutlineEffect: React.FC<OutlineEffectProps> = ({
   children,
   selectedObjects,
+  selectedItemId,
   edgeStrength = 2.0,
   pulseSpeed = 0.0,
   visibleEdgeColor = 0xffffff,
@@ -29,6 +31,17 @@ const OutlineEffect: React.FC<OutlineEffectProps> = ({
   const selectionRef = useRef<THREE.Group>(null);
   const timeRef = useRef(0);
 
+  // selectedObjects 또는 selectedItemId를 기반으로 선택된 객체 ID 배열 생성
+  const effectiveSelectedObjects = React.useMemo(() => {
+    if (selectedObjects) {
+      return selectedObjects;
+    }
+    if (selectedItemId) {
+      return [selectedItemId];
+    }
+    return [];
+  }, [selectedObjects, selectedItemId]);
+
   // 선택된 객체들에 윤곽선 효과 적용
   useEffect(() => {
     if (!selectionRef.current) return;
@@ -37,13 +50,13 @@ const OutlineEffect: React.FC<OutlineEffectProps> = ({
     selectionRef.current.clear();
 
     // 선택된 객체들을 selection에 추가
-    selectedObjects.forEach(objectId => {
+    effectiveSelectedObjects.forEach(objectId => {
       const object = scene.getObjectByName(objectId);
       if (object) {
         selectionRef.current?.add(object);
       }
     });
-  }, [selectedObjects, scene]);
+  }, [effectiveSelectedObjects, scene]);
 
   // 펄스 효과를 위한 시간 업데이트
   useFrame((state) => {
@@ -52,7 +65,7 @@ const OutlineEffect: React.FC<OutlineEffectProps> = ({
     }
   });
 
-  if (!enabled || selectedObjects.length === 0) {
+  if (!enabled || effectiveSelectedObjects.length === 0) {
     return <>{children}</>;
   }
 

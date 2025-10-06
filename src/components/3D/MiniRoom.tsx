@@ -455,22 +455,33 @@ export default function MiniRoom({
         onPointerMissed={(event) => {
           // React Three Fiber의 onPointerMissed 이벤트 사용
           // 3D 객체를 클릭하지 않았을 때 호출됨
-          // console.log('🎯 3D 객체 미스 - 빈 공간 클릭 감지됨');
-          // console.log('🎯 포인터 미스 이벤트 상세:', {
-          //   type: event.type,
-          //   pointerType: event.pointerType,
-          //   clientX: event.clientX,
-          //   clientY: event.clientY,
-          //   selectedItemId,
-          //   timestamp: Date.now()
-          // });
+          console.log('🎯 MiniRoom onPointerMissed 이벤트 발생:', {
+            type: event.type,
+            pointerType: event.pointerType,
+            clientX: event.clientX,
+            clientY: event.clientY,
+            selectedItemId,
+            timestamp: Date.now(),
+            target: event.target?.constructor?.name || 'unknown'
+          });
+
+          // 가구 클릭과 구분하기 위한 시간 체크
+          const lastFurnitureClickTime = (window as any).lastFurnitureClickTime || 0;
+          const currentTime = Date.now();
+          const timeDiff = currentTime - lastFurnitureClickTime;
+          
+          // 가구 클릭 후 100ms 이내라면 빈 공간 클릭으로 처리하지 않음
+          if (timeDiff < 100) {
+            console.log('⚠️ MiniRoom 가구 클릭 후 100ms 이내 - 빈 공간 클릭 무시');
+            return;
+          }
 
           if (selectedItemId) {
-            // console.log('✅ 빈 공간 클릭: 객체 선택 해제 실행');
+            console.log('✅ MiniRoom 빈 공간 클릭: 객체 선택 해제 실행');
             selectItem(null);
-            // console.log('✅ selectItem(null) 호출 완료');
+            console.log('✅ MiniRoom selectItem(null) 호출 완료');
           } else {
-            // console.log('ℹ️ 빈 공간 클릭: 선택된 객체 없음');
+            console.log('ℹ️ MiniRoom 빈 공간 클릭: 선택된 객체 없음');
           }
         }}
         onPointerDown={(event) => {

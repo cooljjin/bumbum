@@ -1,0 +1,300 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Bumbum Project - Cursor Rules
+
+## 프로젝트 개요
+3D 가구 라이브러리와 룸 에디터를 위한 현대적인 웹 애플리케이션입니다. Next.js 15, React 19, Three.js, Zustand를 기반으로 구축되었습니다.
+
+## 기술 스택
+- **프론트엔드**: Next.js 15, React 19, TypeScript 5.9.2
+- **3D 그래픽스**: Three.js, React Three Fiber, @react-three/drei
+- **상태 관리**: Zustand 5.0.8
+- **스타일링**: Tailwind CSS 3.4.17
+- **애니메이션**: Framer Motion 12.23.12
+- **테스트**: Jest, React Testing Library, Playwright
+- **빌드 도구**: Next.js (Static Export), ESLint, TypeScript
+
+## Building Blocks
+
+### 1. 디렉토리 구조
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── page.tsx          # 메인 페이지
+│   ├── room-editor/      # 룸 에디터 페이지
+│   └── globals.css       # 전역 스타일
+├── components/            # React 컴포넌트
+│   ├── Real3DRoom.tsx    # 3D 룸 메인 컨테이너
+│   ├── features/         # 기능별 컴포넌트
+│   │   ├── furniture/    # 가구 관련 컴포넌트
+│   │   ├── room/         # 룸 관련 컴포넌트
+│   │   └── editor/       # 에디터 관련 컴포넌트
+│   ├── layout/           # 레이아웃 컴포넌트
+│   ├── shared/           # 공유 컴포넌트
+│   └── ui/               # UI 컴포넌트
+├── store/                 # 상태 관리
+│   └── editorStore.ts    # Zustand 스토어
+├── hooks/                 # 커스텀 훅
+├── utils/                 # 유틸리티 함수
+├── types/                 # TypeScript 타입 정의
+└── data/                  # 정적 데이터
+```
+
+### 2. 핵심 컴포넌트
+- **Real3DRoom**: 3D 씬의 메인 컨테이너, Three.js 렌더링과 카메라 제어
+- **DraggableFurniture**: 개별 가구 아이템의 3D 렌더링과 드래그 앤 드롭
+- **EnhancedFurnitureCatalog**: 가구 카탈로그 UI, 검색 및 필터링
+- **Room**: 3D 룸 환경 (바닥, 벽, 천장)
+- **EditToolbar**: 편집 도구 모음
+
+### 3. 상태 관리
+- **Zustand Store**: `editorStore.ts`에서 전역 상태 관리
+- **타입 안전성**: TypeScript로 완전한 타입 정의
+- **성능 최적화**: 깊은 비교, 배치 업데이트, 메모리 관리
+
+## Code Guidelines
+
+### 1. TypeScript 규칙
+- **엄격한 타입 체크**: `tsconfig.json`에서 `strict: true` 설정
+- **타입 정의**: 모든 인터페이스와 타입을 `types/` 디렉토리에 정의
+- **제네릭 활용**: 재사용 가능한 타입 정의
+- **타입 가드**: 런타임 타입 검증
+
+```typescript
+// 타입 정의 예시
+export interface PlacedItem {
+  id: string;
+  name: string;
+  position: Vector3;
+  rotation: Euler;
+  scale: Vector3;
+  footprint: {
+    width: number;
+    depth: number;
+    height: number;
+  };
+  mount?: {
+    type: 'wall';
+    side: 'minX' | 'maxX' | 'minZ' | 'maxZ';
+    u: number;
+    height: number;
+    offset?: number;
+  };
+}
+```
+
+### 2. React 컴포넌트 규칙
+- **함수형 컴포넌트**: 모든 컴포넌트는 함수형으로 작성
+- **React.memo**: 성능 최적화를 위한 메모이제이션
+- **Custom Hooks**: 로직 재사용을 위한 커스텀 훅 활용
+- **Props 인터페이스**: 모든 props에 대한 명확한 타입 정의
+
+```typescript
+// 컴포넌트 예시
+interface DraggableFurnitureProps {
+  item: PlacedItem;
+  isSelected: boolean;
+  isEditMode: boolean;
+  onSelect: (id: string | null) => void;
+  onUpdate: (id: string, updates: Partial<PlacedItem>) => void;
+}
+
+export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(({
+  item,
+  isSelected,
+  isEditMode,
+  onSelect,
+  onUpdate
+}) => {
+  // 컴포넌트 로직
+});
+```
+
+### 3. Three.js 규칙
+- **메모리 관리**: 모델과 텍스처의 적절한 dispose
+- **성능 최적화**: Frustum culling, LOD, 캐싱
+- **에러 처리**: 모델 로딩 실패 시 폴백 모델 사용
+- **캐시 시스템**: 모델과 텍스처의 효율적인 캐싱
+
+```typescript
+// Three.js 사용 예시
+const disposeModel = useCallback((modelToDispose: Group | null) => {
+  if (!modelToDispose) return;
+  
+  modelToDispose.traverse((obj) => {
+    if (obj instanceof THREE.Mesh) {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach(mat => mat.dispose());
+        } else {
+          obj.material.dispose();
+        }
+      }
+    }
+  });
+}, []);
+```
+
+### 4. 상태 관리 규칙
+- **Zustand 패턴**: 액션과 상태를 함께 정의
+- **불변성**: 상태 업데이트 시 새로운 객체 생성
+- **성능 최적화**: 깊은 비교를 통한 불필요한 리렌더링 방지
+- **타입 안전성**: 모든 액션과 상태에 타입 정의
+
+```typescript
+// Zustand 스토어 예시
+export const useEditorStore = create<EditorStore>()(
+  devtools(
+    subscribeWithSelector((set, get) => ({
+      // 상태
+      placedItems: [],
+      selectedItemId: null,
+      
+      // 액션
+      addItem: (item: PlacedItem) => {
+        const { placedItems } = get();
+        set({ placedItems: [...placedItems, item] });
+      },
+      
+      updateItem: (id: string, updates: Partial<PlacedItem>) => {
+        const { placedItems } = get();
+        const updatedItems = placedItems.map(item =>
+          item.id === id ? { ...item, ...updates } : item
+        );
+        set({ placedItems: updatedItems });
+      }
+    }))
+  )
+);
+```
+
+## Naming Conventions
+
+### 1. 파일 및 디렉토리
+- **컴포넌트**: PascalCase (예: `DraggableFurniture.tsx`)
+- **훅**: camelCase with `use` prefix (예: `useEditorStore.ts`)
+- **유틸리티**: camelCase (예: `modelLoader.ts`)
+- **타입**: camelCase (예: `editor.ts`)
+- **상수**: UPPER_SNAKE_CASE (예: `PERFORMANCE_CONSTANTS`)
+
+### 2. 변수 및 함수
+- **변수**: camelCase (예: `isDragging`, `selectedItemId`)
+- **함수**: camelCase (예: `handleDragStart`, `updateItem`)
+- **상수**: UPPER_SNAKE_CASE (예: `MAX_HISTORY_SIZE`)
+- **인터페이스**: PascalCase (예: `PlacedItem`, `EditorStore`)
+- **타입**: PascalCase (예: `Mode`, `Tool`)
+
+### 3. 컴포넌트 Props
+- **이벤트 핸들러**: `on` prefix (예: `onSelect`, `onUpdate`)
+- **불린 값**: `is` prefix (예: `isSelected`, `isEditMode`)
+- **상태 값**: 명확한 명사 (예: `selectedItemId`, `placedItems`)
+
+### 4. CSS 클래스
+- **Tailwind CSS**: 유틸리티 클래스 사용
+- **커스텀 클래스**: kebab-case (예: `furniture-catalog-scroll`)
+- **반응형**: 모바일 우선 접근법
+
+```typescript
+// CSS 클래스 예시
+className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer border border-gray-200"
+```
+
+## 성능 최적화 규칙
+
+### 1. React 최적화
+- **React.memo**: 불필요한 리렌더링 방지
+- **useCallback**: 함수 메모이제이션
+- **useMemo**: 계산 결과 메모이제이션
+- **배치 업데이트**: `requestAnimationFrame` 활용
+
+### 2. Three.js 최적화
+- **모델 캐싱**: 동일 모델 재사용
+- **텍스처 최적화**: Anisotropic filtering, Mipmap
+- **메모리 관리**: 적절한 dispose 호출
+- **Frustum Culling**: 화면 밖 객체 렌더링 생략
+
+### 3. 상태 관리 최적화
+- **깊은 비교**: 불필요한 업데이트 방지
+- **배치 업데이트**: 여러 상태 변경을 한 번에 처리
+- **메모리 정리**: 오래된 히스토리 자동 정리
+
+## 에러 처리 규칙
+
+### 1. 컴포넌트 에러
+- **Error Boundary**: 컴포넌트 에러 캐치
+- **폴백 UI**: 에러 발생 시 대체 UI 표시
+- **로깅**: 에러 정보 콘솔 출력
+
+### 2. 비동기 작업
+- **Try-Catch**: 모든 비동기 작업에 에러 처리
+- **폴백 모델**: 모델 로딩 실패 시 기본 모델 사용
+- **사용자 피드백**: 로딩 상태 및 에러 상태 표시
+
+### 3. 타입 안전성
+- **타입 가드**: 런타임 타입 검증
+- **옵셔널 체이닝**: 안전한 속성 접근
+- **기본값**: undefined 방지를 위한 기본값 설정
+
+## 테스트 규칙
+
+### 1. 단위 테스트
+- **Jest**: 테스트 프레임워크
+- **React Testing Library**: 컴포넌트 테스트
+- **커버리지**: 80% 이상 목표
+
+### 2. E2E 테스트
+- **Playwright**: 브라우저 자동화
+- **사용자 시나리오**: 주요 워크플로우 테스트
+- **성능 테스트**: 로딩 시간 및 메모리 사용량
+
+### 3. 테스트 파일 구조
+- **파일명**: `*.test.tsx` 또는 `*.test.ts`
+- **위치**: `__tests__` 디렉토리 또는 파일과 같은 위치
+- **설명**: 테스트 케이스에 대한 명확한 설명
+
+## 주석 및 문서화
+
+### 1. 코드 주석
+- **JSDoc**: 함수와 클래스에 대한 문서화
+- **인라인 주석**: 복잡한 로직 설명
+- **TODO**: 향후 개선 사항 표시
+
+### 2. README 및 문서
+- **API 문서**: 주요 함수와 타입 설명
+- **컴포넌트 가이드**: 사용법 및 예제
+- **개발자 가이드**: 온보딩 및 기여 방법
+
+### 3. 타입 문서화
+- **인터페이스**: 모든 속성에 대한 설명
+- **제네릭**: 타입 매개변수 설명
+- **유니온 타입**: 가능한 값들 설명
+
+## 보안 규칙
+
+### 1. 입력 검증
+- **타입 체크**: 런타임 타입 검증
+- **XSS 방지**: 안전한 HTML 렌더링
+- **CSRF 보호**: 적절한 토큰 사용
+
+### 2. 데이터 보호
+- **로컬 스토리지**: 민감한 정보 암호화
+- **API 보안**: 적절한 인증 및 권한 검사
+- **에러 정보**: 민감한 정보 노출 방지
+
+## 모바일 최적화
+
+### 1. 반응형 디자인
+- **모바일 우선**: 모바일 레이아웃 우선 설계
+- **터치 인터페이스**: 터치 친화적 UI
+- **성능**: 모바일 성능 최적화
+
+### 2. 터치 이벤트
+- **포인터 이벤트**: 마우스와 터치 통합 처리
+- **제스처**: 드래그, 핀치, 스와이프 지원
+- **스크롤 락**: 편집 모드에서 스크롤 방지
+
+이 규칙들을 따라 일관성 있고 유지보수 가능한 코드를 작성하세요.

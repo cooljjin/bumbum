@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { useRouter } from 'next/navigation';
+import React, { Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { saveCustomFurniture, getCustomFurnitureItems, deleteCustomFurniture, updateCustomFurnitureMeta, updateCustomFurnitureModel, updateCustomFurnitureThumbnail } from '@/utils/customLibrary';
 import type { FurnitureItem, FurnitureCategory } from '@/types/furniture';
 import { sampleFurniture } from '@/data/furnitureCatalog';
@@ -20,7 +20,12 @@ function useObjectUrl(file: File | null) {
   return url;
 }
 
-export default function LibraryManagerPage() {
+function LibraryManagerPageContent() {
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('tab') || 'furniture';
+  const isFloorTab = currentTab === 'floor';
+  const isWallTab = currentTab === 'wall';
+  
   const [items, setItems] = React.useState<FurnitureItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -40,7 +45,7 @@ export default function LibraryManagerPage() {
 
   // Add form state
   const [newName, setNewName] = React.useState('');
-  const [newCategory, setNewCategory] = React.useState<FurnitureCategory>('decorative');
+  const [newCategory, setNewCategory] = React.useState<FurnitureCategory>(isFloorTab ? 'floor' : isWallTab ? 'wall' : 'decorative');
   const [newTags, setNewTags] = React.useState('');
   const [glbFile, setGlbFile] = React.useState<File | null>(null);
   const [thumbFile, setThumbFile] = React.useState<File | null>(null);
@@ -65,16 +70,24 @@ export default function LibraryManagerPage() {
       setAssetOverrides(urls);
       // Apply metadata overrides (name/size/category/tags/hidden)
       const combined = applyOverridesToItems(baseCombined);
-      setItems(combined);
+      
+      // Filter items based on current tab
+      const filteredItems = isFloorTab 
+        ? combined.filter(item => item.category === 'floor')
+        : isWallTab
+        ? combined.filter(item => item.category === 'wall')
+        : combined.filter(item => item.category !== 'floor' && item.category !== 'wall');
+      
+      setItems(filteredItems);
       setCacheBust(Date.now());
       // Keep selection if still exists
-      if (selectedId && !combined.find(i => i.id === selectedId)) setSelectedId(null);
+      if (selectedId && !filteredItems.find(i => i.id === selectedId)) setSelectedId(null);
     } catch (e: any) {
       setError(e?.message || '목록을 불러오지 못했습니다');
     } finally {
       setLoading(false);
     }
-  }, [selectedId]);
+  }, [selectedId, isFloorTab, isWallTab]);
 
   React.useEffect(() => { refresh(); }, [refresh]);
 
@@ -125,40 +138,128 @@ export default function LibraryManagerPage() {
     try {
       const isCustom = customIds.has(id);
       if (isCustom) {
+        // 삭제할 아이템이 바닥 또는 벽면 메테리얼인지 확인
+        const itemToDelete = items.find(item => item.id === id);
+        const isFloorMaterial = itemToDelete?.category === 'floor';
+        const isWallMaterial = itemToDelete?.category === 'wall';
+        
         await deleteCustomFurniture(id);
+        
+        // 바닥 메테리얼을 삭제한 경우 기본 바닥으로 복원
+        if (isFloorMaterial) {
+          const { setFloorTexture } = await import('../../../store/editorStore');
+          setFloorTexture('/models/floor/floor_wooden.png');
+          console.log('🔄 바닥 메테리얼 삭제 후 기본 바닥으로 복원');
+        }
+        
+        // 벽면 메테리얼을 삭제한 경우 기본 벽면으로 복원
+        if (isWallMaterial) {
+          const { setWallTexture } = await import('../../../store/editorStore');
+          setWallTexture('/models/wall/wall_beige.png');
+          console.log('🔄 벽면 메테리얼 삭제 후 기본 벽면으로 복원');
+        }
       } else {
         // Built-in: hide via override
         setOverride(id, { hidden: true });
       }
       await refresh();
     } catch (e: any) {
+      console.error('아이템 삭제 실패:', e);
       setError(e?.message || '삭제에 실패했습니다');
     }
   };
 
   const handleCreate = async () => {
     setError(null);
-    if (!glbUrl) { setError('GLB 파일을 선택하세요'); return; }
-    if (!newName.trim()) { setError('이름을 입력하세요'); return; }
+    
+    if (isFloorTab || isWallTab) {
+      // 바닥 또는 벽면 메테리얼의 경우 이미지 파일이 필수
+      if (!thumbFile) { 
+        setError(`${isFloorTab ? '바닥' : '벽면'} 텍스처 이미지를 선택하세요`); 
+        return; 
+      }
+      if (!newName.trim()) { 
+        setError(`${isFloorTab ? '바닥' : '벽면'} 메테리얼 이름을 입력하세요`); 
+        return; 
+      }
+      
+      // 이미지 파일 유효성 검사
+      if (thumbFile.size > 10 * 1024 * 1024) { // 10MB 제한
+        setError('이미지 파일 크기는 10MB를 초과할 수 없습니다');
+        return;
+      }
+      
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(thumbFile.type)) {
+        setError('지원되는 이미지 형식: JPG, PNG, WebP');
+        return;
+      }
+    } else {
+      // 가구의 경우 GLB 파일이 필수
+      if (!glbFile) { setError('GLB 파일을 선택하세요'); return; }
+      if (!newName.trim()) { setError('이름을 입력하세요'); return; }
+    }
+    
     try {
       setSaving(true);
-      const w = Math.max(0.01, parseFloat(editW || '1'));
-      const d = Math.max(0.01, parseFloat(editD || '1'));
-      const h = Math.max(0.01, parseFloat(editH || '1'));
-      await saveCustomFurniture({
-        name: newName.trim(),
-        modelBlob: glbFile!,
-        thumbnailBlob: thumbFile || undefined,
-        footprint: { width: w, depth: d, height: h },
-        wallMounted: false,
-        category: newCategory,
-        tags: newTags.split(',').map(s=>s.trim()).filter(Boolean)
-      });
+      
+      if (isFloorTab) {
+        // 바닥 메테리얼: 이미지 파일을 모델로 사용하고, 바닥 크기로 설정
+        await saveCustomFurniture({
+          name: newName.trim(),
+          modelBlob: thumbFile!, // 이미지 파일을 모델로 사용
+          thumbnailBlob: thumbFile, // 썸네일도 동일한 이미지
+          footprint: { width: 10, depth: 10, height: 0.02 }, // 바닥 크기
+          wallMounted: false,
+          category: 'floor',
+          tags: newTags.split(',').map(s=>s.trim()).filter(Boolean)
+        });
+      } else if (isWallTab) {
+        // 벽면 메테리얼: 이미지 파일을 모델로 사용하고, 벽면 크기로 설정
+        await saveCustomFurniture({
+          name: newName.trim(),
+          modelBlob: thumbFile!, // 이미지 파일을 모델로 사용
+          thumbnailBlob: thumbFile, // 썸네일도 동일한 이미지
+          footprint: { width: 3, depth: 0.1, height: 2.5 }, // 벽면 크기
+          wallMounted: false,
+          category: 'wall',
+          tags: newTags.split(',').map(s=>s.trim()).filter(Boolean)
+        });
+      } else {
+        // 가구: 기존 로직
+        const w = Math.max(0.01, parseFloat(editW || '1'));
+        const d = Math.max(0.01, parseFloat(editD || '1'));
+        const h = Math.max(0.01, parseFloat(editH || '1'));
+        await saveCustomFurniture({
+          name: newName.trim(),
+          modelBlob: glbFile!,
+          thumbnailBlob: thumbFile || undefined,
+          footprint: { width: w, depth: d, height: h },
+          wallMounted: false,
+          category: newCategory,
+          tags: newTags.split(',').map(s=>s.trim()).filter(Boolean)
+        });
+      }
+      
       // reset
       setNewName(''); setGlbFile(null); setThumbFile(null);
       await refresh();
     } catch (e: any) {
-      setError(e?.message || '추가에 실패했습니다');
+      console.error(`${isFloorTab ? '바닥' : isWallTab ? '벽면' : '가구'} 메테리얼 추가 실패:`, e);
+      
+      if (isFloorTab || isWallTab) {
+        if (e?.message?.includes('QuotaExceededError')) {
+          setError('저장 공간이 부족합니다. 다른 파일을 삭제한 후 다시 시도하세요.');
+        } else if (e?.message?.includes('InvalidStateError')) {
+          setError('데이터베이스 오류가 발생했습니다. 페이지를 새로고침한 후 다시 시도하세요.');
+        } else if (e?.message?.includes('NetworkError')) {
+          setError('네트워크 오류가 발생했습니다. 인터넷 연결을 확인한 후 다시 시도하세요.');
+        } else {
+          setError(`${isFloorTab ? '바닥' : '벽면'} 메테리얼 추가에 실패했습니다: ${e?.message || '알 수 없는 오류'}`);
+        }
+      } else {
+        setError(e?.message || '추가에 실패했습니다');
+      }
     } finally {
       setSaving(false);
     }
@@ -166,23 +267,39 @@ export default function LibraryManagerPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <DevNavbar active="library" />
+      <DevNavbar active={isFloorTab ? "floor" : isWallTab ? "wall" : "library"} />
       <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">가구 라이브러리 관리</h1>
+      <h1 className="text-2xl font-semibold mb-4">
+        {isFloorTab ? '바닥 에셋 관리' : isWallTab ? '벽면 에셋 관리' : '가구 라이브러리 관리'}
+      </h1>
 
-      {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+          <div className="flex items-start gap-2">
+            <div className="text-red-500 mt-0.5">⚠️</div>
+            <div>
+              <div className="font-medium">오류가 발생했습니다</div>
+              <div className="text-sm mt-1">{error}</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* 목록 */}
         <div className="md:col-span-1">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="font-medium">내 커스텀 가구</h2>
+            <h2 className="font-medium">
+              {isFloorTab ? '내 커스텀 바닥' : isWallTab ? '내 커스텀 벽면' : '내 커스텀 가구'}
+            </h2>
             <button onClick={refresh} className="text-sm text-blue-600">새로고침</button>
           </div>
           {loading ? (
             <div className="text-gray-500 text-sm">불러오는 중...</div>
           ) : items.length === 0 ? (
-            <div className="text-gray-500 text-sm">등록된 커스텀 가구가 없습니다.</div>
+            <div className="text-gray-500 text-sm">
+              {isFloorTab ? '등록된 커스텀 바닥이 없습니다.' : isWallTab ? '등록된 커스텀 벽면이 없습니다.' : '등록된 커스텀 가구가 없습니다.'}
+            </div>
           ) : (
             <ul className="space-y-2 max-h-[60vh] overflow-auto pr-1">
               {items.map(it => (
@@ -333,7 +450,9 @@ export default function LibraryManagerPage() {
 
         {/* 추가 */}
         <div className="md:col-span-1">
-          <h2 className="font-medium mb-2">새 가구 추가</h2>
+          <h2 className="font-medium mb-2">
+            {isFloorTab ? '새 바닥 추가' : isWallTab ? '새 벽면 추가' : '새 가구 추가'}
+          </h2>
           <div className="space-y-3">
             <div>
               <label className="block text-sm text-gray-700 mb-1">이름</label>
@@ -341,47 +460,91 @@ export default function LibraryManagerPage() {
             </div>
             <div>
               <label className="block text-sm text-gray-700 mb-1">카테고리</label>
-              <select className="w-full border rounded px-2 py-1" value={newCategory} onChange={e=>setNewCategory(e.target.value as FurnitureCategory)}>
-                {['living','bedroom','kitchen','bathroom','office','outdoor','decorative','storage','floor','wall'].map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+              {isFloorTab ? (
+                <div className="w-full border rounded px-2 py-1 bg-gray-100 text-gray-600">
+                  floor (바닥)
+                </div>
+              ) : isWallTab ? (
+                <div className="w-full border rounded px-2 py-1 bg-gray-100 text-gray-600">
+                  wall (벽면)
+                </div>
+              ) : (
+                <select className="w-full border rounded px-2 py-1" value={newCategory} onChange={e=>setNewCategory(e.target.value as FurnitureCategory)}>
+                  {['living','bedroom','kitchen','bathroom','office','outdoor','decorative','storage','floor','wall'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-sm text-gray-700 mb-1">태그 (쉼표 구분)</label>
               <input className="w-full border rounded px-3 py-2" value={newTags} onChange={e=>setNewTags(e.target.value)} placeholder="예: modern, wood, white" />
             </div>
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">GLB 파일</label>
-              <input type="file" accept=".glb" onChange={e=>setGlbFile(e.target.files?.[0] || null)} />
-              {glbFile && <div className="text-xs text-gray-500 mt-1">{glbFile.name}</div>}
-            </div>
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">썸네일(선택)</label>
-              <input type="file" accept="image/*" onChange={e=>setThumbFile(e.target.files?.[0] || null)} />
-              {thumbUrl && <img src={thumbUrl} alt="thumb" className="w-20 h-20 object-cover rounded border mt-1" />}
-            </div>
+            {isFloorTab ? (
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">바닥 텍스처 이미지 (필수)</label>
+                <input type="file" accept="image/*" onChange={e=>setThumbFile(e.target.files?.[0] || null)} />
+                {thumbUrl && <img src={thumbUrl} alt="floor texture" className="w-20 h-20 object-cover rounded border mt-1" />}
+              </div>
+            ) : isWallTab ? (
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">벽면 텍스처 이미지 (필수)</label>
+                <input type="file" accept="image/*" onChange={e=>setThumbFile(e.target.files?.[0] || null)} />
+                {thumbUrl && <img src={thumbUrl} alt="wall texture" className="w-20 h-20 object-cover rounded border mt-1" />}
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">GLB 파일</label>
+                  <input type="file" accept=".glb" onChange={e=>setGlbFile(e.target.files?.[0] || null)} />
+                  {glbFile && <div className="text-xs text-gray-500 mt-1">{glbFile.name}</div>}
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">썸네일(선택)</label>
+                  <input type="file" accept="image/*" onChange={e=>setThumbFile(e.target.files?.[0] || null)} />
+                  {thumbUrl && <img src={thumbUrl} alt="thumb" className="w-20 h-20 object-cover rounded border mt-1" />}
+                </div>
+              </>
+            )}
+            {isFloorTab ? (
+              <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                바닥 메테리얼은 방 크기에 맞게 자동으로 조정됩니다.
+              </div>
+            ) : isWallTab ? (
+              <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                벽면 메테리얼은 벽 크기에 맞게 자동으로 조정됩니다.
+              </div>
+            ) : (
               <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">W</label>
-                <input type="number" step={0.01} min={0.01} className="w-full border rounded px-2 py-1" value={editW} onChange={e=>setEditW(e.target.value)} />
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">W</label>
+                  <input type="number" step={0.01} min={0.01} className="w-full border rounded px-2 py-1" value={editW} onChange={e=>setEditW(e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">D</label>
+                  <input type="number" step={0.01} min={0.01} className="w-full border rounded px-2 py-1" value={editD} onChange={e=>setEditD(e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">H</label>
+                  <input type="number" step={0.01} min={0.01} className="w-full border rounded px-2 py-1" value={editH} onChange={e=>setEditH(e.target.value)} />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">D</label>
-                <input type="number" step={0.01} min={0.01} className="w-full border rounded px-2 py-1" value={editD} onChange={e=>setEditD(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">H</label>
-                <input type="number" step={0.01} min={0.01} className="w-full border rounded px-2 py-1" value={editH} onChange={e=>setEditH(e.target.value)} />
-              </div>
-            </div>
+            )}
             <button disabled={saving} className="px-4 py-2 rounded bg-green-600 text-white disabled:opacity-50" onClick={handleCreate}>
-              {saving ? '추가 중...' : '가구 추가'}
+              {saving ? '추가 중...' : (isFloorTab ? '바닥 추가' : isWallTab ? '벽면 추가' : '가구 추가')}
             </button>
           </div>
         </div>
       </div>
       </div>
     </div>
+  );
+}
+
+export default function LibraryManagerPage() {
+  return (
+    <Suspense fallback={<div className="p-4">로딩 중...</div>}>
+      <LibraryManagerPageContent />
+    </Suspense>
   );
 }

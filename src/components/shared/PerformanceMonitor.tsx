@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { performanceOptimizer, PerformanceMetrics } from '../../utils/performanceOptimizer';
+import { performanceManager, PerformanceMetrics } from '../../utils/PerformanceManager';
 import { memoryLeakDetector, MemorySnapshot } from '../../utils/memoryLeakDetector';
 import PerformanceDashboard from './PerformanceDashboard';
 import PerformanceVisualization from './PerformanceVisualization';
@@ -63,6 +63,9 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   // 초기화
   useEffect(() => {
     if (enabled) {
+      // 성능 측정 시작
+      performanceManager.startMeasurement();
+      
       // 메모리 누수 감지기 초기화
       memoryLeakDetector.registerScene(scene);
       memoryLeakDetector.startMonitoring();
@@ -71,7 +74,7 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
       const handleAutoOptimize = (event: CustomEvent) => {
         if (autoOptimize) {
           // console.log('🚀 자동 최적화 실행:', event.type);
-          performanceOptimizer.optimizeScene(scene);
+          performanceManager.optimizeScene(scene);
         }
       };
 
@@ -91,6 +94,7 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
 
       return () => {
         // 정리
+        performanceManager.stopMeasurement();
         memoryLeakDetector.stopMonitoring();
         window.removeEventListener('auto-optimize-low-fps', handleAutoOptimize as EventListener);
         window.removeEventListener('auto-optimize-medium-fps', handleAutoOptimize as EventListener);
@@ -104,45 +108,21 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   useFrame(() => {
     if (!enabled) return;
 
-    frameCount.current++;
-    const currentTime = performance.now();
-    const deltaTime = currentTime - lastTime.current;
+    // 통합된 PerformanceManager를 사용하여 성능 측정
+    performanceManager.measureFrame(gl);
 
-    // 1초마다 FPS 계산
-    if (deltaTime >= 1000) {
-      const fps = Math.round((frameCount.current * 1000) / deltaTime);
-      
-      // FPS 히스토리 업데이트
-      fpsHistory.current.push(fps);
-      if (fpsHistory.current.length > maxHistorySize) {
-        fpsHistory.current.shift();
-      }
-
-      // 평균 FPS 계산
-      const avgFps = Math.round(
-        fpsHistory.current.reduce((sum, f) => sum + f, 0) / fpsHistory.current.length
-      );
-
-      // 메모리 사용량 추적
-      const memoryInfo = (performance as any).memory;
-      const memoryUsage = memoryInfo ? Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024) : 0;
-
-      // 렌더링 통계 수집
-      const rendererInfo = gl.info;
-      const renderCalls = rendererInfo.render.calls;
-      const triangles = rendererInfo.render.triangles;
-      const points = rendererInfo.render.points;
-      const lines = rendererInfo.render.lines;
-
+    // 현재 메트릭 가져오기
+    const currentMetrics = performanceManager.getCurrentMetrics();
+    if (currentMetrics) {
       const newMetrics: PerformanceMetricsExtended = {
-        fps: avgFps,
-        frameTime: Math.round(deltaTime / frameCount.current),
-        memoryUsage,
-        renderCalls,
-        triangles,
-        points,
-        lines,
-        timestamp: currentTime
+        fps: currentMetrics.fps,
+        frameTime: currentMetrics.frameTime,
+        memoryUsage: currentMetrics.memoryUsage,
+        renderCalls: currentMetrics.renderCalls,
+        triangles: currentMetrics.triangles,
+        points: currentMetrics.points,
+        lines: currentMetrics.lines,
+        timestamp: currentMetrics.timestamp
       };
 
       setMetrics(newMetrics);
@@ -154,7 +134,7 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
       });
 
       // 성능 최적화 제안 생성
-      const suggestions = performanceOptimizer.updateMetrics(newMetrics);
+      const suggestions = performanceManager.getSuggestions();
       setOptimizationSuggestions(suggestions);
 
       // 메모리 스냅샷 업데이트
@@ -167,16 +147,12 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
       }
 
       // 성능 경고 로그
-      if (avgFps < 30) {
-        // console.warn(`⚠️ 성능 경고: FPS가 낮습니다 (${avgFps}fps)`);
+      if (newMetrics.fps < 30) {
+        // console.warn(`⚠️ 성능 경고: FPS가 낮습니다 (${newMetrics.fps}fps)`);
       }
-      if (memoryUsage > 100) {
-        // console.warn(`⚠️ 메모리 경고: 높은 메모리 사용량 (${memoryUsage}MB)`);
+      if (newMetrics.memoryUsage > 100) {
+        // console.warn(`⚠️ 메모리 경고: 높은 메모리 사용량 (${newMetrics.memoryUsage}MB)`);
       }
-
-      // 카운터 리셋
-      frameCount.current = 0;
-      lastTime.current = currentTime;
     }
   });
 
