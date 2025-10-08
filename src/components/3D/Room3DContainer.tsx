@@ -62,6 +62,11 @@ const OutlineEffect = dynamic(() => import('../shared/OutlineEffect'), {
   loading: () => null
 });
 
+const SimpleAvatar = dynamic(() => import('../features/room/SimpleAvatar'), { 
+  ssr: false,
+  loading: () => null
+});
+
 const Canvas3D = dynamic(() => import('./Canvas3D'), { 
   ssr: false,
   loading: () => (
@@ -262,6 +267,9 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
   
   const searchParams = typeof window !== 'undefined' ? useSearchParams() : (null as any);
   const gestureFixScope = (searchParams && searchParams.get('gfix')) || 'canvas';
+  
+  // 아바타 타겟 위치 상태
+  const [avatarTargetPosition, setAvatarTargetPosition] = useState<THREE.Vector3 | null>(null);
   const debugFloating = !!(searchParams && searchParams.get('debugFloating') === '1');
 
   // 커스텀 라이브러리 로드 후 카탈로그에 병합
@@ -293,6 +301,17 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
       } catch {}
     })();
     return () => { mounted = false; };
+  }, [customFurniture]);
+
+  // 오버라이드가 적용된 가구 목록 생성 (숨김 처리된 아이템 제외)
+  const combinedFurnitureData = useMemo(() => {
+    const baseCombined = [...sampleFurniture, ...customFurniture];
+    const withOverrides = applyOverridesToItems(baseCombined);
+    // hidden이 true인 아이템 제외
+    return withOverrides.filter(item => {
+      const override = item as any;
+      return !override._hidden;
+    });
   }, [customFurniture]);
 
   const debugPos = (searchParams && (searchParams.get('dbgPos') || searchParams.get('debugPos'))) || 'bl';
@@ -593,6 +612,73 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
             } else {
               console.log('ℹ️ 빈 공간 클릭: 선택된 가구 없음');
             }
+            
+            // 아바타 이동을 위한 타겟 위치 설정
+            if (event.point) {
+              // 룸 경계 내로 좌표 제한
+              const roomBoundaries = getRoomBoundaries();
+              const clampedX = Math.max(roomBoundaries.minX, Math.min(roomBoundaries.maxX, event.point.x));
+              const clampedZ = Math.max(roomBoundaries.minZ, Math.min(roomBoundaries.maxZ, event.point.z));
+              const clampedPosition = new THREE.Vector3(clampedX, event.point.y, clampedZ);
+              
+              console.log('🎯 아바타 이동 타겟 설정:', {
+                원본: { x: event.point.x.toFixed(3), y: event.point.y.toFixed(3), z: event.point.z.toFixed(3) },
+                제한후: { x: clampedX.toFixed(3), y: clampedPosition.y.toFixed(3), z: clampedZ.toFixed(3) },
+                룸경계: { minX: roomBoundaries.minX.toFixed(3), maxX: roomBoundaries.maxX.toFixed(3), minZ: roomBoundaries.minZ.toFixed(3), maxZ: roomBoundaries.maxZ.toFixed(3) }
+              });
+              setAvatarTargetPosition(clampedPosition);
+            } else {
+              console.log('⚠️ event.point가 없음, 바닥 평면과 교차점 계산 시도');
+              
+              // 카메라와 마우스 좌표로 레이 생성
+              const camera = cameraControlsRef.current?.camera;
+              if (camera) {
+                // 캔버스 요소 찾기
+                const canvas = document.querySelector('canvas');
+                if (!canvas) {
+                  console.log('⚠️ 캔버스 요소를 찾을 수 없음');
+                  return;
+                }
+                
+                const canvasRect = canvas.getBoundingClientRect();
+                
+                // 마우스 좌표를 정규화된 디바이스 좌표로 변환 (캔버스 기준)
+                const mouse = new THREE.Vector2();
+                mouse.x = ((event.clientX - canvasRect.left) / canvasRect.width) * 2 - 1;
+                mouse.y = -((event.clientY - canvasRect.top) / canvasRect.height) * 2 + 1;
+                
+                // 레이 생성
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(mouse, camera);
+                
+                // y=0 바닥 평면과의 교차점 계산
+                const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // y=0 평면
+                const hitPoint = new THREE.Vector3();
+                
+                const hit = raycaster.ray.intersectPlane(groundPlane, hitPoint);
+                if (hit) {
+                  // 룸 경계 내로 좌표 제한
+                  const roomBoundaries = getRoomBoundaries();
+                  const clampedX = Math.max(roomBoundaries.minX, Math.min(roomBoundaries.maxX, hitPoint.x));
+                  const clampedZ = Math.max(roomBoundaries.minZ, Math.min(roomBoundaries.maxZ, hitPoint.z));
+                  const clampedPosition = new THREE.Vector3(clampedX, hitPoint.y, clampedZ);
+                  
+                  console.log('🎯 바닥 평면 교차점으로 아바타 이동 타겟 설정:', {
+                    원본: { x: hitPoint.x.toFixed(3), y: hitPoint.y.toFixed(3), z: hitPoint.z.toFixed(3) },
+                    제한후: { x: clampedX.toFixed(3), y: clampedPosition.y.toFixed(3), z: clampedZ.toFixed(3) },
+                    룸경계: { minX: roomBoundaries.minX.toFixed(3), maxX: roomBoundaries.maxX.toFixed(3), minZ: roomBoundaries.minZ.toFixed(3), maxZ: roomBoundaries.maxZ.toFixed(3) },
+                    mouse: { x: mouse.x.toFixed(3), y: mouse.y.toFixed(3) }
+                  });
+                  setAvatarTargetPosition(clampedPosition);
+                } else {
+                  console.log('⚠️ 레이-평면 교차 실패, 아바타 이동 타겟 설정 생략');
+                  // 유효하지 않은 타겟이므로 아바타 이동 타겟 설정 생략
+                }
+              } else {
+                console.log('⚠️ 카메라가 없음, 아바타 이동 타겟 설정 생략');
+                // 카메라가 없으면 아바타 이동 타겟 설정 생략
+              }
+            }
           }}
         >
           {/* 카메라 컨트롤 */}
@@ -630,6 +716,9 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
             wallTexturePath={currentWallTexture}
             onBoundsChange={onRoomBoundsChange}
           />
+
+          {/* 클릭 이동 아바타 */}
+          <SimpleAvatar targetPosition={avatarTargetPosition} />
 
           {/* 그리드 시스템 */}
           {isEditMode && <GridSystem />}
@@ -683,7 +772,7 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
             onClose={() => setShowFurnitureCatalog(false)}
           >
             <EnhancedFurnitureCatalog
-              furnitureData={[...sampleFurniture, ...customFurniture]}
+              furnitureData={combinedFurnitureData}
               onFurnitureSelect={handleFurnitureSelect}
               onClose={() => setShowFurnitureCatalog(false)}
               isMobile={isMobile}

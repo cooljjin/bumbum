@@ -1,4 +1,5 @@
 import { Vector3, Euler } from 'three';
+import { StorageInfo, SyncInfo, FileInfo, StorageMetadata } from './storage';
 
 // 가구 카테고리 타입
 export type FurnitureCategory =
@@ -138,4 +139,15 @@ export interface FurniturePreset {
   }[];
   thumbnailPath?: string;
   tags: string[];
+}
+
+// 커스텀 가구 아이템 타입 (하이브리드 저장소용)
+export interface CustomFurnitureItem extends FurnitureItem {
+  storage: StorageInfo;
+  sync: SyncInfo;
+  files: {
+    model: FileInfo;
+    thumbnail: FileInfo;
+  };
+  metadata: StorageMetadata;
 }

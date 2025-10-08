@@ -1,156 +1,159 @@
-# 🏠 Bumbum Project - 가구 라이브러리 UI 리팩토링
+# ?�� Bumbum Project - 가�??�이브러�?UI 리팩?�링
 
-3D 가구 라이브러리와 룸 에디터를 위한 현대적인 웹 애플리케이션입니다.
+3D 가�??�이브러리�? �??�디?��? ?�한 ?��??�인 ???�플리�??�션?�니??
 
-## ✨ 주요 기능
+## ??주요 기능
 
-- **3D 가구 라이브러리**: GLB/GLTF 모델 지원
-- **실시간 룸 에디터**: 드래그 앤 드롭 인터페이스
-- **반응형 디자인**: 모바일부터 데스크톱까지 지원
-- **성능 최적화**: 이미지 lazy loading, 메모리 관리
-- **TypeScript**: 완벽한 타입 안정성
+- **3D 가�??�이브러�?*: GLB/GLTF 모델 지??
+- **?�시�?�??�디??*: ?�래�????�롭 ?�터?�이??
+- **반응???�자??*: 모바?��????�스?�톱까�? 지??
+- **?�능 최적??*: ?��?지 lazy loading, 메모�?관�?
+- **TypeScript**: ?�벽???�???�정??
 
-## 🚀 빠른 시작
+## ?? 빠른 ?�작
 
-### 필수 요구사항
+### ?�수 ?�구?�항
 
-- Node.js 18.0.0 이상
-- npm 9.0.0 이상
+- Node.js 18.0.0 ?�상
+- npm 9.0.0 ?�상
 
-### 설치 및 실행
+### ?�치 �??�행
 
 ```bash
-# 프로젝트 클론
+# ?�로?�트 ?�론
 git clone https://github.com/your-org/bumbum-project.git
 cd bumbum-project
 
-# 의존성 설치
+# ?�존???�치
 npm install
 
-# 개발 서버 시작
+# 개발 ?�버 ?�작
 npm run dev
 
-# 브라우저에서 확인
+# 브라?��??�서 ?�인
 open http://localhost:3000
 ```
 
 ### 빌드
 
 ```bash
-# 프로덕션 빌드
+# ?�로?�션 빌드
 npm run build
 
-# 빌드 결과 확인
+# 빌드 결과 ?�인
 npm run start
 ```
 
-## 📚 문서
+## ?�� 문서
 
-프로젝트에 대한 자세한 정보는 다음 문서들을 참조하세요:
+?�로?�트???�???�세???�보???�음 문서?�을 참조?�세??
 
-- **[📖 API 문서](docs/API.md)** - 주요 API와 타입 정의
-- **[🧩 컴포넌트 가이드](docs/COMPONENTS.md)** - 컴포넌트 사용법 및 예제
-- **[👨‍💻 개발자 온보딩](docs/DEVELOPMENT.md)** - 새로운 개발자를 위한 가이드
-- **[🏗️ 아키텍처 문서](docs/ARCHITECTURE.md)** - 프로젝트 구조 및 설계 원칙
+- **[?�� API 문서](docs/API.md)** - 주요 API?� ?�???�의
+- **[?�� 컴포?�트 가?�드](docs/COMPONENTS.md)** - 컴포?�트 ?�용�?�??�제
+- **[?��?��?개발???�보??(docs/DEVELOPMENT.md)** - ?�로??개발?��? ?�한 가?�드
+- **[?���??�키?�처 문서](docs/ARCHITECTURE.md)** - ?�로?�트 구조 �??�계 ?�칙
 
-## 🏗️ 프로젝트 구조
+## ?���??�로?�트 구조
 
 ```
 src/
-├── app/                    # Next.js App Router
-│   ├── page.tsx          # 메인 페이지
-│   ├── room-editor/      # 룸 에디터 페이지
-│   └── globals.css       # 전역 스타일
-├── components/            # React 컴포넌트
-│   ├── Real3DRoom.tsx    # 3D 룸 렌더링
-│   ├── DraggableFurniture.tsx # 가구 인터랙션
-│   ├── FurnitureCatalog.tsx   # 가구 카탈로그
-│   └── ...               # 기타 컴포넌트
-├── store/                 # 상태 관리
-│   └── editorStore.ts    # Zustand 스토어
-├── hooks/                 # 커스텀 훅
-├── utils/                 # 유틸리티 함수
-├── types/                 # TypeScript 타입 정의
-└── data/                  # 정적 데이터
+?��??� app/                    # Next.js App Router
+??  ?��??� page.tsx          # 메인 ?�이지
+??  ?��??� room-editor/      # �??�디???�이지
+??  ?��??� globals.css       # ?�역 ?��???
+?��??� components/            # React 컴포?�트
+??  ?��??� Real3DRoom.tsx    # 3D �??�더�?
+??  ?��??� DraggableFurniture.tsx # 가�??�터?�션
+??  ?��??� FurnitureCatalog.tsx   # 가�?카탈로그
+??  ?��??� ...               # 기�? 컴포?�트
+?��??� store/                 # ?�태 관�?
+??  ?��??� editorStore.ts    # Zustand ?�토??
+?��??� hooks/                 # 커스?� ??
+?��??� utils/                 # ?�틸리티 ?�수
+?��??� types/                 # TypeScript ?�???�의
+?��??� data/                  # ?�적 ?�이??
 ```
 
-## 🛠️ 기술 스택
+## ?���?기술 ?�택
 
-- **프론트엔드**: React 18, Next.js 15
-- **3D 그래픽스**: Three.js, React Three Fiber
-- **상태 관리**: Zustand
-- **스타일링**: Tailwind CSS
-- **언어**: TypeScript
-- **테스트**: Jest, React Testing Library
+- **?�론?�엔??*: React 18, Next.js 15
+- **3D 그래?�스**: Three.js, React Three Fiber
+- **?�태 관�?*: Zustand
+- **?��??�링**: Tailwind CSS
+- **?�어**: TypeScript
+- **?�스??*: Jest, React Testing Library
 
-## 🔧 개발 도구
+## ?�� 개발 ?�구
 
-### 코드 품질
+### 코드 ?�질
 
 ```bash
-# ESLint 실행
+# ESLint ?�행
 npm run lint
 
-# 자동 수정
+# ?�동 ?�정
 npm run lint:fix
 
-# 타입 검사
+# ?�??검??
 npm run type-check
 ```
 
-### 테스트
+### ?�스??
 
 ```bash
-# 단위 테스트 실행
+# ?�위 ?�스???�행
 npm run test
 
-# 테스트 커버리지
+# ?�스??커버리�?
 npm run test:coverage
 
-# E2E 테스트
+# E2E ?�스??
 npm run test:e2e
 ```
 
-## 📱 주요 컴포넌트
+## ?�� 주요 컴포?�트
 
 ### Real3DRoom
-3D 씬의 메인 컨테이너로, Three.js 렌더링과 카메라 제어를 담당합니다.
+3D ?�의 메인 컨테?�너�? Three.js ?�더링과 카메???�어�??�당?�니??
 
 ### DraggableFurniture
-개별 가구 아이템의 3D 렌더링과 드래그 앤 드롭 인터랙션을 처리합니다.
+개별 가�??�이?�의 3D ?�더링과 ?�래�????�롭 ?�터?�션??처리?�니??
 
 ### FurnitureCatalog
-가구 카탈로그를 표시하며, 이미지 lazy loading과 검색 기능을 제공합니다.
+가�?카탈로그�??�시?�며, ?��?지 lazy loading�?검??기능???�공?�니??
 
 ### RoomEditor
-전체 룸 에디터를 관리하는 메인 컴포넌트입니다.
+?�체 �??�디?��? 관리하??메인 컴포?�트?�니??
+### ClickToMoveAvatar
+Raycasts canvas clicks to drive avatar movement, cloning the GLTF with SkeletonUtils for safe reuse and blending idle/walk animations.
 
-## 🎯 성능 최적화
 
-- **이미지 Lazy Loading**: Intersection Observer API 활용
-- **3D 모델 메모리 관리**: 자동 리소스 정리
-- **번들 최적화**: Webpack 설정으로 Tree shaking 및 청크 분할
-- **컴포넌트 메모이제이션**: React.memo를 통한 불필요한 리렌더링 방지
+## ?�� ?�능 최적??
 
-## 🔒 보안
+- **?��?지 Lazy Loading**: Intersection Observer API ?�용
+- **3D 모델 메모�?관�?*: ?�동 리소???�리
+- **번들 최적??*: Webpack ?�정?�로 Tree shaking �?�?�� 분할
+- **컴포?�트 메모?�제?�션**: React.memo�??�한 불필?�한 리렌?�링 방�?
 
-- **입력 검증**: TypeScript를 통한 타입 안전성
-- **XSS 방지**: 안전한 HTML 렌더링
-- **데이터 암호화**: 민감한 정보의 로컬 스토리지 보호
+## ?�� 보안
 
-## 🧪 테스트
+- **?�력 검�?*: TypeScript�??�한 ?�???�전??
+- **XSS 방�?**: ?�전??HTML ?�더�?
+- **?�이???�호??*: 민감???�보??로컬 ?�토리�? 보호
 
-- **단위 테스트**: 컴포넌트 및 유틸리티 함수
-- **통합 테스트**: 사용자 워크플로우
-- **E2E 테스트**: 전체 애플리케이션 동작
+## ?�� ?�스??
 
-## 📊 모니터링
+- **?�위 ?�스??*: 컴포?�트 �??�틸리티 ?�수
+- **?�합 ?�스??*: ?�용???�크?�로??
+- **E2E ?�스??*: ?�체 ?�플리�??�션 ?�작
 
-- **성능 모니터링**: Core Web Vitals, FPS 추적
-- **에러 모니터링**: Error Boundary를 통한 에러 캐치
-- **사용자 행동 분석**: 성능 메트릭 수집
+## ?�� 모니?�링
 
-## 🤝 기여하기
+- **?�능 모니?�링**: Core Web Vitals, FPS 추적
+- **?�러 모니?�링**: Error Boundary�??�한 ?�러 캐치
+- **?�용???�동 분석**: ?�능 메트�??�집
+
+## ?�� 기여?�기
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
@@ -158,47 +161,47 @@ npm run test:e2e
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-### 개발 가이드라인
+### 개발 가?�드?�인
 
-- [코딩 컨벤션](docs/DEVELOPMENT.md#코딩-컨벤션) 준수
-- [테스트 작성](docs/DEVELOPMENT.md#테스트-작성) 필수
-- [코드 리뷰](docs/DEVELOPMENT.md#코드-리뷰) 프로세스 준수
+- [코딩 컨벤??(docs/DEVELOPMENT.md#코딩-컨벤?? 준??
+- [?�스???�성](docs/DEVELOPMENT.md#?�스???�성) ?�수
+- [코드 리뷰](docs/DEVELOPMENT.md#코드-리뷰) ?�로?�스 준??
 
-## 📄 라이선스
+## ?�� ?�이?�스
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+???�로?�트??MIT ?�이?�스 ?�에 배포?�니?? ?�세???�용?� [LICENSE](LICENSE) ?�일??참조?�세??
 
-## 📞 지원 및 연락처
+## ?�� 지??�??�락�?
 
-- **프로젝트 이슈**: [GitHub Issues](https://github.com/your-org/bumbum-project/issues)
-- **기술 지원**: [개발자 가이드](docs/DEVELOPMENT.md#지원-및-연락처)
-- **문서 관련**: [문서 저장소](docs/)
+- **?�로?�트 ?�슈**: [GitHub Issues](https://github.com/your-org/bumbum-project/issues)
+- **기술 지??*: [개발??가?�드](docs/DEVELOPMENT.md#지??�??�락�?
+- **문서 관??*: [문서 ?�?�소](docs/)
 
-## 🙏 감사의 말
+## ?�� 감사??�?
 
-- [Three.js](https://threejs.org/) - 3D 그래픽스 라이브러리
-- [React Three Fiber](https://docs.pmnd.rs/react-three-fiber/) - React Three.js 통합
-- [Zustand](https://github.com/pmndrs/zustand) - 상태 관리 라이브러리
-- [Tailwind CSS](https://tailwindcss.com/) - 유틸리티 퍼스트 CSS 프레임워크
+- [Three.js](https://threejs.org/) - 3D 그래?�스 ?�이브러�?
+- [React Three Fiber](https://docs.pmnd.rs/react-three-fiber/) - React Three.js ?�합
+- [Zustand](https://github.com/pmndrs/zustand) - ?�태 관�??�이브러�?
+- [Tailwind CSS](https://tailwindcss.com/) - ?�틸리티 ?�스??CSS ?�레?�워??
 
 ---
 
-**프로젝트 버전**: 2.1.0  
-**마지막 업데이트**: 2024년 12월  
-**개발팀**: Bumbum Team
+**?�로?�트 버전**: 2.1.0  
+**마�?�??�데?�트**: 2024??12?? 
+**개발?�**: Bumbum Team
 
-## 📝 MCP 체크포인트 저장
+## ?�� MCP 체크?�인???�??
 
-컨텍스트가 커지기 전에 현재 상태를 요약해 저장합니다.
+컨텍?�트가 커�?�??�에 ?�재 ?�태�??�약???�?�합?�다.
 
 ```bash
-# 기본(스냅샷 + Git 상태)
-npm run checkpoint:save -- --title="작업 일시중단" --notes="카메라 이동 로직 정리 전"
+# 기본(?�냅??+ Git ?�태)
+npm run checkpoint:save -- --title="?�업 ?�시중단" --notes="카메???�동 로직 ?�리 ??
 
-# 전체(스냅샷 + Git 상태 + diff)
-npm run checkpoint:save:full -- --title="리팩터링 직전" --notes="EditableFurniture 동기화 최종 확인"
+# ?�체(?�냅??+ Git ?�태 + diff)
+npm run checkpoint:save:full -- --title="리팩?�링 직전" --notes="EditableFurniture ?�기??최종 ?�인"
 ```
 
-결과 파일은 `data/memory/checkpoints/checkpoint-YYYY-MM-DDTHH-MM-SS.json`에 생성됩니다.
+결과 ?�일?� `data/memory/checkpoints/checkpoint-YYYY-MM-DDTHH-MM-SS.json`???�성?�니??
 
-참고: `npm run mcp:auto` 실행 시, 스냅샷 저장과 ref 갱신 후 자동으로 체크포인트(스냅샷 + Git 상태 + diff 요약)가 함께 생성됩니다.
+참고: `npm run mcp:auto` ?�행 ?? ?�냅???�?�과 ref 갱신 ???�동?�로 체크?�인???�냅??+ Git ?�태 + diff ?�약)가 ?�께 ?�성?�니??

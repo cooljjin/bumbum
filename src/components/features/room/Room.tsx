@@ -161,7 +161,13 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
   return (
     <group ref={roomRef}>
       {/* 바닥 - 텍스처 적용된 평면 형태 */}
-      <mesh position={[0, -floorThickness / 2, 0]} receiveShadow={receiveShadow} castShadow={false} raycast={() => undefined}>
+      <mesh 
+        name="floor" 
+        position={[0, -floorThickness / 2, 0]} 
+        receiveShadow={receiveShadow} 
+        castShadow={false}
+        userData={{ isFloor: true }}
+      >
         <boxGeometry args={[dims.width, floorThickness, dims.depth]} />
         <meshStandardMaterial
           map={floorTexture}

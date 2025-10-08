@@ -2,9 +2,11 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiSearch, FiFilter, FiGrid, FiList, FiHeart, FiShoppingCart } from 'react-icons/fi';
-import { FurnitureItem } from '../../../types/furniture';
+import { FiSearch, FiFilter, FiGrid, FiList, FiHeart, FiShoppingCart, FiSync, FiCheck, FiAlertCircle } from 'react-icons/fi';
+import { FurnitureItem, CustomFurnitureItem } from '../../../types/furniture';
 import { setFloorTexture, setWallTexture } from '../../../store/editorStore';
+import { HybridStorage } from '../../../services/storage/hybridStorage';
+import { SyncEvent } from '../../../types/storage';
 
 interface EnhancedFurnitureCatalogProps {
   furnitureData: FurnitureItem[];
@@ -33,9 +35,52 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
   const [recentlyViewed, setRecentlyViewed] = useState<FurnitureItem[]>([]);
   const [isLoadingFloorTexture, setIsLoadingFloorTexture] = useState(false);
   const [isLoadingWallTexture, setIsLoadingWallTexture] = useState(false);
+  const [customItems, setCustomItems] = useState<CustomFurnitureItem[]>([]);
+  const [showCustomSection, setShowCustomSection] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   // 스크롤 컨테이너 ref
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const hybridStorage = new HybridStorage();
+
+  // 커스텀 가구 로드
+  const loadCustomItems = async () => {
+    try {
+      const items = await hybridStorage.getFurnitureList();
+      setCustomItems(items);
+    } catch (error) {
+      console.error('Failed to load custom items:', error);
+    }
+  };
+
+  // 동기화 이벤트 리스너
+  const handleSyncEvent = (event: SyncEvent) => {
+    console.log('[UI] Sync event:', event);
+    
+    switch (event.type) {
+      case 'start':
+        setSyncing(true);
+        break;
+      case 'complete':
+        setSyncing(false);
+        loadCustomItems(); // 목록 새로고침
+        break;
+      case 'error':
+        setSyncing(false);
+        console.error('[UI] Sync error:', event.error);
+        break;
+    }
+  };
+
+  // 컴포넌트 마운트 시 커스텀 가구 로드
+  useEffect(() => {
+    loadCustomItems();
+    hybridStorage.addSyncEventListener(handleSyncEvent);
+    
+    return () => {
+      hybridStorage.removeSyncEventListener(handleSyncEvent);
+    };
+  }, []);
 
   // 네이티브 스크롤 사용 (iOS 모멘텀 스크롤 포함)
 
@@ -224,12 +269,20 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
         <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 text-white">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xl font-bold">🛋️ 가구 라이브러리</h2>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-full hover:bg-white/20 transition-colors"
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCustomSection(!showCustomSection)}
+                className="px-3 py-1 bg-white/20 rounded-full text-sm hover:bg-white/30 transition-colors"
+              >
+                {showCustomSection ? '기본 가구' : `커스텀 가구 (${customItems.length})`}
+              </button>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-full hover:bg-white/20 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
           </div>
           
           {/* 바닥 텍스처 로딩 상태 표시 */}
@@ -248,6 +301,21 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
               <div className="flex items-center gap-2">
                 <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
                 <span className="text-sm">벽면 텍스처를 적용하는 중...</span>
+              </div>
+            </div>
+          )}
+
+          {/* 커스텀 가구 동기화 상태 표시 */}
+          {showCustomSection && (
+            <div className="bg-purple-400/20 border border-purple-300/30 rounded-lg p-3 mb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  <span className="text-sm">Mock API로 동기화 시뮬레이션 중</span>
+                </div>
+                <div className="text-xs text-purple-100">
+                  {syncing ? '동기화 중...' : '대기 중'}
+                </div>
               </div>
             </div>
           )}
@@ -408,33 +476,115 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
           WebkitOverflowScrolling: 'touch'
         }}
       >
-        {filteredFurniture.length === 0 ? (
-          <div className="text-center py-12">
-            <FiSearch size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-600 mb-2">검색 결과가 없습니다</h3>
-            <p className="text-gray-500">다른 검색어로 시도해보세요</p>
-          </div>
+        {showCustomSection ? (
+          // 커스텀 가구 섹션
+          customItems.length === 0 ? (
+            <div className="text-center py-12">
+              <FiSearch size={48} className="mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-600 mb-2">커스텀 가구가 없습니다</h3>
+              <p className="text-gray-500">새로운 가구를 추가해보세요</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {customItems.map((item) => (
+                <motion.div
+                  key={item.storage.localId}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 p-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-medium text-gray-800 text-sm">
+                          {item.nameKo || item.name}
+                        </h3>
+                        {item.sync.status === 'synced' ? (
+                          <FiCheck className="text-green-500" size={16} />
+                        ) : item.sync.status === 'pending' ? (
+                          <FiSync className="text-yellow-500 animate-spin" size={16} />
+                        ) : (
+                          <FiAlertCircle className="text-red-500" size={16} />
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-600 mb-2">
+                        상태: {item.sync.status === 'synced' ? '동기화됨' : 
+                               item.sync.status === 'pending' ? '동기화 중' : '동기화 실패'}
+                        {item.sync.lastSynced && (
+                          <span className="ml-2">
+                            (마지막 동기화: {new Date(item.sync.lastSynced).toLocaleTimeString()})
+                          </span>
+                        )}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>카테고리: {item.category}</span>
+                        <span>•</span>
+                        <span>크기: {item.footprint.width}×{item.footprint.depth}×{item.footprint.height}m</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => {
+                          // CustomFurnitureItem을 FurnitureItem으로 변환
+                          const furnitureItem: FurnitureItem = {
+                            id: item.id,
+                            name: item.name,
+                            nameKo: item.nameKo,
+                            category: item.category,
+                            subcategory: item.subcategory,
+                            modelPath: URL.createObjectURL(item.files.model.local),
+                            thumbnailPath: item.files.thumbnail.local.size > 0 ? 
+                              URL.createObjectURL(item.files.thumbnail.local) : undefined,
+                            footprint: item.footprint,
+                            placement: item.placement,
+                            metadata: item.metadata,
+                            renderSettings: item.renderSettings,
+                            editSettings: item.editSettings
+                          };
+                          onFurnitureSelect(furnitureItem);
+                        }}
+                        className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
+                      >
+                        선택
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )
         ) : (
-          <div className={
-            viewMode === 'grid'
-              ? `grid gap-2 ${isMobile ? 'grid-cols-5' : 'grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'}`
-              : 'space-y-2'
-          }>
-            {filteredFurniture.map((item) => (
-              <motion.div
-                key={item.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-                className={
-                  viewMode === 'grid'
-                    ? `bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer border border-gray-200 overflow-hidden ${isMobile ? 'text-sm' : 'text-xs'}`
-                    : `bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer border border-gray-200 p-2 flex gap-2 ${isMobile ? 'text-xs' : 'p-3'}`
-                }
-                onClick={() => handleFurnitureSelect(item)}
-              >
+          // 기본 가구 섹션
+          filteredFurniture.length === 0 ? (
+            <div className="text-center py-12">
+              <FiSearch size={48} className="mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-600 mb-2">검색 결과가 없습니다</h3>
+              <p className="text-gray-500">다른 검색어로 시도해보세요</p>
+            </div>
+          ) : (
+            <div className={
+              viewMode === 'grid'
+                ? `grid gap-2 ${isMobile ? 'grid-cols-5' : 'grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'}`
+                : 'space-y-2'
+            }>
+              {filteredFurniture.map((item) => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className={
+                    viewMode === 'grid'
+                      ? `bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer border border-gray-200 overflow-hidden ${isMobile ? 'text-sm' : 'text-xs'}`
+                      : `bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer border border-gray-200 p-2 flex gap-2 ${isMobile ? 'text-xs' : 'p-3'}`
+                  }
+                  onClick={() => handleFurnitureSelect(item)}
+                >
                 {/* 썸네일 */}
                 <div className={
                   viewMode === 'grid'
@@ -495,9 +645,10 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
                     </p>
                   )}
                 </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </div>
+          )
         )}
       </div>
 

@@ -1,6 +1,7 @@
-import type { FurnitureItem, FurnitureCategory } from '../types/furniture';
+import type { FurnitureItem, FurnitureCategory, CustomFurnitureItem } from '../types/furniture';
 import { Vector3, Euler } from 'three';
 import { getDoorPlacementDefaults } from './furnitureHelpers';
+import { HybridStorage } from '../services/storage/hybridStorage';
 
 type CustomItemMeta = {
   id: string;
@@ -67,110 +68,153 @@ export async function saveCustomFurniture(params: {
   category?: FurnitureCategory;
   tags?: string[];
 }): Promise<string> {
-  const id = makeId();
-  const meta: CustomItemMeta = {
-    id,
-    name: params.name,
-    createdAt: Date.now(),
-    footprint: params.footprint,
-    isWall: !!params.wallMounted,
-    wallHeight: params.wallHeight,
-    isDoor: !!params.isDoor,
-    category: params.category,
-    tags: params.tags && Array.isArray(params.tags) ? params.tags : undefined
+  const hybridStorage = new HybridStorage();
+  
+  // 파일 해시 계산
+  const calculateHash = async (blob: Blob): Promise<string> => {
+    const buffer = await blob.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   };
-  await withTx([STORE_ITEMS, STORE_BLOBS], 'readwrite', async (tx) => {
-    tx.objectStore(STORE_ITEMS).put(meta);
-    tx.objectStore(STORE_BLOBS).put(params.modelBlob, `model:${id}`);
-    if (params.thumbnailBlob) {
-      tx.objectStore(STORE_BLOBS).put(params.thumbnailBlob, `thumb:${id}`);
+
+  const isDoor = !!params.isDoor;
+  const category: FurnitureCategory = params.category || 'decorative';
+  const tags: string[] = params.tags && Array.isArray(params.tags) ? params.tags : (isDoor ? ['custom','door'] : ['custom']);
+  
+  // placement 설정: 문인 경우 표준 설정 사용, 아니면 커스텀 설정
+  const placement = isDoor 
+    ? getDoorPlacementDefaults() 
+    : {
+        canRotate: true,
+        canScale: true,
+        floorOffset: 0,
+        wallOnly: !!params.wallMounted,
+        wallHeight: params.wallMounted ? (params.wallHeight ?? 1.4) : undefined,
+        supportedSurfaces: params.wallMounted ? ['wall' as const] : ['floor' as const]
+      };
+
+  // CustomFurnitureItem 형태로 변환
+  const item: CustomFurnitureItem = {
+    id: makeId(),
+    name: params.name,
+    nameKo: params.name,
+    category,
+    subcategory: isDoor ? 'door' : (params.wallMounted ? 'wall-custom' : 'custom'),
+    modelPath: '', // Blob URL로 설정
+    thumbnailPath: '', // Blob URL로 설정
+    footprint: params.footprint || { width: 1, depth: 1, height: 1 },
+    placement,
+    metadata: {
+      brand: 'Custom',
+      model: makeId(),
+      price: 0,
+      description: '로컬 커스텀 라이브러리 항목',
+      tags
+    },
+    renderSettings: {
+      castShadow: true,
+      receiveShadow: true,
+      defaultScale: new Vector3(1, 1, 1),
+      defaultRotation: new Euler(0, 0, 0)
+    },
+    editSettings: {
+      snapToGrid: true,
+      rotationSnap: 15,
+      collisionGroup: 'furniture'
+    },
+    storage: {
+      mode: 'mock-api',
+      localId: makeId(),
+      version: 1
+    },
+    sync: {
+      status: 'pending'
+    },
+    files: {
+      model: {
+        local: params.modelBlob,
+        size: params.modelBlob.size,
+        hash: await calculateHash(params.modelBlob)
+      },
+      thumbnail: {
+        local: params.thumbnailBlob || new Blob(),
+        size: params.thumbnailBlob?.size || 0,
+        hash: params.thumbnailBlob ? await calculateHash(params.thumbnailBlob) : ''
+      }
+    },
+    metadata: {
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      createdBy: 'local-user',
+      tags: tags,
+      isPublic: false,
+      version: 1
     }
-  });
-  return id;
+  };
+  
+  await hybridStorage.saveFurniture(item);
+  return item.storage.localId;
 }
 
 export async function getCustomFurnitureItems(): Promise<FurnitureItem[]> {
-  const items = await withTx([STORE_ITEMS], 'readonly', async (tx) => {
-    return await new Promise<CustomItemMeta[]>((resolve, reject) => {
-      const req = tx.objectStore(STORE_ITEMS).getAll();
-      req.onsuccess = () => resolve(req.result as any);
-      req.onerror = () => reject(req.error);
-    });
-  });
-
+  const hybridStorage = new HybridStorage();
+  const customItems = await hybridStorage.getFurnitureList();
+  
+  // CustomFurnitureItem을 FurnitureItem으로 변환
   const results: FurnitureItem[] = [];
-  for (const meta of items) {
-    const modelBlob = await withTx([STORE_BLOBS], 'readonly', async (tx) => {
-      return await new Promise<Blob | undefined>((resolve, reject) => {
-        const req = tx.objectStore(STORE_BLOBS).get(`model:${meta.id}`);
-        req.onsuccess = () => resolve(req.result as any);
-        req.onerror = () => reject(req.error);
-      });
-    });
-    const thumbBlob = await withTx([STORE_BLOBS], 'readonly', async (tx) => {
-      return await new Promise<Blob | undefined>((resolve, reject) => {
-        const req = tx.objectStore(STORE_BLOBS).get(`thumb:${meta.id}`);
-        req.onsuccess = () => resolve(req.result as any);
-        req.onerror = () => reject(req.error);
-      });
-    });
-    if (!modelBlob) continue;
-    const modelUrl = URL.createObjectURL(modelBlob);
-    const thumbUrl = thumbBlob ? URL.createObjectURL(thumbBlob) : undefined;
-
-    const isDoor = !!meta.isDoor;
-    const category: FurnitureCategory = meta.category || 'decorative';
-    const tags: string[] = meta.tags && meta.tags.length ? meta.tags : (isDoor ? ['custom','door'] : ['custom']);
+  for (const customItem of customItems) {
+    // Blob URL 생성
+    const modelUrl = URL.createObjectURL(customItem.files.model.local);
+    const thumbUrl = customItem.files.thumbnail.local.size > 0 ? 
+      URL.createObjectURL(customItem.files.thumbnail.local) : undefined;
     
-    // placement 설정: 문인 경우 표준 설정 사용, 아니면 커스텀 설정
-    const placement = isDoor 
-      ? getDoorPlacementDefaults() 
-      : {
-          canRotate: true,
-          canScale: true,
-          floorOffset: 0,
-          wallOnly: !!meta.isWall,
-          wallHeight: meta.isWall ? (meta.wallHeight ?? 1.4) : undefined,
-          supportedSurfaces: meta.isWall ? ['wall' as const] : ['floor' as const]
-        };
-    
-    const f: FurnitureItem = {
-      id: meta.id,
-      name: meta.name,
-      nameKo: meta.name,
-      category,
-      subcategory: isDoor ? 'door' : (meta.isWall ? 'wall-custom' : 'custom'),
+    const furnitureItem: FurnitureItem = {
+      id: customItem.id,
+      name: customItem.name,
+      nameKo: customItem.nameKo,
+      category: customItem.category,
+      subcategory: customItem.subcategory,
       modelPath: modelUrl,
-      thumbnailPath: thumbUrl || undefined,
-      footprint: meta.footprint || { width: 1, depth: 1, height: 1 },
-      placement,
-      metadata: {
-        brand: 'Custom',
-        model: meta.id,
-        price: 0,
-        description: '로컬 커스텀 라이브러리 항목',
-        tags
-      },
-      renderSettings: {
-        castShadow: true,
-        receiveShadow: true,
-        defaultScale: new Vector3(1, 1, 1),
-        defaultRotation: new Euler(0, 0, 0)
-      },
-      editSettings: {
-        snapToGrid: true,
-        rotationSnap: 15,
-        collisionGroup: 'furniture'
-      }
+      thumbnailPath: thumbUrl,
+      footprint: customItem.footprint,
+      placement: customItem.placement,
+      metadata: customItem.metadata,
+      renderSettings: customItem.renderSettings,
+      editSettings: customItem.editSettings
     };
-    results.push(f);
+    
+    results.push(furnitureItem);
   }
+  
   return results;
 }
 
 export async function getCustomFurnitureById(id: string): Promise<FurnitureItem | undefined> {
-  const list = await getCustomFurnitureItems();
-  return list.find(it => it.id === id);
+  const hybridStorage = new HybridStorage();
+  const customItem = await hybridStorage.getFurnitureItem(id);
+  
+  if (!customItem) return undefined;
+  
+  // Blob URL 생성
+  const modelUrl = URL.createObjectURL(customItem.files.model.local);
+  const thumbUrl = customItem.files.thumbnail.local.size > 0 ? 
+    URL.createObjectURL(customItem.files.thumbnail.local) : undefined;
+  
+  return {
+    id: customItem.id,
+    name: customItem.name,
+    nameKo: customItem.nameKo,
+    category: customItem.category,
+    subcategory: customItem.subcategory,
+    modelPath: modelUrl,
+    thumbnailPath: thumbUrl,
+    footprint: customItem.footprint,
+    placement: customItem.placement,
+    metadata: customItem.metadata,
+    renderSettings: customItem.renderSettings,
+    editSettings: customItem.editSettings
+  };
 }
 
 // Raw meta helpers for management UI
@@ -212,23 +256,58 @@ export async function updateCustomFurnitureMeta(
 }
 
 export async function deleteCustomFurniture(id: string): Promise<void> {
-  await withTx([STORE_ITEMS, STORE_BLOBS], 'readwrite', async (tx) => {
-    tx.objectStore(STORE_ITEMS).delete(id);
-    tx.objectStore(STORE_BLOBS).delete(`model:${id}`);
-    tx.objectStore(STORE_BLOBS).delete(`thumb:${id}`);
-  });
+  const hybridStorage = new HybridStorage();
+  await hybridStorage.deleteFurnitureItem(id);
 }
 
 // Replace model GLB for a custom furniture item
 export async function updateCustomFurnitureModel(id: string, modelBlob: Blob): Promise<void> {
-  await withTx([STORE_BLOBS], 'readwrite', async (tx) => {
-    tx.objectStore(STORE_BLOBS).put(modelBlob, `model:${id}`);
-  });
+  const hybridStorage = new HybridStorage();
+  const item = await hybridStorage.getFurnitureItem(id);
+  
+  if (!item) {
+    throw new Error(`Item with id ${id} not found`);
+  }
+  
+  // 파일 해시 계산
+  const calculateHash = async (blob: Blob): Promise<string> => {
+    const buffer = await blob.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+  
+  // 모델 파일 업데이트
+  item.files.model.local = modelBlob;
+  item.files.model.size = modelBlob.size;
+  item.files.model.hash = await calculateHash(modelBlob);
+  item.metadata.updatedAt = Date.now();
+  
+  await hybridStorage.updateFurnitureItem(id, item);
 }
 
 // Replace thumbnail image for a custom furniture item
 export async function updateCustomFurnitureThumbnail(id: string, thumbnailBlob: Blob): Promise<void> {
-  await withTx([STORE_BLOBS], 'readwrite', async (tx) => {
-    tx.objectStore(STORE_BLOBS).put(thumbnailBlob, `thumb:${id}`);
-  });
+  const hybridStorage = new HybridStorage();
+  const item = await hybridStorage.getFurnitureItem(id);
+  
+  if (!item) {
+    throw new Error(`Item with id ${id} not found`);
+  }
+  
+  // 파일 해시 계산
+  const calculateHash = async (blob: Blob): Promise<string> => {
+    const buffer = await blob.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+  
+  // 썸네일 파일 업데이트
+  item.files.thumbnail.local = thumbnailBlob;
+  item.files.thumbnail.size = thumbnailBlob.size;
+  item.files.thumbnail.hash = await calculateHash(thumbnailBlob);
+  item.metadata.updatedAt = Date.now();
+  
+  await hybridStorage.updateFurnitureItem(id, item);
 }
