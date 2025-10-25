@@ -1,6 +1,8 @@
 // Stores binary overrides (GLB, thumbnail) for built-in furniture in IndexedDB
 // Uses same DB as customLibrary for simplicity
 
+import { blobManager } from './blobManager';
+
 const DB_NAME = 'bumbum_custom_library';
 const DB_VERSION = 1;
 const STORE_BLOBS = 'blobs';
@@ -77,8 +79,17 @@ export async function getBuiltInOverrideUrls(ids: string[]): Promise<Record<stri
     const m = await getBlob(modelKey(id));
     const t = await getBlob(thumbKey(id));
     const entry: { modelUrl?: string; thumbUrl?: string } = {};
-    if (m) entry.modelUrl = URL.createObjectURL(m);
-    if (t) entry.thumbUrl = URL.createObjectURL(t);
+    // ✅ BlobManager 사용
+    if (m) entry.modelUrl = blobManager.createUrl(m, {
+      type: 'model',
+      itemId: id,
+      source: 'built-in'
+    });
+    if (t) entry.thumbUrl = blobManager.createUrl(t, {
+      type: 'thumbnail',
+      itemId: id,
+      source: 'built-in'
+    });
     if (entry.modelUrl || entry.thumbUrl) out[id] = entry;
   }
   return out;

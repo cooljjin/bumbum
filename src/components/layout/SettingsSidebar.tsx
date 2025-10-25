@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { FiPlayCircle, FiSave, FiHelpCircle, FiShare2, FiBarChart2 } from 'react-icons/fi';
 
 interface SettingsSidebarProps {
   isViewLocked: boolean;
@@ -8,6 +9,14 @@ interface SettingsSidebarProps {
   onViewLockChange: (locked: boolean) => void;
   onEditModeChange: (editMode: boolean) => void;
   onClose: () => void;
+  // 온보딩 관련
+  hasCompletedOnboarding: boolean;
+  onStartOnboarding: () => void;
+  // 제거된 헤더 기능들
+  onShowUserPreferences: () => void;
+  onShowAccessibility: () => void;
+  onShowExport: () => void;
+  onShowAnalytics: () => void;
 }
 
 export function SettingsSidebar({
@@ -15,7 +24,13 @@ export function SettingsSidebar({
   isEditMode,
   onViewLockChange,
   onEditModeChange,
-  onClose
+  onClose,
+  hasCompletedOnboarding,
+  onStartOnboarding,
+  onShowUserPreferences,
+  onShowAccessibility,
+  onShowExport,
+  onShowAnalytics
 }: SettingsSidebarProps) {
   return (
     <div className="p-6" data-testid="settings-panel">
@@ -61,7 +76,62 @@ export function SettingsSidebar({
         </div>
       </div>
 
-      {/* 벽 배치 설정 제거 */}
+      {/* 온보딩 섹션 */}
+      <div className="mb-8">
+        <h3 className="text-lg font-medium text-gray-700 mb-4">시작하기</h3>
+        <button
+          onClick={onStartOnboarding}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
+        >
+          <FiPlayCircle size={20} />
+          <div className="flex-1 text-left">
+            <div className="font-semibold">
+              {hasCompletedOnboarding ? '튜토리얼 다시 보기' : '튜토리얼 시작'}
+            </div>
+            <div className="text-xs text-blue-100">
+              주요 기능을 빠르게 배워보세요
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* 추가 기능 섹션 */}
+      <div className="mb-8">
+        <h3 className="text-lg font-medium text-gray-700 mb-4">기능</h3>
+        <div className="space-y-2">
+          <button
+            onClick={onShowUserPreferences}
+            className="w-full flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <FiSave size={18} />
+            <span>내 디자인 관리</span>
+          </button>
+
+          <button
+            onClick={onShowAccessibility}
+            className="w-full flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <FiHelpCircle size={18} />
+            <span>접근성 설정</span>
+          </button>
+
+          <button
+            onClick={onShowExport}
+            className="w-full flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <FiShare2 size={18} />
+            <span>디자인 내보내기 및 공유</span>
+          </button>
+
+          <button
+            onClick={onShowAnalytics}
+            className="w-full flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <FiBarChart2 size={18} />
+            <span>사용 분석 대시보드</span>
+          </button>
+        </div>
+      </div>
 
       {/* 도움말 */}
       <div>

@@ -40,6 +40,15 @@ export interface RoomBounds {
   wallThickness: number;
 }
 
+export interface RoomDimensions extends RoomBounds {
+  margin: number;
+}
+
+export interface RoomDimensionValidation {
+  isValid: boolean;
+  errors: Partial<Record<keyof RoomDimensions, string>>;
+}
+
 /**
  * 벽 부착 정보 타입
  * @description 가구가 벽에 부착될 때의 위치와 방향 정보
@@ -65,6 +74,37 @@ export interface CompressedState {
     rot: number[];
     scl: number[];
     locked: boolean;
+    // 전체 데이터 추가 (선택사항 - 하위 호환성)
+    fullData?: {
+      name: string;
+      modelPath: string;
+      footprint: {
+        width: number;
+        depth: number;
+        height: number;
+      };
+      mount?: {
+        type: 'wall';
+        side: 'minX' | 'maxX' | 'minZ' | 'maxZ';
+        u: number;
+        height: number;
+        offset?: number;
+      };
+      metadata?: {
+        category: string;
+        brand?: string;
+        price?: number;
+        description?: string;
+        furnitureId?: string;
+      };
+      snapSettings?: {
+        gridEnabled: boolean;
+        rotationSnapEnabled: boolean;
+        rotationSnapAngle: number;
+        gridSize: number;
+        gridDivisions: number;
+      };
+    };
   }[];
   timestamp: number;
   description: string;
@@ -190,6 +230,8 @@ export interface EditorState {
 
   // 벽 텍스처 설정
   currentWallTexture: string; // 현재 적용된 벽 텍스처 경로
+  roomDimensions: RoomDimensions;
+  roomDimensionValidation: RoomDimensionValidation;
 }
 
 // 편집 액션 타입
@@ -284,6 +326,11 @@ export interface EditorActions {
 
   // 벽 텍스처 관리
   setWallTexture: (texturePath: string) => void;
+  setRoomDimensions: (dimensions: RoomDimensions) => void;
+  updateRoomDimensions: (dimensions: Partial<RoomDimensions>) => void;
+  validateRoomDimensions: (dimensions?: RoomDimensions) => RoomDimensionValidation;
+  loadRoomDimensions: () => Promise<RoomDimensions>;
+  saveRoomDimensions: (dimensions?: RoomDimensions) => Promise<RoomDimensions>;
 }
 
 /**
@@ -311,9 +358,9 @@ export interface PerformanceOptions {
  */
 export interface RoomBoundsContext {
   /** 룸의 경계 정보 */
-  bounds: RoomBounds;
+  bounds: RoomDimensions;
   /** 경계 정보 업데이트 함수 */
-  updateBounds: (newBounds: RoomBounds) => void;
+  updateBounds: (newBounds: RoomDimensions) => void;
   /** 가구가 룸 내부에 있는지 확인하는 함수 */
   isItemInBounds: (item: PlacedItem) => boolean;
 }

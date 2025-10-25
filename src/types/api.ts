@@ -30,6 +30,19 @@ export interface UploadFurnitureResponse {
   };
 }
 
+export interface RoomDimensionsDto {
+  width: number;
+  depth: number;
+  height: number;
+  wallThickness: number;
+  margin: number;
+}
+
+export interface SaveRoomDimensionsResponse {
+  dimensions: RoomDimensionsDto;
+  updatedAt: number;
+}
+
 // 가구 다운로드 요청 타입
 export interface DownloadFurnitureRequest {
   id: string;

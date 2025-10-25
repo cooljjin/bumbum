@@ -1,10 +1,13 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { shouldUsePlaceholderModels } from './placeholder';
+import { blobManager } from './blobManager';
+import { safeRevokeObjectURL } from './blobUtils';
+import { getBlob, releaseBlob, storeBlob } from './blobCache';
+import { CachedGLTFLoader } from './customGLTFLoader';
 
 // 모델 로더 인스턴스 (싱글톤)
-let gltfLoader: GLTFLoader | null = null;
+let gltfLoader: CachedGLTFLoader | null = null;
 
 // 모델 캐시
 const modelCache = new Map<string, {
@@ -28,15 +31,37 @@ const CACHE_CONFIG = {
   cleanupInterval: 30 * 1000 // 30초마다 정리
 };
 
+export const PLACEHOLDER_MODEL_KEY = '__placeholder__model__';
+
 // 캐시 정리 타이머
 let cleanupTimer: NodeJS.Timeout | null = null;
+
+interface BlobRecoveryOptions {
+  itemId?: string;
+  metadataHint?: Record<string, unknown>;
+  forceEnsure?: boolean;
+  onUrlResolved?: (details: {
+    url: string | null;
+    recovered: boolean;
+    changed: boolean;
+    failed: boolean;
+    reason?: string;
+  }) => void;
+}
+
+interface LoadModelOptions {
+  useCache?: boolean;
+  priority?: 'high' | 'normal' | 'low';
+  onProgress?: (progress: number) => void;
+  blobRecovery?: BlobRecoveryOptions;
+}
 
 /**
  * GLTF 로더를 가져옵니다 (싱글톤)
  */
-function getGLTFLoader(): GLTFLoader {
+function getGLTFLoader(): CachedGLTFLoader {
   if (!gltfLoader) {
-    gltfLoader = new GLTFLoader();
+    gltfLoader = new CachedGLTFLoader();
   }
   return gltfLoader;
 }
@@ -157,124 +182,377 @@ export function createFloorModel(
  */
 export async function loadModel(
   url: string,
-  options: {
-    useCache?: boolean;
-    priority?: 'high' | 'normal' | 'low';
-    onProgress?: (progress: number) => void;
-  } = {}
+  options: LoadModelOptions = {}
 ): Promise<THREE.Group> {
-  const { useCache = true, priority = 'normal', onProgress } = options;
+  const {
+    useCache = true,
+    priority: _priority = 'normal',
+    onProgress,
+    blobRecovery
+  } = options;
 
-  // 개발/테스트 환경에서는 실제 GLTF 로딩을 생략하고 플레이스홀더 반환
-  const usePlaceholder = shouldUsePlaceholderModels();
-  console.log('🔍 shouldUsePlaceholderModels():', usePlaceholder);
-  console.log('🔍 NODE_ENV:', process.env.NODE_ENV);
-  console.log('🔍 NEXT_PUBLIC_PLACEHOLDER_MODELS:', process.env.NEXT_PUBLIC_PLACEHOLDER_MODELS);
-  
-  if (usePlaceholder) {
-    console.log('🧩 Placeholder 모델 사용(개발/테스트 모드):', url);
+  const initialKey = typeof url === 'string' ? url.trim() : '';
+
+  if (!initialKey) {
+    console.warn('[ModelLoader] Empty URL received - skipping load.');
+    throw new Error('Empty model URL');
+  }
+
+  if (initialKey === PLACEHOLDER_MODEL_KEY) {
     return createFallbackModel();
   }
-  
-  console.log('🎯 실제 GLTF 모델 로딩 시도:', url);
-  console.log('🔍 shouldUsePlaceholderModels():', shouldUsePlaceholderModels());
 
-  // 모델 URL 해석 (CDN/base URL 지원)
-  const resolvedUrl = resolveModelUrl(url);
-
-  // 캐시에서 모델 확인
-  if (useCache && modelCache.has(url)) {
-    const cached = modelCache.get(url)!;
-    cached.useCount++;
-    cached.timestamp = Date.now();
-    // console.log(`📦 모델 캐시 히트: ${url}`);
-    return cached.model.clone();
+  if (initialKey.includes('undefined')) {
+    console.warn('[ModelLoader] Invalid URL contains "undefined":', initialKey);
+    throw new Error('Invalid model URL contains undefined');
   }
 
-  try {
-    // console.log(`🔄 모델 로딩 시작: ${resolvedUrl}`);
-    
-    // 더미 파일 감지를 위한 사전 체크
+  if (shouldUsePlaceholderModels()) {
+    return createFallbackModel();
+  }
+
+  let resolvedUrl = resolveModelUrl(initialKey);
+  let isBlobUrl = resolvedUrl.startsWith('blob:');
+
+  if (isBlobUrl && resolvedUrl.includes('undefined')) {
+    console.warn('[ModelLoader] Blob URL contains "undefined":', resolvedUrl);
+    throw new Error('Invalid blob URL contains undefined');
+  }
+
+  const reportRecovery = (details: {
+    url: string | null;
+    recovered: boolean;
+    changed: boolean;
+    failed: boolean;
+    reason?: string;
+  }) => {
+    blobRecovery?.onUrlResolved?.(details);
+  };
+
+  let ensureAttempted = false;
+  const ensureBlobUrlIfNeeded = async (): Promise<void> => {
+    if (ensureAttempted) {
+      return;
+    }
+    ensureAttempted = true;
+
+    if (!isBlobUrl) {
+      return;
+    }
+
+    if (!(blobRecovery?.forceEnsure ?? true)) {
+      reportRecovery({
+        url: resolvedUrl,
+        recovered: false,
+        changed: false,
+        failed: false
+      });
+      return;
+    }
+
     try {
-      const response = await fetch(resolvedUrl, { method: 'HEAD' });
+      const ensureResult = await blobManager.ensureValidUrl(
+        resolvedUrl,
+        blobRecovery?.itemId,
+        blobRecovery?.metadataHint
+      );
+
+      if (!ensureResult?.url) {
+        reportRecovery({
+          url: null,
+          recovered: false,
+          changed: false,
+          failed: true,
+          reason: 'ensureValidUrl returned null'
+        });
+        throw new Error('Blob ensureValidUrl returned null');
+      }
+
+      const changed = ensureResult.url !== resolvedUrl;
+      resolvedUrl = ensureResult.url;
+      isBlobUrl = resolvedUrl.startsWith('blob:');
+
+      reportRecovery({
+        url: resolvedUrl,
+        recovered: ensureResult.recovered,
+        changed,
+        failed: false
+      });
+    } catch (ensureError) {
+      const reason =
+        ensureError instanceof Error ? ensureError.message : String(ensureError);
+      console.warn('[ModelLoader] ensureValidUrl threw:', reason);
+      reportRecovery({
+        url: null,
+        recovered: false,
+        changed: false,
+        failed: true,
+        reason
+      });
+      throw new Error(`Blob ensureValidUrl threw: ${reason}`);
+    }
+  };
+
+  let ensureAttempted = false;
+  const ensureBlobUrlIfNeeded = async (): Promise<void> => {
+    if (ensureAttempted) {
+      return;
+    }
+    ensureAttempted = true;
+
+    if (!isBlobUrl) {
+      return;
+    }
+
+    if (!(blobRecovery?.forceEnsure ?? true)) {
+      reportRecovery({
+        url: resolvedUrl,
+        recovered: false,
+        changed: false,
+        failed: false
+      });
+      return;
+    }
+
+    try {
+      const ensureResult = await blobManager.ensureValidUrl(
+        resolvedUrl,
+        blobRecovery?.itemId,
+        blobRecovery?.metadataHint
+      );
+
+      if (!ensureResult?.url) {
+        reportRecovery({
+          url: null,
+          recovered: false,
+          changed: false,
+          failed: true,
+          reason: 'ensureValidUrl returned null'
+        });
+        throw new Error('Blob ensureValidUrl returned null');
+      }
+
+      const changed = ensureResult.url !== resolvedUrl;
+      resolvedUrl = ensureResult.url;
+      isBlobUrl = resolvedUrl.startsWith('blob:');
+
+      if (isBlobUrl && resolvedUrl.includes('undefined')) {
+        reportRecovery({
+          url: resolvedUrl,
+          recovered: false,
+          changed,
+          failed: true,
+          reason: 'ensureValidUrl produced blob URL containing undefined'
+        });
+        throw new Error('Invalid blob URL contains undefined');
+      }
+
+      reportRecovery({
+        url: resolvedUrl,
+        recovered: ensureResult.recovered,
+        changed,
+        failed: false
+      });
+    } catch (ensureError) {
+      const reason =
+        ensureError instanceof Error ? ensureError.message : String(ensureError);
+      console.warn('[ModelLoader] ensureValidUrl threw:', reason);
+      reportRecovery({
+        url: null,
+        recovered: false,
+        changed: false,
+        failed: true,
+        reason
+      });
+      throw new Error(`Blob ensureValidUrl threw: ${reason}`);
+    }
+  };
+
+  const fetchBlobFromUrl = async (): Promise<Blob | null> => {
+    try {
+      const response = await fetch(resolvedUrl);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
-      // 파일 크기가 매우 작으면 더미 파일일 가능성
-      const contentLength = response.headers.get('content-length');
-      if (contentLength && parseInt(contentLength) < 1000) {
-        console.warn(`⚠️ 파일 크기가 매우 작음 (${contentLength} bytes), 더미 파일일 가능성`);
-      }
+      const fetchedBlob = await response.blob();
+      storeBlob(resolvedUrl, fetchedBlob);
+      return fetchedBlob;
     } catch (fetchError) {
-      console.warn(`⚠️ 파일 사전 체크 실패:`, fetchError);
+      console.warn(
+        '[ModelLoader] Unable to refetch blob URL for arrayBuffer fallback:',
+        fetchError
+      );
+      return null;
     }
-    
-    // 로딩 진행률 처리
-    const progressHandler = onProgress ? 
-      (event: ProgressEvent) => {
-        if (event.lengthComputable) {
-          const progress = event.loaded / event.total;
-          onProgress(progress);
-        }
-      } : undefined;
+  };
 
-    // 모델 로드
-    console.log('🔄 GLTF 로더로 모델 로딩 시작:', resolvedUrl);
-    const gltf = await new Promise<GLTF>((resolve, reject) => {
-      const loader = getGLTFLoader();
-      
-      const onLoad = (gltf: GLTF) => {
-        console.log('✅ GLTF 모델 로딩 성공:', resolvedUrl);
-        resolve(gltf);
-      };
-      
-      const onError = (error: ErrorEvent) => {
-        console.error('❌ GLTF 모델 로딩 실패:', resolvedUrl, error);
-        reject(error);
-      };
-      
-      if (progressHandler) {
-        loader.load(resolvedUrl, onLoad, progressHandler, onError);
-      } else {
-        loader.load(resolvedUrl, onLoad, undefined, onError);
-      }
+  const acquireBlobData = async (): Promise<Blob | null> => {
+    if (!isBlobUrl) {
+      return null;
+    }
+    const cachedBlob = getBlob(resolvedUrl);
+    if (cachedBlob) {
+      return cachedBlob;
+    }
+    return await fetchBlobFromUrl();
+  };
+
+  await ensureBlobUrlIfNeeded();
+
+  let ensuredBlob: Blob | null = await acquireBlobData();
+  if (isBlobUrl && !ensuredBlob) {
+    const reason = 'blob data unavailable after ensureValidUrl';
+    reportRecovery({
+      url: resolvedUrl,
+      recovered: false,
+      changed: false,
+      failed: true,
+      reason
     });
+    throw new Error(reason);
+  }
+
+  const cacheLookupKey = resolvedUrl;
+
+  let blobInUse = false;
+  let blobReleased = false;
+  const scheduleBlobRelease = (shouldRevoke: boolean) => {
+    if (!isBlobUrl || !blobInUse || blobReleased) {
+      return;
+    }
+    blobReleased = true;
+    const performRelease = () => {
+      blobManager.releaseUrlInUse(resolvedUrl);
+      releaseBlob(resolvedUrl);
+      if (shouldRevoke) {
+        safeRevokeObjectURL(resolvedUrl);
+      }
+    };
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(performRelease);
+      });
+    } else {
+      setTimeout(performRelease, 0);
+    }
+  };
+
+  if (useCache && modelCache.has(cacheLookupKey)) {
+    const cached = modelCache.get(cacheLookupKey)!;
+    cached.useCount++;
+    cached.timestamp = Date.now();
+    scheduleBlobRelease(false);
+    return cached.model.clone();
+  }
+
+  const loader = getGLTFLoader();
+  let gltf: GLTF | null = null;
+
+  try {
+    if (isBlobUrl) {
+      blobManager.markUrlInUse(resolvedUrl);
+      blobInUse = true;
+
+      const blobToLoad = ensuredBlob ?? (await acquireBlobData());
+      if (!blobToLoad) {
+        const reason = 'blob data missing before arrayBuffer parse';
+        reportRecovery({
+          url: resolvedUrl,
+          recovered: false,
+          changed: false,
+          failed: true,
+          reason
+        });
+        throw new Error(reason);
+      }
+
+      const arrayBuffer = await blobToLoad.arrayBuffer();
+      gltf = await new Promise<GLTF>((resolve, reject) => {
+        loader.parse(
+          arrayBuffer,
+          '',
+          (parsed) => resolve(parsed),
+          (error) =>
+            reject(
+              error instanceof Error
+                ? error
+                : new Error('Failed to parse GLTF arrayBuffer')
+            )
+        );
+      });
+    } else {
+      try {
+        const response = await fetch(resolvedUrl, { method: 'HEAD' });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const contentLength = response.headers.get('content-length');
+        if (contentLength && parseInt(contentLength, 10) < 1000) {
+          console.warn(
+            `[ModelLoader] File size very small (${contentLength} bytes), potential dummy asset: ${resolvedUrl}`
+          );
+        }
+      } catch (fetchError) {
+        console.warn('[ModelLoader] Pre-flight HEAD check failed:', fetchError);
+      }
+
+      const progressHandler = onProgress
+        ? (event: ProgressEvent) => {
+            if (event.lengthComputable) {
+              onProgress(event.loaded / event.total);
+            }
+          }
+        : undefined;
+
+      gltf = await new Promise<GLTF>((resolve, reject) => {
+        const onLoad = (loaded: GLTF) => resolve(loaded);
+        const onError = (error: ErrorEvent) => reject(error);
+        loader.load(resolvedUrl, onLoad, progressHandler, onError);
+      });
+    }
+
+    if (!gltf) {
+      throw new Error('GLTF load returned null');
+    }
 
     const model = gltf.scene;
-    
-    // 더미 파일 감지 (모델이 비어있거나 매우 간단한 경우)
+
     if (!model || model.children.length === 0) {
-      console.warn(`⚠️ 로드된 모델이 비어있음, 더미 파일일 가능성: ${resolvedUrl}`);
-      throw new Error('Empty model detected - likely dummy file');
+      throw new Error('Loaded model is empty');
     }
-    
-    // 모델 크기 분석 및 로깅
-    const box = new THREE.Box3().setFromObject(model);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    
-    // console.log(`📊 모델 크기 분석: ${resolvedUrl}`);
-    // console.log(`   📐 크기: ${size.x.toFixed(3)}m × ${size.y.toFixed(3)}m × ${size.z.toFixed(3)}m`);
-    // console.log(`   🎯 중심점: (${center.x.toFixed(3)}, ${center.y.toFixed(3)}, ${center.z.toFixed(3)})`);
-    // console.log(`   📦 바운딩 박스: min(${box.min.x.toFixed(3)}, ${box.min.y.toFixed(3)}, ${box.min.z.toFixed(3)}) ~ max(${box.max.x.toFixed(3)}, ${box.max.y.toFixed(3)}, ${box.max.z.toFixed(3)})`);
-    
-    // 모델 최적화
+
     optimizeModel(model);
-    
-    // 캐시에 저장
+
     if (useCache) {
-      cacheModel(url, model);
+      cacheModel(cacheLookupKey, model);
     }
 
-    // console.log(`✅ 모델 로딩 완료: ${resolvedUrl}`);
-    return model;
+    scheduleBlobRelease(true);
 
+    return model;
   } catch (error) {
-    console.error(`❌ 모델 로딩 실패: ${resolvedUrl}`, error);
-    throw error;
+    scheduleBlobRelease(true);
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn('[ModelLoader] Ignored model load error:', reason);
+    if (isBlobUrl) {
+      reportRecovery({
+        url: resolvedUrl,
+        recovered: false,
+        changed: false,
+        failed: true,
+        reason
+      });
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error(reason);
+  } finally {
+    scheduleBlobRelease(false);
   }
 }
+
 
 /**
  * 상대 경로 모델 URL을 환경변수 기반으로 해석합니다.

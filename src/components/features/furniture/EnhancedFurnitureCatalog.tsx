@@ -2,11 +2,12 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiSearch, FiFilter, FiGrid, FiList, FiHeart, FiShoppingCart, FiSync, FiCheck, FiAlertCircle } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiGrid, FiList, FiHeart, FiShoppingCart, FiRefreshCw as FiSync, FiCheck, FiAlertCircle } from 'react-icons/fi';
 import { FurnitureItem, CustomFurnitureItem } from '../../../types/furniture';
 import { setFloorTexture, setWallTexture } from '../../../store/editorStore';
 import { HybridStorage } from '../../../services/storage/hybridStorage';
 import { SyncEvent } from '../../../types/storage';
+import { blobManager } from '../../../utils/blobManager';
 
 interface EnhancedFurnitureCatalogProps {
   furnitureData: FurnitureItem[];
@@ -528,23 +529,45 @@ export const EnhancedFurnitureCatalog: React.FC<EnhancedFurnitureCatalogProps> =
                     <div className="flex flex-col gap-2">
                       <button
                         onClick={() => {
-                          // CustomFurnitureItem을 FurnitureItem으로 변환
-                          const furnitureItem: FurnitureItem = {
-                            id: item.id,
-                            name: item.name,
-                            nameKo: item.nameKo,
-                            category: item.category,
-                            subcategory: item.subcategory,
-                            modelPath: URL.createObjectURL(item.files.model.local),
-                            thumbnailPath: item.files.thumbnail.local.size > 0 ? 
-                              URL.createObjectURL(item.files.thumbnail.local) : undefined,
-                            footprint: item.footprint,
-                            placement: item.placement,
-                            metadata: item.metadata,
-                            renderSettings: item.renderSettings,
-                            editSettings: item.editSettings
-                          };
-                          onFurnitureSelect(furnitureItem);
+                          // ✅ Agent A + B: blob URL 생성 전 파일 유효성 검증
+                          if (!item.files?.model?.local) {
+                            console.error('[EnhancedFurnitureCatalog] Model file is missing:', item.name);
+                            return;
+                          }
+
+                          try {
+                            // CustomFurnitureItem을 FurnitureItem으로 변환
+                            // ✅ BlobManager 사용
+                            const modelBlobUrl = blobManager.createUrl(item.files.model.local, {
+                              type: 'model',
+                              itemId: item.id,
+                              source: 'custom-furniture'
+                            });
+                            const thumbnailBlobUrl = item.files.thumbnail?.local?.size > 0 ? 
+                              blobManager.createUrl(item.files.thumbnail.local, {
+                                type: 'thumbnail',
+                                itemId: item.id,
+                                source: 'custom-furniture'
+                              }) : undefined;
+
+                            const furnitureItem: FurnitureItem = {
+                              id: item.id,
+                              name: item.name,
+                              nameKo: item.nameKo,
+                              category: item.category,
+                              subcategory: item.subcategory,
+                              modelPath: modelBlobUrl,
+                              thumbnailPath: thumbnailBlobUrl,
+                              footprint: item.footprint,
+                              placement: item.placement,
+                              metadata: item.metadata,
+                              renderSettings: item.renderSettings,
+                              editSettings: item.editSettings
+                            };
+                            onFurnitureSelect(furnitureItem);
+                          } catch (error) {
+                            console.error('[EnhancedFurnitureCatalog] Failed to create blob URL:', error);
+                          }
                         }}
                         className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
                       >

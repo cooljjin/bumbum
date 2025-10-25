@@ -26,6 +26,11 @@ export async function analyzeAllModelSizes(): Promise<void> {
         useCache: false, // 캐시 비활성화로 정확한 분석
         priority: 'high'
       });
+      if (!model) {
+        console.warn('[ModelSizeAnalyzer] Skipping analysis - model unavailable:', furniture.modelPath);
+        continue;
+      }
+
       
       // 모델 크기 분석
       const box = new THREE.Box3().setFromObject(model);
@@ -105,6 +110,11 @@ export async function analyzeModelSize(furnitureId: string): Promise<void> {
       useCache: false,
       priority: 'high'
     });
+    if (!model) {
+      console.warn('[ModelSizeAnalyzer] Model unavailable for analysis:', furniture.modelPath);
+      return;
+    }
+
     
     // 모델 크기 분석
     const box = new THREE.Box3().setFromObject(model);

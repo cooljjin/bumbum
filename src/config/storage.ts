@@ -19,6 +19,16 @@ const PRODUCTION_BASE_CONFIG: StorageConfig = {
   service: 'mock',
 };
 
+export const STORAGE_CONSTANTS = {
+  DB_NAME: 'bumbum-furniture-db',
+  DB_VERSION: 1,
+  STORE_ITEMS: 'furniture-items',
+  STORE_BLOBS: 'furniture-blobs',
+  STORE_SYNC: 'furniture-sync',
+  SYNC_INTERVAL: 5_000,
+  SYNC_BATCH_SIZE: 5,
+} as const;
+
 export const STORAGE_CONFIG = {
   mvp: MVP_CONFIG,
   production: PRODUCTION_BASE_CONFIG,

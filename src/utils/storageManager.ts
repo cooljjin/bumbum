@@ -350,38 +350,89 @@ class StorageManager {
   }
 
   /**
-   * 📦 아이템 압축 (기존 CompressedState 형식 활용)
+   * 📦 아이템 압축 - 전체 데이터 저장 방식으로 변경
+   * 
+   * 기존: 위치/회전/스케일만 저장 → 복원 시 원본 데이터 손실
+   * 개선: 전체 PlacedItem 저장 → 완전한 복원 가능
    */
   private compressItems(items: PlacedItem[]): CompressedState {
     return {
-      items: items.map(item => ({
-        id: item.id,
-        pos: [item.position.x, item.position.y, item.position.z],
-        rot: [item.rotation.x, item.rotation.y, item.rotation.z],
-        scl: [item.scale.x, item.scale.y, item.scale.z],
-        locked: item.isLocked || false
-      })),
+      items: items.map(item => {
+        // ✅ Agent A + B: blob URL 필터링 - localStorage에 저장 금지
+        let safeModelPath = item.modelPath;
+        
+        // blob URL은 페이지 새로고침 시 무효화되므로 저장하지 않음
+        if (safeModelPath && safeModelPath.startsWith('blob:')) {
+          console.warn('[StorageManager] ⚠️ blob URL을 localStorage에 저장할 수 없습니다. 기본값으로 대체:', item.name);
+          safeModelPath = undefined; // 저장하지 않음
+        }
+        
+        // undefined가 포함된 잘못된 URL 제거
+        if (safeModelPath && (safeModelPath === 'undefined' || safeModelPath.includes('undefined'))) {
+          console.warn('[StorageManager] ⚠️ 잘못된 modelPath 감지:', safeModelPath);
+          safeModelPath = undefined;
+        }
+        
+        return {
+          // 기존 압축 형식 유지 (하위 호환성)
+          id: item.id,
+          pos: [item.position.x, item.position.y, item.position.z],
+          rot: [item.rotation.x, item.rotation.y, item.rotation.z],
+          scl: [item.scale.x, item.scale.y, item.scale.z],
+          locked: item.isLocked || false,
+          // 전체 데이터 추가
+          fullData: {
+            name: item.name,
+            modelPath: safeModelPath, // ✅ 필터링된 경로만 저장
+            footprint: item.footprint,
+            mount: item.mount,
+            metadata: item.metadata,
+            snapSettings: item.snapSettings
+          }
+        };
+      }),
       timestamp: Date.now(),
       description: 'manual_save'
     };
   }
 
   /**
-   * 📦 아이템 압축 해제
+   * 📦 아이템 압축 해제 - 전체 데이터 복원
    */
   private decompressItems(compressed: CompressedState): PlacedItem[] {
-    // 실제 구현에서는 furnitureCatalog에서 원본 데이터를 가져와야 함
-    // 여기서는 기본 구조만 반환
-    return compressed.items.map(item => ({
-      id: item.id,
-      name: `Furniture_${item.id}`,
-      modelPath: '/models/default.glb',
-      position: new Vector3(item.pos[0], item.pos[1], item.pos[2]),
-      rotation: new Euler(item.rot[0], item.rot[1], item.rot[2]),
-      scale: new Vector3(item.scl[0], item.scl[1], item.scl[2]),
-      footprint: { width: 1, depth: 1, height: 1 },
-      isLocked: item.locked
-    } as PlacedItem));
+    return compressed.items.map(item => {
+      // fullData가 있으면 사용, 없으면 기본값 (하위 호환성)
+      const fullData = (item as any).fullData;
+      
+      // ✅ Agent A + B: 기존 저장된 blob URL 정리
+      let modelPath = fullData?.modelPath || '/models/default.glb';
+      
+      // blob URL이 저장되어 있으면 제거하고 기본값 사용
+      if (modelPath && modelPath.startsWith('blob:')) {
+        console.warn('[StorageManager] ⚠️ localStorage에서 잘못된 blob URL 발견, 제거:', modelPath);
+        modelPath = '/models/default.glb'; // 기본값으로 대체
+      }
+      
+      // undefined가 포함된 잘못된 URL 정리
+      if (modelPath && (modelPath === 'undefined' || modelPath.includes('undefined'))) {
+        console.warn('[StorageManager] ⚠️ 잘못된 modelPath 정리:', modelPath);
+        modelPath = '/models/default.glb';
+      }
+      
+      return {
+        id: item.id,
+        name: fullData?.name || `Furniture_${item.id}`,
+        modelPath: modelPath, // ✅ 정리된 경로 사용
+        position: new Vector3(item.pos[0], item.pos[1], item.pos[2]),
+        rotation: new Euler(item.rot[0], item.rot[1], item.rot[2]),
+        scale: new Vector3(item.scl[0], item.scl[1], item.scl[2]),
+        footprint: fullData?.footprint || { width: 1, depth: 1, height: 1 },
+        mount: fullData?.mount,
+        metadata: fullData?.metadata,
+        isLocked: item.locked,
+        snapSettings: fullData?.snapSettings
+      } as PlacedItem;
+    });
   }
 }
 

@@ -13,6 +13,7 @@ import {
   FiRefreshCw
 } from 'react-icons/fi';
 import { useEditorStore } from '../../store/editorStore';
+import { blobManager } from '../../utils/blobManager';
 
 interface AnalyticsDashboardProps {
   isOpen: boolean;
@@ -201,14 +202,19 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    // ✅ BlobManager 사용
+    const url = blobManager.createUrl(blob, {
+      type: 'export',
+      source: 'download'
+    });
     const link = document.createElement('a');
     link.href = url;
     link.download = `analytics-report-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // ✅ BlobManager로 해제
+    setTimeout(() => blobManager.revokeUrl(url), 150);
   };
 
   // 데이터 초기화

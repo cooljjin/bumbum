@@ -2,6 +2,7 @@ import type { FurnitureItem, FurnitureCategory, CustomFurnitureItem } from '../t
 import { Vector3, Euler } from 'three';
 import { getDoorPlacementDefaults } from './furnitureHelpers';
 import { HybridStorage } from '../services/storage/hybridStorage';
+import { blobManager } from './blobManager';
 
 type CustomItemMeta = {
   id: string;
@@ -55,6 +56,38 @@ async function withTx<T>(stores: string[], mode: IDBTransactionMode, fn: (tx: ID
 
 function makeId() {
   return `custom_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function resolveCustomFurnitureItem(id: string): Promise<CustomFurnitureItem | null> {
+  const hybridStorage = new HybridStorage();
+  try {
+    const direct = await hybridStorage.getFurnitureItem(id);
+    if (direct) {
+      return direct;
+    }
+
+    const allItems = await hybridStorage.getFurnitureList();
+    const matched = allItems.find((item) => {
+      return (
+        item.id === id ||
+        item.storage.localId === id ||
+        item.storage.serverId === id
+      );
+    });
+
+    return matched ?? null;
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[customLibrary] Failed to resolve custom furniture item:', id, error);
+    }
+    return null;
+  } finally {
+    hybridStorage.destroy();
+  }
+}
+
+export async function getCustomFurnitureRaw(id: string): Promise<CustomFurnitureItem | null> {
+  return resolveCustomFurnitureItem(id);
 }
 
 export async function saveCustomFurniture(params: {
@@ -164,10 +197,18 @@ export async function getCustomFurnitureItems(): Promise<FurnitureItem[]> {
   // CustomFurnitureItem을 FurnitureItem으로 변환
   const results: FurnitureItem[] = [];
   for (const customItem of customItems) {
-    // Blob URL 생성
-    const modelUrl = URL.createObjectURL(customItem.files.model.local);
+    // ✅ BlobManager 사용
+    const modelUrl = blobManager.createUrl(customItem.files.model.local, {
+      type: 'model',
+      itemId: customItem.id,
+      source: 'custom-furniture'
+    });
     const thumbUrl = customItem.files.thumbnail.local.size > 0 ? 
-      URL.createObjectURL(customItem.files.thumbnail.local) : undefined;
+      blobManager.createUrl(customItem.files.thumbnail.local, {
+        type: 'thumbnail',
+        itemId: customItem.id,
+        source: 'custom-furniture'
+      }) : undefined;
     
     const furnitureItem: FurnitureItem = {
       id: customItem.id,
@@ -191,15 +232,21 @@ export async function getCustomFurnitureItems(): Promise<FurnitureItem[]> {
 }
 
 export async function getCustomFurnitureById(id: string): Promise<FurnitureItem | undefined> {
-  const hybridStorage = new HybridStorage();
-  const customItem = await hybridStorage.getFurnitureItem(id);
-  
+  const customItem = await resolveCustomFurnitureItem(id);
   if (!customItem) return undefined;
-  
-  // Blob URL 생성
-  const modelUrl = URL.createObjectURL(customItem.files.model.local);
+
+  // ✅ BlobManager 사용
+  const modelUrl = blobManager.createUrl(customItem.files.model.local, {
+    type: 'model',
+    itemId: customItem.id,
+    source: 'custom-furniture'
+  });
   const thumbUrl = customItem.files.thumbnail.local.size > 0 ? 
-    URL.createObjectURL(customItem.files.thumbnail.local) : undefined;
+    blobManager.createUrl(customItem.files.thumbnail.local, {
+      type: 'thumbnail',
+      itemId: customItem.id,
+      source: 'custom-furniture'
+    }) : undefined;
   
   return {
     id: customItem.id,

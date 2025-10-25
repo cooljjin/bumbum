@@ -15,6 +15,7 @@ import {
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useEditorStore } from '../../../store/editorStore';
+import { blobManager } from '../../../utils/blobManager';
 
 interface ExportShareToolsProps {
   isOpen: boolean;
@@ -130,14 +131,19 @@ export const ExportShareTools: React.FC<ExportShareToolsProps> = ({
 
   // 파일 다운로드 헬퍼
   const downloadFile = (blob: Blob, filename: string) => {
-    const url = URL.createObjectURL(blob);
+    // ✅ BlobManager 사용
+    const url = blobManager.createUrl(blob, {
+      type: 'export',
+      source: 'download'
+    });
     const link = document.createElement('a');
     link.href = url;
     link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // ✅ BlobManager로 해제
+    setTimeout(() => blobManager.revokeUrl(url), 150);
   };
 
   // 내보내기 핸들러

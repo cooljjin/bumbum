@@ -10,6 +10,8 @@ interface EditToolbarProps {
   showFurnitureCatalog?: boolean;
   onToggleTemplateSelector?: () => void;
   showTemplateSelector?: boolean;
+  onToggleRoomSizePanel?: () => void;
+  showRoomSizePanel?: boolean;
   // 새 prop
   isMobileDevice?: boolean;
   // 하위 호환: 기존 테스트/호출부가 사용하는 이름
@@ -21,6 +23,8 @@ export default function EditToolbar({
   showFurnitureCatalog,
   onToggleTemplateSelector,
   showTemplateSelector,
+  onToggleRoomSizePanel,
+  showRoomSizePanel,
   isMobileDevice = false,
   isMobile: isMobileLegacy
 }: EditToolbarProps) {
@@ -257,6 +261,38 @@ export default function EditToolbar({
           </div>
         </motion.button>
 
+        {/* 방 크기 조절 버튼 */}
+        <motion.button
+          onClick={onToggleRoomSizePanel}
+          className={`${isMobileCheck ? 'p-2' : 'px-3 py-2'} rounded-xl font-medium transition-all duration-300 border-2 ${isMobileCheck ? 'min-w-[48px] min-h-[48px]' : 'min-w-[70px]'} overflow-hidden ${
+            showRoomSizePanel
+              ? 'bg-green-600 text-white border-green-700 shadow-lg'
+              : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200 hover:border-gray-400'
+          }`}
+          title="방 크기 조절"
+          animate={{
+            scale: currentMode === 'normal' ? 1 : currentMode === 'compact' ? 0.95 : 0.9
+          }}
+          transition={{ duration: 0.2, ease: 'easeInOut' }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <div className="flex items-center gap-1 justify-center">
+            <span className="text-base">📐</span>
+            {!isMobileCheck && (
+              <motion.span 
+                className="text-xs font-medium whitespace-nowrap"
+                animate={{
+                  opacity: currentMode === 'normal' ? 1 : currentMode === 'compact' ? 0.8 : 0,
+                  width: currentMode === 'minimal' ? 0 : 'auto'
+                }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+              >
+                방크기
+              </motion.span>
+            )}
+          </div>
+        </motion.button>
 
       </div>
     </motion.div>

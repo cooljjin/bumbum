@@ -1,10 +1,11 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { useThree, useFrame } from '@react-three/fiber';
 import { Box } from '@react-three/drei';
 import { Vector3, Euler, Group, Raycaster, Plane, Vector2 } from 'three';
 import { useEditorStore, useIsItemSelected } from '../../../store/editorStore';
 import { PlacedItem } from '../../../types/editor';
-import { createFallbackModel, createFurnitureModel, createClockFallbackModel, createWallModel, loadModel, compareModelWithFootprint } from '../../../utils/modelLoader';
+import { createFallbackModel, createFurnitureModel, createClockFallbackModel, createWallModel, loadModel, compareModelWithFootprint, PLACEHOLDER_MODEL_KEY } from '../../../utils/modelLoader';
 import { getFurnitureFromPlacedItem } from '../../../data/furnitureCatalog';
 import { safePosition, safeRotation, safeScale } from '../../../utils/safePosition';
 import { constrainFurnitureToRoom, nearestWallSide, computeWallMountedTransform, clampWallMountedItem, getWallInteriorPlanes, getCurrentRoomDimensions } from '../../../utils/roomBoundary';
@@ -129,24 +130,51 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
         setIsLoading(true);
         setLoadError(null);
 
+        const fallbackToPlaceholder = (userMessage: string, debugReason?: string) => {
+          flushSync(() => {
+            setLoadError(userMessage);
+            setModel(createFallbackModel());
+            if (item.modelPath !== PLACEHOLDER_MODEL_KEY) {
+              onUpdate(item.id, { modelPath: PLACEHOLDER_MODEL_KEY });
+            }
+            setIsLoading(false);
+          });
+
+          if (process.env.NODE_ENV !== 'production' && debugReason) {
+            console.warn('[DraggableFurniture] Falling back to placeholder model:', {
+              itemId: item.id,
+              reason: debugReason
+            });
+          }
+        };
+
         const furniture = getFurnitureFromPlacedItem(item);
 
         if (!furniture) {
-          // 카탈로그에 없더라도 PlacedItem.modelPath가 있으면 직접 로드 시도
+          // 카탈로그???�더?�도 PlacedItem.modelPath가 ?�으�?직접 로드 ?�도
           if (item.modelPath && (item.modelPath.startsWith('blob:') || item.modelPath.endsWith('.glb'))) {
             try {
-              const gltfModel = await loadModel(item.modelPath, { useCache: false, priority: 'normal' });
+              const gltfModel = await loadModel(item.modelPath, {
+                useCache: false,
+                priority: 'normal',
+                blobRecovery: { forceEnsure: false }
+              });
+
               const adjustedModel = adjustModelToFootprint(gltfModel, item.footprint);
-              setModel(adjustedModel);
-              setIsLoading(false);
+              flushSync(() => {
+                setModel(adjustedModel);
+                setLoadError(null);
+                setIsLoading(false);
+              });
               return;
             } catch (e) {
-              // 실패 시 폴백으로 진행
+              if (process.env.NODE_ENV !== 'production') {
+                console.error('[DraggableFurniture] Custom modelPath load failed:', e);
+              }
             }
           }
 
-          setLoadError('가구 정보를 찾을 수 없습니다');
-          setIsLoading(false);
+          fallbackToPlaceholder('가�??�보�?찾을 ???�습?�다', 'catalog metadata missing');
           return;
         }
 
@@ -157,40 +185,77 @@ export const DraggableFurniture: React.FC<DraggableFurnitureProps> = React.memo(
           // 벽이 아닌 경우에만 GLTF 로드 시도
           if (furniture.modelPath) {
             try {
+              const furnitureId = item.metadata?.furnitureId || furniture.id;
+              const blobSource =
+                item.modelPath?.startsWith('blob:') || furniture.modelPath.startsWith('blob:')
+                  ? 'custom-furniture'
+                  : 'built-in';
+              let recoveryFailed = false;
+
               const gltfModel = await loadModel(furniture.modelPath, {
-                // 캐시 활용으로 동일 모델 다수 배치 시 로딩/파싱 비용 절감
                 useCache: true,
-                priority: 'normal'
+                priority: 'normal',
+                blobRecovery: furniture.modelPath.startsWith('blob:')
+                  ? {
+                      itemId: furnitureId,
+                      metadataHint: {
+                        type: 'model',
+                        source: blobSource
+                      },
+                      onUrlResolved: ({ url, changed, recovered, failed, reason }) => {
+                        if (failed) {
+                          recoveryFailed = true;
+                          fallbackToPlaceholder('모델 로드 ?�패', reason ?? 'blob recovery failed');
+                          return;
+                        }
+
+                        if (url && (changed || recovered)) {
+                          onUpdate(item.id, { modelPath: url });
+                        }
+                      }
+                    }
+                  : undefined
               });
 
-              if (gltfModel) {
-                // 원본 모델과 footprint 크기 비교
-                compareModelWithFootprint(gltfModel, furniture.footprint, furniture.nameKo);
-
-                // 모델 크기를 footprint에 맞게 조정
-                const adjustedModel = adjustModelToFootprint(gltfModel, furniture.footprint);
-                setModel(adjustedModel);
-                setIsLoading(false);
-                return; // 성공적으로 로드했으므로 여기서 종료
-              } else {
-                throw new Error('GLTF 모델 로드 실패');
+              if (recoveryFailed) {
+                return;
               }
+
+
+
+              compareModelWithFootprint(gltfModel, furniture.footprint, furniture.nameKo);
+
+              const adjustedModel = adjustModelToFootprint(gltfModel, furniture.footprint);
+              flushSync(() => {
+                setModel(adjustedModel);
+                setLoadError(null);
+                setIsLoading(false);
+              });
+              return;
             } catch (gltfError) {
-              // GLTF 로드 실패 시 폴백 모델 생성으로 넘어감
+              fallbackToPlaceholder(
+                '모델 로드 ?�패',
+                gltfError instanceof Error ? gltfError.message : 'GLTF load error'
+              );
+              return;
             }
           }
         }
 
         // GLTF 로드 실패 또는 벽 카테고리인 경우 폴백 모델 생성
-        setIsLoading(false);
+        flushSync(() => {
+          setIsLoading(false);
+        });
       } catch (error) {
         setLoadError(error instanceof Error ? error.message : 'Unknown error');
 
         // 에러 발생 시 폴백 모델 사용
         // 카탈로그가 없을 때도 폴백 생성
         const fallbackModel = createFallbackModel();
-        setModel(fallbackModel);
-        setIsLoading(false);
+        flushSync(() => {
+          setModel(fallbackModel);
+          setIsLoading(false);
+        });
       }
     };
 

@@ -6,6 +6,7 @@ import { FiSave, FiFolder, FiTrash2, FiDownload, FiUpload, FiSettings } from 're
 import { useEditorStore } from '../../../store/editorStore';
 import { storageManager } from '../../../utils/storageManager';
 import { PlacedItem } from '../../../types/editor';
+import { blobManager } from '../../../utils/blobManager';
 
 interface UserPreferencesProps {
   isOpen: boolean;
@@ -137,7 +138,11 @@ export const UserPreferences: React.FC<UserPreferencesProps> = ({
       if (layout) {
         const dataStr = JSON.stringify(layout, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
+        // ✅ BlobManager 사용
+        const url = blobManager.createUrl(dataBlob, {
+          type: 'export',
+          source: 'download'
+        });
 
         const link = document.createElement('a');
         link.href = url;
@@ -145,7 +150,8 @@ export const UserPreferences: React.FC<UserPreferencesProps> = ({
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        // ✅ BlobManager로 해제
+        setTimeout(() => blobManager.revokeUrl(url), 150);
       }
         } catch (error) {
       console.error('디자인 내보내기 실패:', error);

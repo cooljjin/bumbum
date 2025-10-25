@@ -1,6 +1,7 @@
 import { Vector3 } from 'three';
-import { PlacedItem } from '../types/editor';
+import { PlacedItem, RoomDimensions } from '../types/editor';
 import { AxisString } from './orientation';
+import { DEFAULT_ROOM_DIMENSIONS } from '../constants/room';
 
 // 방의 기본 크기 상수
 // 실제 Room.tsx의 기하와 일치하도록 기본값을 설정합니다.
@@ -9,26 +10,20 @@ import { AxisString } from './orientation';
 // - 벽 높이: 5m (Y: 0~5)
 // - 벽 두께: 0.3m
 // 이 값들이 유틸의 경계 계산과 불일치하면, 가구가 시각적 벽을 통과해 보일 수 있습니다.
-export const ROOM_DIMENSIONS = {
-  width: 10,        // X축 방향 (좌우)
-  depth: 10,        // Z축 방향 (앞뒤)
-  height: 5,        // Y축 방향 (상하)
-  wallThickness: 0.3, // Room.tsx의 wallThickness와 동일하게
-  // 벽과의 최소 여백. 벽 두께와 충돌 안전 여백을 고려해 0.3m로 설정
-  // (가구 safetyMargin 0.1과 합쳐 실제 시각적 침투를 방지)
-  margin: 0.3
-};
+export const ROOM_DIMENSIONS: RoomDimensions = { ...DEFAULT_ROOM_DIMENSIONS };
 
 // 동적 방 크기 관리를 위한 상태
-let currentRoomDimensions = { ...ROOM_DIMENSIONS };
+let currentRoomDimensions: RoomDimensions = { ...DEFAULT_ROOM_DIMENSIONS };
 
 // 방 크기 업데이트 함수
-export const updateRoomDimensions = (newDimensions: Partial<typeof ROOM_DIMENSIONS>) => {
+export const updateRoomDimensions = (newDimensions: Partial<RoomDimensions>) => {
   currentRoomDimensions = { ...currentRoomDimensions, ...newDimensions };
-  // console.log('🏠 방 크기 업데이트:', currentRoomDimensions);
 };
 
-// 현재 방 크기 가져오기
+export const setRoomDimensions = (dimensions: RoomDimensions) => {
+  currentRoomDimensions = { ...dimensions };
+};
+
 export const getCurrentRoomDimensions = () => currentRoomDimensions;
 
 // 방 경계 계산
@@ -312,7 +307,7 @@ export const constrainFurnitureToRoom = (item: PlacedItem): PlacedItem => {
 };
 
 // 방 크기 동적 감지 (향후 확장용)
-export const detectRoomSize = (): typeof ROOM_DIMENSIONS => {
+export const detectRoomSize = (): RoomDimensions => {
   // 현재는 동적으로 관리되는 크기를 반환
   return getCurrentRoomDimensions();
 };

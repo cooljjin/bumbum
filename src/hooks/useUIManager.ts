@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useEditorActions } from './useEditorStore';
 
 export interface UIManagerState {
@@ -12,6 +12,11 @@ export interface UIManagerState {
   showAccessibilitySettings: boolean;
   showExportTools: boolean;
   showAnalytics: boolean;
+
+  // Onboarding states
+  showOnboarding: boolean;
+  onboardingStep: number;
+  hasCompletedOnboarding: boolean;
 }
 
 export interface UIManagerActions {
@@ -29,6 +34,15 @@ export interface UIManagerActions {
   setShowExportTools: (show: boolean) => void;
   setShowAnalytics: (show: boolean) => void;
 
+  // Onboarding actions
+  setShowOnboarding: (show: boolean) => void;
+  setOnboardingStep: (step: number) => void;
+  nextOnboardingStep: () => void;
+  prevOnboardingStep: () => void;
+  skipOnboarding: () => void;
+  completeOnboarding: () => void;
+  startOnboarding: () => void;
+
   // Close all modals
   closeAllModals: () => void;
 
@@ -38,6 +52,9 @@ export interface UIManagerActions {
 
 export interface UIManager extends UIManagerState, UIManagerActions {}
 
+const ONBOARDING_COMPLETED_KEY = 'bumbum_onboarding_completed';
+const TOTAL_ONBOARDING_STEPS = 5;
+
 const initialState: UIManagerState = {
   isViewLocked: false,
   isEditMode: false,  // 기본적으로 보기 모드로 시작
@@ -46,6 +63,9 @@ const initialState: UIManagerState = {
   showAccessibilitySettings: false,
   showExportTools: false,
   showAnalytics: false,
+  showOnboarding: false,
+  onboardingStep: 0,
+  hasCompletedOnboarding: false,
 };
 
 export function useUIManager(): UIManager {
@@ -62,6 +82,28 @@ export function useUIManager(): UIManager {
   const [showAccessibilitySettings, setShowAccessibilitySettings] = useState(initialState.showAccessibilitySettings);
   const [showExportTools, setShowExportTools] = useState(initialState.showExportTools);
   const [showAnalytics, setShowAnalytics] = useState(initialState.showAnalytics);
+
+  // Onboarding states
+  const [showOnboarding, setShowOnboarding] = useState(initialState.showOnboarding);
+  const [onboardingStep, setOnboardingStep] = useState(initialState.onboardingStep);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(initialState.hasCompletedOnboarding);
+
+  // localStorage에서 온보딩 완료 상태 로드
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const completed = localStorage.getItem(ONBOARDING_COMPLETED_KEY);
+      if (completed === 'true') {
+        setHasCompletedOnboarding(true);
+      } else {
+        // 첫 방문자는 자동으로 온보딩 표시
+        setShowOnboarding(true);
+      }
+    } catch (error) {
+      console.error('[useUIManager] Failed to load onboarding state:', error);
+    }
+  }, []);
 
   // Actions
   const toggleViewLock = () => setIsViewLocked(!isViewLocked);
@@ -111,12 +153,48 @@ export function useUIManager(): UIManager {
     }
   };
 
+  // Onboarding actions
+  const nextOnboardingStep = () => {
+    setOnboardingStep((prev) => Math.min(prev + 1, TOTAL_ONBOARDING_STEPS - 1));
+  };
+
+  const prevOnboardingStep = () => {
+    setOnboardingStep((prev) => Math.max(prev - 1, 0));
+  };
+
+  const skipOnboarding = () => {
+    setShowOnboarding(false);
+    setOnboardingStep(0);
+    completeOnboarding();
+  };
+
+  const completeOnboarding = () => {
+    setShowOnboarding(false);
+    setOnboardingStep(0);
+    setHasCompletedOnboarding(true);
+    
+    // localStorage에 완료 상태 저장
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true');
+      } catch (error) {
+        console.error('[useUIManager] Failed to save onboarding completion:', error);
+      }
+    }
+  };
+
+  const startOnboarding = () => {
+    setOnboardingStep(0);
+    setShowOnboarding(true);
+  };
+
   const closeAllModals = () => {
     setShowSettings(false);
     setShowUserPreferences(false);
     setShowAccessibilitySettings(false);
     setShowExportTools(false);
     setShowAnalytics(false);
+    setShowOnboarding(false);
   };
 
   // 기존 함수들을 우선순위 적용으로 수정
@@ -169,6 +247,9 @@ export function useUIManager(): UIManager {
     showAccessibilitySettings,
     showExportTools,
     showAnalytics,
+    showOnboarding,
+    onboardingStep,
+    hasCompletedOnboarding,
 
     // Actions
     setViewLocked: setIsViewLocked,
@@ -181,6 +262,13 @@ export function useUIManager(): UIManager {
     setShowAccessibilitySettings: setShowAccessibilitySettingsWithPriority,
     setShowExportTools: setShowExportToolsWithPriority,
     setShowAnalytics: setShowAnalyticsWithPriority,
+    setShowOnboarding,
+    setOnboardingStep,
+    nextOnboardingStep,
+    prevOnboardingStep,
+    skipOnboarding,
+    completeOnboarding,
+    startOnboarding,
     closeAllModals,
     openModal,
   };

@@ -3,17 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { IconButton } from '../ui/IconButton';
-import { FiLock, FiUnlock, FiSettings, FiSave, FiHelpCircle, FiShare2, FiBarChart2, FiEdit3, FiCheck } from 'react-icons/fi';
+import { FiLock, FiUnlock, FiSettings, FiEdit3, FiCheck } from 'react-icons/fi';
 import packageJson from '../../../package.json';
 
 interface AppHeaderProps {
   isViewLocked: boolean;
   onViewLockToggle: () => void;
   onShowSettings: () => void;
-  onShowUserPreferences: () => void;
-  onShowAccessibility: () => void;
-  onShowExport: () => void;
-  onShowAnalytics: () => void;
   isEditMode?: boolean;
   onEditModeToggle?: () => void;
 }
@@ -22,10 +18,6 @@ export function AppHeader({
   isViewLocked,
   onViewLockToggle,
   onShowSettings,
-  onShowUserPreferences,
-  onShowAccessibility,
-  onShowExport,
-  onShowAnalytics,
   isEditMode = false,
   onEditModeToggle
 }: AppHeaderProps) {
@@ -116,42 +108,6 @@ export function AppHeader({
               title="설정"
               ariaLabel="설정"
               dataTestId="settings-button"
-              variant="default"
-            />
-
-            <IconButton
-              icon={<FiSave size={18} />}
-              onClick={onShowUserPreferences}
-              title="내 디자인"
-              ariaLabel="사용자 디자인 관리"
-              dataTestId="design-manage-button"
-              variant="default"
-            />
-
-            <IconButton
-              icon={<FiHelpCircle size={18} />}
-              onClick={onShowAccessibility}
-              title="접근성 설정"
-              ariaLabel="접근성 설정 열기"
-              dataTestId="accessibility-button"
-              variant="default"
-            />
-
-            <IconButton
-              icon={<FiShare2 size={18} />}
-              onClick={onShowExport}
-              title="내보내기 및 공유"
-              ariaLabel="디자인 내보내기 및 공유"
-              dataTestId="export-share-button"
-              variant="default"
-            />
-
-            <IconButton
-              icon={<FiBarChart2 size={18} />}
-              onClick={onShowAnalytics}
-              title="사용 분석"
-              ariaLabel="사용 분석 대시보드"
-              dataTestId="analytics-button"
               variant="default"
             />
           </div>

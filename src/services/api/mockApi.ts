@@ -1,7 +1,8 @@
-﻿import { UploadFurnitureRequest, UploadFurnitureResponse } from '@/types/api';
+﻿import { UploadFurnitureRequest, UploadFurnitureResponse, RoomDimensionsDto } from '@/types/api';
 import { CustomFurnitureItem, FurnitureCategory } from '@/types/furniture';
 import type { SyncStatus } from '@/types/storage';
 import { Euler, Vector3 } from 'three';
+import { DEFAULT_ROOM_DIMENSIONS } from '../../constants/room';
 
 const MOCK_DELAY_MS = 250;
 const ROTATION_SNAP_DEGREES = 15;
@@ -24,6 +25,45 @@ const KNOWN_CATEGORIES: readonly FurnitureCategory[] = [
 ];
 
 const mockFurnitureStore = new Map<string, CustomFurnitureItem>();
+
+const ROOM_DIMENSIONS_STORAGE_KEY = 'bumbum_room_dimensions';
+
+let mockRoomDimensions: RoomDimensionsDto = { ...DEFAULT_ROOM_DIMENSIONS };
+
+const readRoomDimensionsFromStorage = (): RoomDimensionsDto | null => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(ROOM_DIMENSIONS_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as RoomDimensionsDto;
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+
+    return parsed;
+  } catch (error) {
+    console.warn('[MockFurnitureApiService] Failed to read room dimensions from storage:', error);
+    return null;
+  }
+};
+
+const writeRoomDimensionsToStorage = (dimensions: RoomDimensionsDto) => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(ROOM_DIMENSIONS_STORAGE_KEY, JSON.stringify(dimensions));
+  } catch (error) {
+    console.warn('[MockFurnitureApiService] Failed to persist room dimensions:', error);
+  }
+};
 
 const wait = (duration: number) => new Promise((resolve) => setTimeout(resolve, duration));
 
@@ -182,6 +222,26 @@ const createMockFurnitureItem = (
 };
 
 export class MockFurnitureApiService {
+  async getRoomDimensions(): Promise<RoomDimensionsDto> {
+    await wait(MOCK_DELAY_MS / 2);
+
+    const stored = readRoomDimensionsFromStorage();
+    if (stored) {
+      mockRoomDimensions = { ...mockRoomDimensions, ...stored };
+    }
+
+    return { ...mockRoomDimensions };
+  }
+
+  async updateRoomDimensions(dimensions: RoomDimensionsDto): Promise<RoomDimensionsDto> {
+    await wait(MOCK_DELAY_MS / 2);
+
+    mockRoomDimensions = { ...mockRoomDimensions, ...dimensions };
+    writeRoomDimensionsToStorage(mockRoomDimensions);
+
+    return { ...mockRoomDimensions };
+  }
+
   async uploadFurniture(data: UploadFurnitureRequest): Promise<UploadFurnitureResponse> {
     await wait(MOCK_DELAY_MS);
 

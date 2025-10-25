@@ -24,6 +24,11 @@ const RoomSizeSettings = dynamic(() => import('../features/room/RoomSizeSettings
   loading: () => null
 });
 
+const RoomSizeControlPanel = dynamic(() => import('../features/room/RoomSizeControlPanel'), { 
+  ssr: false,
+  loading: () => null
+});
+
 const EnhancedFurnitureCatalog = dynamic(() => import('../features/furniture/EnhancedFurnitureCatalog'), { 
   ssr: false,
   loading: () => null
@@ -85,9 +90,11 @@ const UnifiedCameraControls = dynamic(() => import('./UnifiedCameraControls'), {
 });
 
 // 유틸리티 임포트
-import { updateRoomDimensions, isFurnitureInRoom, constrainFurnitureToRoom, getRoomBoundaries } from '../../utils/roomBoundary';
+import { isFurnitureInRoom, constrainFurnitureToRoom, getRoomBoundaries } from '../../utils/roomBoundary';
 import '../../utils/modelSizeAnalyzer';
-import { useEditorMode, setMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, selectItem, addItem, clearAllItems, useIsDragging, useCurrentFloorTexture, setFloorTexture, useCurrentWallTexture, useEditorStore } from '../../store/editorStore';
+import { useEditorMode, usePlacedItems, useSelectedItemId, updateItem, removeItem, addItem, clearAllItems, useIsDragging, useCurrentFloorTexture, useCurrentWallTexture, useRoomDimensionsState, loadRoomDimensions, useEditorStore } from '../../store/editorStore';
+import { useFurnitureInitializer } from '../../hooks/useFurnitureInitializer';
+import { useFurnitureAutoSave } from '../../hooks/useFurnitureAutoSave';
 import { 
   enableScrollLock, 
   disableScrollLock, 
@@ -100,7 +107,7 @@ import { getSafeTouchArea, getUIOcclusionInsets } from '../../utils/mobileHtmlCo
 
 // 타입 임포트
 import { FurnitureItem } from '../../types/furniture';
-import { PlacedItem, PerformanceOptions, RoomBounds } from '../../types/editor';
+import { PlacedItem, PerformanceOptions, RoomBounds, RoomDimensions } from '../../types/editor';
 import { createPlacedItemFromFurniture, sampleFurniture } from '../../data/furnitureCatalog';
 import { applyOverridesToItems } from '@/utils/furnitureOverrides';
 import { getBuiltInOverrideUrls } from '@/utils/assetOverrides';
@@ -136,7 +143,7 @@ const useClientSideReady = () => {
     if (typeof window !== 'undefined') {
       setIsReady(true);
     }
-  }, []);
+  }, [loadRoomDimensions]);
 
   return isReady;
 };
@@ -179,7 +186,7 @@ function BottomSheetCatalog({
     const dy = dragState.current.startY - e.clientY;
     const newH = Math.max(vh() * 0.2, Math.min(vh(), dragState.current.startH + dy));
     setHeightPx(newH);
-  }, []);
+  }, [loadRoomDimensions]);
 
   const onPointerUp = useCallback(() => {
     if (!dragState.current.dragging) return;
@@ -244,6 +251,12 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
   performanceOptions = {},
   onRoomBoundsChange
 }) => {
+  // 가구 데이터 초기화 (페이지 로드 시)
+  useFurnitureInitializer();
+  
+  // 자동 저장 활성화 (상태 변경 감지)
+  useFurnitureAutoSave();
+
   // 클라이언트 사이드 준비 상태
   const isClientReady = useClientSideReady();
   
@@ -288,7 +301,7 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
       } catch {}
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [loadRoomDimensions]);
 
   // Load built-in asset override URLs
   useEffect(() => {
@@ -323,6 +336,7 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
   const [showFurnitureCatalog, setShowFurnitureCatalog] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [showRoomSizeSettings, setShowRoomSizeSettings] = useState(false);
+  const [showRoomSizePanel, setShowRoomSizePanel] = useState(false);
   const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isPlacingFurniture, setIsPlacingFurniture] = useState(false);
@@ -332,6 +346,12 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
 
   // 메모리 관리 상태
   const cleanupRefs = useRef<Set<() => void>>(new Set());
+
+  useEffect(() => {
+    loadRoomDimensions().catch((error) => {
+      console.warn('[Room3DContainer] Failed to load room dimensions:', error);
+    });
+  }, [loadRoomDimensions]);
 
   // DPR 고정 범위 계산
   const deviceDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
@@ -345,10 +365,12 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
   const isDragging = useIsDragging();
   const currentFloorTexture = useCurrentFloorTexture();
   const currentWallTexture = useCurrentWallTexture();
+  const roomDimensions = useRoomDimensionsState();
   const selectItem = useEditorStore((state) => state.selectItem);
 
   // 카메라 컨트롤러 ref
   const cameraControlsRef = useRef<import('camera-controls').default>(null);
+  const previousRoomDimensionsRef = useRef<RoomDimensions | null>(null);
 
   // 3D 위치를 화면 좌표로 변환하는 함수
   const worldToScreen = useCallback((worldPosition: { x: number; y: number; z: number }) => {
@@ -392,6 +414,37 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
     }
   }, [selectedItemId, placedItems, worldToScreen]);
 
+  useEffect(() => {
+    const previous = previousRoomDimensionsRef.current;
+    if (
+      previous &&
+      previous.width === roomDimensions.width &&
+      previous.depth === roomDimensions.depth &&
+      previous.height === roomDimensions.height &&
+      previous.margin === roomDimensions.margin
+    ) {
+      return;
+    }
+
+    previousRoomDimensionsRef.current = roomDimensions;
+
+    onRoomBoundsChange?.({
+      width: roomDimensions.width,
+      depth: roomDimensions.depth,
+      height: roomDimensions.height,
+      wallThickness: roomDimensions.wallThickness
+    });
+
+    placedItems.forEach((item) => {
+      if (!isFurnitureInRoom(item)) {
+        const constrainedItem = constrainFurnitureToRoom(item);
+        if (!item.position.equals(constrainedItem.position)) {
+          updateItem(item.id, { position: constrainedItem.position });
+        }
+      }
+    });
+  }, [roomDimensions, placedItems, updateItem, onRoomBoundsChange, isFurnitureInRoom, constrainFurnitureToRoom]);
+
   // 가구 이동 시 플로팅 컨트롤 위치 실시간 추적
   useEffect(() => {
     if (!selectedItemId) return;
@@ -419,7 +472,7 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [loadRoomDimensions]);
 
   // 편집 모드 결정
   const isEditMode = externalEditMode ?? storeEditMode;
@@ -470,7 +523,7 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
     setIsPlacingFurniture(true);
     // 가구 선택 후 카탈로그 닫기
     setShowFurnitureCatalog(false);
-  }, []);
+  }, [loadRoomDimensions]);
 
   // 가구 배치 핸들러
   const handleFurniturePlace = useCallback((position: Vector3) => {
@@ -760,6 +813,8 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
           showFurnitureCatalog={showFurnitureCatalog}
           onToggleTemplateSelector={() => setShowTemplateSelector(!showTemplateSelector)}
           showTemplateSelector={showTemplateSelector}
+          onToggleRoomSizePanel={() => setShowRoomSizePanel(!showRoomSizePanel)}
+          showRoomSizePanel={showRoomSizePanel}
           isMobileDevice={isMobile}
         />
       )}
@@ -784,19 +839,16 @@ const Room3DContainer: React.FC<Room3DContainerProps> = React.memo(({
       {/* 룸 크기 설정 */}
       {showRoomSizeSettings && (
         <RoomSizeSettings
+          isOpen={showRoomSizeSettings}
           onClose={() => setShowRoomSizeSettings(false)}
-          onRoomBoundsChange={(newBounds) => {
-            updateRoomDimensions(newBounds);
-            onRoomBoundsChange?.(newBounds);
-            
-            // 기존 가구들이 새로운 방 크기에 맞는지 검증
-            placedItems.forEach(item => {
-              if (!isFurnitureInRoom(item)) {
-                const constrainedItem = constrainFurnitureToRoom(item);
-                updateItem(item.id, { position: constrainedItem.position });
-              }
-            });
-          }}
+        />
+      )}
+
+      {/* 방 크기 조절 패널 (Agent B UI) */}
+      {isEditMode && (
+        <RoomSizeControlPanel
+          isOpen={showRoomSizePanel}
+          onClose={() => setShowRoomSizePanel(false)}
         />
       )}
 

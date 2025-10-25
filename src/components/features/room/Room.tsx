@@ -3,7 +3,7 @@
 import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame, useThree, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
-import { getCurrentRoomDimensions } from '../../../utils/roomBoundary';
+import { useRoomDimensionsState } from '@/store/editorStore';
 import { useWallFades } from '../../../store/wallVisibilityStore';
 import { patchObjectWithWallFade, setWallFadeValue, applyFadeFlagsToObject } from '@/lib/wallFadeShader';
 import { setVisibleWalls, setWallFades } from '../../../store/wallVisibilityStore';
@@ -19,7 +19,7 @@ interface RoomProps {
 
 export default function Room({ receiveShadow = false, floorTexturePath, wallTexturePath, onBoundsChange }: RoomProps) {
   const roomRef = useRef<THREE.Group>(null);
-  const dims = getCurrentRoomDimensions();
+  const dims = useRoomDimensionsState();
   const wallThickness = dims.wallThickness; // 벽 두께 (미터)
   const floorThickness = 0.3; // 바닥 두께 (미터)
   const halfWidth = dims.width / 2;
@@ -62,7 +62,7 @@ export default function Room({ receiveShadow = false, floorTexturePath, wallText
       };
       onBoundsChange(bounds);
     }
-  }, [dims, onBoundsChange]);
+  }, [dims.width, dims.depth, dims.height, dims.wallThickness, onBoundsChange]);
 
   // Store-driven fade application (values computed by WallFadeController)
   useFrame(() => {

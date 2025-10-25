@@ -15,6 +15,7 @@ import UserPreferences from '../components/features/modals/UserPreferences';
 import AccessibilitySettings from '../components/shared/AccessibilitySettings';
 import ExportShareTools from '../components/features/modals/ExportShareTools';
 import AnalyticsDashboard from '../components/shared/AnalyticsDashboard';
+import OnboardingModal from '../components/features/modals/OnboardingModal';
 import { useSelectedItemId, removeItem, undo, redo, canUndo, canRedo, selectItem } from '../store/editorStore';
 import { useUIManager } from '../hooks/useUIManager';
 import { memoryManager } from '../utils/memoryManager';
@@ -62,10 +63,6 @@ export default function HomePage() {
               isViewLocked={uiManager.isViewLocked}
               onViewLockToggle={uiManager.toggleViewLock}
               onShowSettings={uiManager.toggleShowSettings}
-              onShowUserPreferences={() => uiManager.openModal('userPreferences')}
-              onShowAccessibility={() => uiManager.openModal('accessibility')}
-              onShowExport={() => uiManager.openModal('export')}
-              onShowAnalytics={() => uiManager.openModal('analytics')}
               isEditMode={uiManager.isEditMode}
               onEditModeToggle={uiManager.toggleEditMode}
             />
@@ -78,6 +75,12 @@ export default function HomePage() {
                 onViewLockChange={uiManager.setViewLocked}
                 onEditModeChange={uiManager.setEditMode}
                 onClose={() => uiManager.setShowSettings(false)}
+                hasCompletedOnboarding={uiManager.hasCompletedOnboarding}
+                onStartOnboarding={uiManager.startOnboarding}
+                onShowUserPreferences={() => uiManager.openModal('userPreferences')}
+                onShowAccessibility={() => uiManager.openModal('accessibility')}
+                onShowExport={() => uiManager.openModal('export')}
+                onShowAnalytics={() => uiManager.openModal('analytics')}
               />
             ) : undefined
           }
@@ -148,6 +151,18 @@ export default function HomePage() {
           isOpen={uiManager.showAnalytics}
           onClose={() => uiManager.setShowAnalytics(false)}
           isMobile={false}
+        />
+
+        {/* 온보딩 모달 */}
+        <OnboardingModal
+          isOpen={uiManager.showOnboarding}
+          onClose={() => uiManager.setShowOnboarding(false)}
+          isMobile={false}
+          currentStep={uiManager.onboardingStep}
+          onNext={uiManager.nextOnboardingStep}
+          onPrev={uiManager.prevOnboardingStep}
+          onSkip={uiManager.skipOnboarding}
+          onComplete={uiManager.completeOnboarding}
         />
       </div>
     </AccessibilityProvider>

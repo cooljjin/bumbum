@@ -12,9 +12,11 @@ import {
   RotationSnapSettings,
   SnapStrengthSettings,
   EditHistory,
-  CompressedState
+  CompressedState,
+  RoomDimensions,
+  RoomDimensionValidation
 } from '../types/editor';
-import { 
+import {
   storageManager,
   saveLayout as saveLayoutUtil,
   loadLayout as loadLayoutUtil,
@@ -24,8 +26,16 @@ import {
   getStorageUsage as getStorageUsageUtil,
   cleanupStorage as cleanupStorageUtil
 } from '../utils/storageManager';
-import { isFurnitureInRoom, constrainFurnitureToRoom, clampWallMountedItem } from '../utils/roomBoundary';
+import {
+  isFurnitureInRoom,
+  constrainFurnitureToRoom,
+  clampWallMountedItem,
+  setRoomDimensions as setBoundaryRoomDimensions
+} from '../utils/roomBoundary';
 import { checkCollisionWithOthers, moveToSafePosition, checkWallOverlapWithOthers, findNonOverlappingWallPosition } from '../utils/collisionDetection';
+import { DEFAULT_ROOM_DIMENSIONS, ROOM_DIMENSION_LIMITS, ROOM_DIMENSION_STORAGE_KEY } from '../constants/room';
+import { ApiFactory, type FurnitureApiService } from '../services/api/apiFactory';
+import { getStorageConfig } from '../config/storage';
 
 // 성능 최적화를 위한 상수
 const PERFORMANCE_CONSTANTS = {
@@ -35,6 +45,123 @@ const PERFORMANCE_CONSTANTS = {
   DEBOUNCE_DELAY: 150 // 디바운스 지연 시간
 } as const;
 
+const clampToRange = (value: number, range: { min: number; max: number }): number => {
+  if (!Number.isFinite(value)) {
+    return range.min;
+  }
+  return Math.min(range.max, Math.max(range.min, value));
+};
+
+const computeMarginUpperBound = (width: number, depth: number): number => {
+  const halfShortest = Math.min(width, depth) / 2;
+  const upper = Math.max(ROOM_DIMENSION_LIMITS.margin.min, halfShortest - 0.05);
+  return Math.min(upper, ROOM_DIMENSION_LIMITS.margin.max);
+};
+
+const normaliseRoomDimensions = (raw: Partial<RoomDimensions>): RoomDimensions => {
+  const width = clampToRange(raw.width ?? DEFAULT_ROOM_DIMENSIONS.width, ROOM_DIMENSION_LIMITS.width);
+  const depth = clampToRange(raw.depth ?? DEFAULT_ROOM_DIMENSIONS.depth, ROOM_DIMENSION_LIMITS.depth);
+  const height = clampToRange(raw.height ?? DEFAULT_ROOM_DIMENSIONS.height, ROOM_DIMENSION_LIMITS.height);
+  const wallThicknessSource = raw.wallThickness ?? DEFAULT_ROOM_DIMENSIONS.wallThickness;
+  const wallThickness = Number.isFinite(wallThicknessSource)
+    ? Math.max(0.05, wallThicknessSource as number)
+    : DEFAULT_ROOM_DIMENSIONS.wallThickness;
+  const marginUpper = computeMarginUpperBound(width, depth);
+  const margin = clampToRange(raw.margin ?? DEFAULT_ROOM_DIMENSIONS.margin, {
+    min: ROOM_DIMENSION_LIMITS.margin.min,
+    max: marginUpper
+  });
+
+  return {
+    width,
+    depth,
+    height,
+    wallThickness,
+    margin
+  };
+};
+
+const validateRoomDimensionsInternal = (dimensions: RoomDimensions): RoomDimensionValidation => {
+  const errors: RoomDimensionValidation['errors'] = {};
+  const limits = ROOM_DIMENSION_LIMITS;
+
+  if (dimensions.width < limits.width.min || dimensions.width > limits.width.max) {
+    errors.width = `Width must be between ${limits.width.min}m and ${limits.width.max}m.`;
+  }
+
+  if (dimensions.depth < limits.depth.min || dimensions.depth > limits.depth.max) {
+    errors.depth = `Depth must be between ${limits.depth.min}m and ${limits.depth.max}m.`;
+  }
+
+  if (dimensions.height < limits.height.min || dimensions.height > limits.height.max) {
+    errors.height = `Height must be between ${limits.height.min}m and ${limits.height.max}m.`;
+  }
+
+  const marginUpper = computeMarginUpperBound(dimensions.width, dimensions.depth);
+  if (dimensions.margin < limits.margin.min) {
+    errors.margin = `Margin must be at least ${limits.margin.min}m.`;
+  } else if (dimensions.margin > marginUpper) {
+    errors.margin = `Margin must be ≤ ${marginUpper.toFixed(2)}m for the current room size.`;
+  }
+
+  const shortestSpan = Math.min(dimensions.width, dimensions.depth);
+  if (dimensions.wallThickness <= 0 || dimensions.wallThickness >= shortestSpan / 2) {
+    errors.wallThickness = 'Wall thickness must be positive and smaller than half of the shortest span.';
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+};
+
+const readRoomDimensionsFromLocalStorage = (): RoomDimensions | null => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(ROOM_DIMENSION_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as Partial<RoomDimensions>;
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+
+    return normaliseRoomDimensions(parsed);
+  } catch (error) {
+    console.warn('[ROOM] Failed to read stored room dimensions:', error);
+    return null;
+  }
+};
+
+const persistRoomDimensionsToLocalStorage = (dimensions: RoomDimensions): void => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(ROOM_DIMENSION_STORAGE_KEY, JSON.stringify(dimensions));
+  } catch (error) {
+    console.warn('[ROOM] Failed to persist room dimensions:', error);
+  }
+};
+
+const createInitialRoomDimensions = (): RoomDimensions => normaliseRoomDimensions(DEFAULT_ROOM_DIMENSIONS);
+
+let roomApiService: FurnitureApiService | null = null;
+
+const getRoomApiService = (): FurnitureApiService => {
+  if (!roomApiService) {
+    const config = getStorageConfig();
+    roomApiService = ApiFactory.createApiService(config.service);
+  }
+
+  return roomApiService;
+};
 // 초기 상태 정의
 const initialState: EditorState = {
   // 기본 상태
@@ -91,7 +218,13 @@ const initialState: EditorState = {
   currentFloorTexture: '/models/floor/floor_wooden.png',
 
   // 벽 텍스처 설정
-  currentWallTexture: '/models/wall/wall_beige.png'
+  currentWallTexture: '/models/wall/wall_beige.png',
+
+  roomDimensions: createInitialRoomDimensions(),
+  roomDimensionValidation: {
+    isValid: true,
+    errors: {}
+  }
 };
 
 // 성능 최적화를 위한 유틸리티 함수들
@@ -683,36 +816,65 @@ export const useEditorStore = create<EditorStore>()(
       },
 
       // 현재 상태 저장 (최적화)
-      saveCurrentState: () => {
+            saveCurrentState: () => {
         try {
-          const { placedItems, grid, rotationSnap, snapStrength } = get();
+          const {
+            placedItems,
+            grid,
+            rotationSnap,
+            snapStrength,
+            roomDimensions,
+            currentFloorTexture,
+            currentWallTexture
+          } = get();
+
           const saveData = {
             placedItems,
             grid,
             rotationSnap,
             snapStrength,
+            roomDimensions,
+            settings: {
+              floorTexture: currentFloorTexture,
+              wallTexture: currentWallTexture
+            },
             timestamp: new Date().toISOString()
           };
 
           localStorage.setItem('bumbum_room_state', JSON.stringify(saveData));
-          // console.log('✅ 성능: 룸 상태가 저장되었습니다');
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('[Storage] Saved editor state', {
+              items: placedItems.length,
+              room: roomDimensions
+            });
+          }
         } catch (error) {
-          // console.error('룸 상태 저장 실패:', error);
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('[Storage] Failed to save editor state', error);
+          }
         }
       },
 
       // 저장된 상태 불러오기 (최적화)
-      loadSavedState: () => {
+            loadSavedState: () => {
         try {
           const savedData = localStorage.getItem('bumbum_room_state');
           if (!savedData) {
-            // console.warn('저장된 룸 상태가 없습니다');
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('[Storage] No saved editor state found');
+            }
             return;
           }
 
-          const { placedItems, grid, rotationSnap, snapStrength } = JSON.parse(savedData);
+          const {
+            placedItems,
+            grid,
+            rotationSnap,
+            snapStrength,
+            roomDimensions,
+            settings
+          } = JSON.parse(savedData);
 
-          // 히스토리에 현재 상태 저장
           const { history } = get();
           const newHistory: EditHistory = {
             past: [...history.past, get().placedItems],
@@ -725,13 +887,27 @@ export const useEditorStore = create<EditorStore>()(
             grid: { ...get().grid, ...grid },
             rotationSnap: { ...get().rotationSnap, ...rotationSnap },
             snapStrength: { ...get().snapStrength, ...snapStrength },
+            roomDimensions: roomDimensions ?? get().roomDimensions,
+            currentFloorTexture: settings?.floorTexture ?? get().currentFloorTexture,
+            currentWallTexture: settings?.wallTexture ?? get().currentWallTexture,
             history: newHistory,
             selectedItemId: null
           });
 
-          // console.log('✅ 성능: 룸 상태가 불러와졌습니다');
+          if (roomDimensions) {
+            setBoundaryRoomDimensions(roomDimensions);
+          }
+
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('[Storage] Loaded editor state', {
+              items: placedItems.length,
+              room: roomDimensions
+            });
+          }
         } catch (error) {
-          // console.error('룸 상태 불러오기 실패:', error);
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('[Storage] Failed to load editor state', error);
+          }
         }
       },
 
@@ -853,12 +1029,15 @@ export const useEditorStore = create<EditorStore>()(
       },
 
       // 자동 저장 실행
-      triggerAutoSave: () => {
+            triggerAutoSave: () => {
         try {
           const { placedItems } = get();
           storageManager.autoSave(placedItems);
+          get().saveCurrentState();
         } catch (error) {
-          // console.error('❌ 자동 저장 실패:', error);
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('[AutoSave] Failed to auto-save editor state', error);
+          }
         }
       },
 
@@ -929,6 +1108,88 @@ export const useEditorStore = create<EditorStore>()(
       },
 
       // 스크롤 락 토글 (최적화)
+      setRoomDimensions: (dimensions: RoomDimensions) => {
+        const next = normaliseRoomDimensions(dimensions);
+        const validation = validateRoomDimensionsInternal(next);
+        set({
+          roomDimensions: next,
+          roomDimensionValidation: validation
+        });
+        setBoundaryRoomDimensions(next);
+      },
+
+      updateRoomDimensions: (dimensions: Partial<RoomDimensions>) => {
+        const current = get().roomDimensions;
+        get().setRoomDimensions({
+          ...current,
+          ...dimensions
+        });
+      },
+
+      validateRoomDimensions: (dimensions?: RoomDimensions) => {
+        const target = dimensions
+          ? normaliseRoomDimensions(dimensions)
+          : get().roomDimensions;
+        const validation = validateRoomDimensionsInternal(target);
+        set({ roomDimensionValidation: validation });
+        return validation;
+      },
+
+      loadRoomDimensions: async () => {
+        let target = readRoomDimensionsFromLocalStorage();
+
+        try {
+          const apiService = getRoomApiService();
+          const remote = await apiService.getRoomDimensions();
+          if (remote) {
+            target = normaliseRoomDimensions(remote);
+          }
+        } catch (error) {
+          console.warn('[ROOM] Failed to load room dimensions from API:', error);
+        }
+
+        if (!target) {
+          target = createInitialRoomDimensions();
+        }
+
+        get().setRoomDimensions(target);
+        persistRoomDimensionsToLocalStorage(target);
+
+        return get().roomDimensions;
+      },
+
+      saveRoomDimensions: async (dimensions?: RoomDimensions) => {
+        if (dimensions) {
+          get().setRoomDimensions(dimensions);
+        }
+
+        let current = get().roomDimensions;
+        const validation = validateRoomDimensionsInternal(current);
+        set({ roomDimensionValidation: validation });
+
+        if (!validation.isValid) {
+          return current;
+        }
+
+        setBoundaryRoomDimensions(current);
+
+        try {
+          const apiService = getRoomApiService();
+          const synced = await apiService.updateRoomDimensions(current);
+          current = normaliseRoomDimensions(synced);
+          set({
+            roomDimensions: current,
+            roomDimensionValidation: validateRoomDimensionsInternal(current)
+          });
+          setBoundaryRoomDimensions(current);
+        } catch (error) {
+          console.warn('[ROOM] Failed to sync room dimensions to API:', error);
+        }
+
+        persistRoomDimensionsToLocalStorage(current);
+        return current;
+      },
+
       toggleScrollLock: () => {
         const currentScrollLock = get().scrollLockEnabled;
         set({ scrollLockEnabled: !currentScrollLock });
@@ -1128,6 +1389,20 @@ export const useTextureSettings = () => useEditorStore(
 );
 
 /**
+ * 방 크기 상태를 반환하는 셀렉터
+ */
+export const useRoomDimensionsState = () => useEditorStore(
+  state => state.roomDimensions
+);
+
+/**
+ * 방 크기 검증 결과를 반환하는 셀렉터
+ */
+export const useRoomDimensionValidationState = () => useEditorStore(
+  state => state.roomDimensionValidation
+);
+
+/**
  * 자동 고정 설정을 반환하는 셀렉터
  * @returns 자동 고정 설정 객체
  */
@@ -1206,6 +1481,11 @@ export const {
   setSelectedCategory,
   setFloorTexture,
   setWallTexture,
+  setRoomDimensions,
+  updateRoomDimensions,
+  validateRoomDimensions,
+  loadRoomDimensions,
+  saveRoomDimensions,
   toggleScrollLock,
   setScrollLockEnabled
 } = useEditorStore.getState();

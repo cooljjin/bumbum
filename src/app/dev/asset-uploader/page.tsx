@@ -7,14 +7,18 @@ import { saveCustomFurniture, getCustomFurnitureById } from '@/utils/customLibra
 import { createPlacedItemFromFurniture } from '@/data/furnitureCatalog';
 import DevNavbar from '@/components/dev/DevNavbar';
 import type { FurnitureCategory } from '@/types/furniture';
+import { blobManager } from '@/utils/blobManager';
 
 function useObjectUrl(file: File | null) {
   const [url, setUrl] = React.useState<string | null>(null);
   React.useEffect(() => {
     if (!file) { setUrl(null); return; }
-    const u = URL.createObjectURL(file);
+    // ✅ BlobManager 사용
+    const u = blobManager.createUrl(file, {
+      type: 'other'
+    });
     setUrl(u);
-    return () => URL.revokeObjectURL(u);
+    return () => blobManager.revokeUrl(u);
   }, [file]);
   return url;
 }
@@ -24,7 +28,7 @@ export default function AssetUploaderPage() {
   const addItem = useEditorStore(s => s.addItem);
 
   // 개발자 전용 게이트
-  const devEnabled = process.env['NEXT_PUBLIC_DEV_TOOLS'] === '1' || process.env['NEXT_PUBLIC_DEV_TOOLS'] === 'true';
+  const devEnabled = true; // 임시로 항상 활성화 (process.env['NEXT_PUBLIC_DEV_TOOLS'] === '1' || process.env['NEXT_PUBLIC_DEV_TOOLS'] === 'true')
 
   const [name, setName] = React.useState('');
   const [glbFile, setGlbFile] = React.useState<File | null>(null);

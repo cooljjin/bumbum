@@ -1,4 +1,4 @@
-﻿import type { ApiServiceType, UploadFurnitureRequest, UploadFurnitureResponse } from '@/types/api';
+﻿import type { ApiServiceType, UploadFurnitureRequest, UploadFurnitureResponse, RoomDimensionsDto } from '@/types/api';
 import { CustomFurnitureItem } from '@/types/furniture';
 import type { SyncStatus } from '@/types/storage';
 import { MockFurnitureApiService } from './mockApi';
@@ -10,6 +10,8 @@ export interface FurnitureApiService {
   getFurnitureList(): Promise<CustomFurnitureItem[]>;
   syncStatus(id: string): Promise<SyncStatus>;
   deleteFurniture(id: string): Promise<void>;
+  getRoomDimensions(): Promise<RoomDimensionsDto>;
+  updateRoomDimensions(dimensions: RoomDimensionsDto): Promise<RoomDimensionsDto>;
 }
 
 const FALLBACK_SERVICE = 'mock' satisfies ApiServiceType;

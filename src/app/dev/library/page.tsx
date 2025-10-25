@@ -4,6 +4,7 @@ import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { saveCustomFurniture, getCustomFurnitureItems, deleteCustomFurniture, updateCustomFurnitureMeta, updateCustomFurnitureModel, updateCustomFurnitureThumbnail } from '@/utils/customLibrary';
 import type { FurnitureItem, FurnitureCategory } from '@/types/furniture';
+import { blobManager } from '@/utils/blobManager';
 import { sampleFurniture } from '@/data/furnitureCatalog';
 import { applyOverridesToItems, setOverride, clearOverride, getOverride } from '@/utils/furnitureOverrides';
 import { setBuiltInModelOverride, setBuiltInThumbnailOverride, clearBuiltInModelOverride, clearBuiltInThumbnailOverride, getBuiltInOverrideUrls } from '@/utils/assetOverrides';
@@ -13,9 +14,12 @@ function useObjectUrl(file: File | null) {
   const [url, setUrl] = React.useState<string | null>(null);
   React.useEffect(() => {
     if (!file) { setUrl(null); return; }
-    const u = URL.createObjectURL(file);
+    // ✅ BlobManager 사용
+    const u = blobManager.createUrl(file, {
+      type: 'other'
+    });
     setUrl(u);
-    return () => URL.revokeObjectURL(u);
+    return () => blobManager.revokeUrl(u);
   }, [file]);
   return url;
 }
